@@ -1,0 +1,36 @@
+// KeyLight on-screen strings (Student D's string ROM).
+// Every word drawn on the OLED comes from here, never from Verilog logic.
+//   NAME = "text"                       one string
+//   LIST NAME width = "a", "b", ...     fixed-width table, padded with spaces,
+//                                        so item i starts at base + i*width
+// Characters: A-Z 0-9 and punctuation. Special glyphs (see font5x7.txt):
+//   ^ up arrow   @ down arrow   [ left   ] right   \ note   $ star   # sharp
+// The SONGS list is generated automatically from songs/*.txt titles.
+
+TITLE   = "KEYLIGHT"
+TAGLINE = "PIANO RHYTHM"
+PRESS   = "PRESS C"
+LIST MENU 12  = "PLAY", "LEARN", "FREE PLAY", "HIGH SCORES", "SETTINGS"
+LIST MDESC 16 = "CATCH THE NOTES", "SONG WAITS FOR U", "PIANO + RECORDER", "BEST SCORES", "SOUND AND SCREEN"
+LIST DIFF 6   = "EASY", "NORMAL", "HARD"
+LIST POP 8    = "PERFECT", "GOOD", "MISS"
+LIST COUNT 4  = "3", "2", "1", "GO!"
+LIST RES 8    = "PERFECT", "GOOD", "MISS", "ACC", "MAX"
+SELECT  = "SELECT SONG"
+BPM     = "BPM"
+BEST    = "BEST"
+RESULTS = "RESULTS"
+SOON    = "COMING SOON"
+PAUSED  = "PAUSED"
+PAUSEH  = "SW0 DOWN:RESUME"
+TIP     = "FLIP LIT SWITCH"
+FREET   = "FREE PLAY"
+FREEH   = "FLIP ANY SWITCH"
+LANES   = "CDEFGABC"
+GRADES  = "SABCD"
+NOTES   = "C C#D D#E F F#G G#A A#B C "
+H_TITLE = "C:START"
+H_MENU  = "^@:MOVE C:OK"
+H_SONG  = "^@ R:LEVEL C:GO"
+H_RES   = "C:OK R:RETRY"
+H_BACK  = "L:BACK"

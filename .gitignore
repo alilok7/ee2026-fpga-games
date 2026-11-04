@@ -1,0 +1,16 @@
+# Vivado / simulator output (rebuild with the scripts)
+build/
+vivado/
+.Xil/
+*.jou
+*.log
+*.str
+*.wdb
+*.pb
+xsim.dir/
+webtalk*
+usage_statistics*
+sim/run/
+__pycache__/
+# Course material is not redistributed
+*.pdf

@@ -1,0 +1,62 @@
+// StrikeLine on-screen strings (Student D's string ROM, also used by Student A).
+// Every word on the OLED comes from here, never from Verilog logic.
+//   NAME = "text"                       one string
+//   LIST NAME width = "a", "b", ...     fixed-width table, item i at S_NAME + i*width
+// Special glyphs: ^ up  @ down  [ left  ] right  $ star  & block  \ bullet
+
+// ---- title and main menu (5x7 font, 16 columns) ----
+TITLE1  = "STRIKE"
+TITLE2  = "LINE"
+CLICK   = "CLICK TO PLAY"
+LIST MENU 11  = "RESUME GAME", "QUICK GAME", "FULL GAME", "PRACTICE", "HIGH SCORES", "SETTINGS", "HELP"
+// menu hints (3x5 font, 24 columns)
+LIST MHINT 24 = "CONTINUE YOUR SAVED GAME", "FRAMES 8-10  CLICK P=1/2", "10 FRAMES   CLICK P=1/2", "SWIPE LAB AND SPARES", "TOP 5 GAMES AND STATS", "OIL BALL HAND SCREEN", "HOW TO THROW", "NO SAVED GAME YET"
+LIST CHIP 2   = "1P", "2P"
+
+// ---- practice ----
+PRACT   = "PRACTICE"
+LIST PRAC 15  = "SWIPE LAB", "SPARE CHALLENGE", "BACK"
+LIST LEAVE 7  = "10 PIN", "7-10", "4-6", "3-6-10", "BUCKET", "5-7", "6-7-10", "1-2-4-7"
+PRACH   = "CLICK LEAVE TO CHANGE IT"
+
+// ---- settings ----
+SETT    = "SETTINGS"
+BACKH   = "R-CLK:BACK"
+LIST SETN 6   = "OIL", "BALL", "HAND", "MOUSE", "THEME", "BRIGHT", "ERASE"
+LIST SETV 5   = "SHORT", "LONG", "12 LB", "14 LB", "16 LB", "RIGHT", "LEFT", "WOOD", "NEON", "SAVES", "SURE?", "DONE"
+
+// ---- high scores ----
+TOP5    = "TOP 5"
+LIST TABS 5   = "FULL", "QUICK"
+STRK    = "STRIKES"
+SPRS    = "SPARES"
+GAMES   = "GAMES"
+BEST    = "BEST"
+
+// ---- help (3x5 font) ----
+HELPT   = "HOW TO BOWL"
+LIST HELP 24  = "MOVE MOUSE: PICK BOARD", "HOLD L-CLICK ON LANE", "FLICK UP, THEN LET GO", "FASTER FLICK = FASTER", "CURVE THE FLICK = HOOK", "R-CLICK: SCORECARD", "SW0 PAUSE  SW2 DEBUG", "SW3 SLOW-MO  SW1 MAP"
+
+// ---- game over / initials ----
+GOVER   = "GAME OVER"
+WINS    = "WINS!"
+TIE     = "TIE GAME"
+NEWHI   = "NEW HIGH SCORE!"
+CONT    = "CLICK TO CONTINUE"
+ENTER   = "ENTER INITIALS"
+NAMEH   = "WHEEL:LETTER CLICK:OK"
+
+// ---- in game (D) ----
+LIST POP 8    = "STRIKE!", "SPARE!", "GUTTER", "SPLIT!", "TURKEY!", "DOUBLE!", "CLEARED!", "MISSED", "PINS", "FRAME", "UP NEXT"
+LIST HINT 15  = "GRAB + FLICK UP", "LET GO = THROW", "M-CLK: REPLAY", "R-CLK: BACK", "PAUSED", "REPLAY", "SAVING", "SW0 TO RESUME"
+BALLW   = "BALL"
+SCOREW  = "SCORE"
+
+// ---- gesture labels (A) ----
+LIST AMSG 13  = "SWIPE FASTER", "SWIPE FORWARD", "CANCELLED"
+HOOKW   = "HOOK"
+STRT    = "STRAIGHT"
+LIST LABW 4   = "SPD", "AIM", "SPIN", "PTS", "BD"
+LAB     = "SWIPE LAB"
+LABH    = "SWIPE ANYWHERE"
+POWERW  = "PWR"

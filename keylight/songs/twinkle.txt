@@ -1,0 +1,10 @@
+// Twinkle Twinkle Little Star (traditional, public domain)
+// NOTE BEATS ; one beat = a quarter note
+TITLE TWINKLE
+BPM 96
+C4 1, C4 1, G4 1, G4 1, A4 1, A4 1, G4 2
+F4 1, F4 1, E4 1, E4 1, D4 1, D4 1, C4 2
+G4 1, G4 1, F4 1, F4 1, E4 1, E4 1, D4 2
+G4 1, G4 1, F4 1, F4 1, E4 1, E4 1, D4 2
+C4 1, C4 1, G4 1, G4 1, A4 1, A4 1, G4 2
+F4 1, F4 1, E4 1, E4 1, D4 1, D4 1, C4 2
