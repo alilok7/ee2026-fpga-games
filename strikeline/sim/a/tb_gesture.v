@@ -34,7 +34,7 @@ module tb_gesture;
     swipe_capture u_cap (
         .clk(clk), .rst(rst), .tick_sample(tick_sample), .tick_1ms(tick_1ms), .game_state(gs),
         .busy(fbusy), .delta_valid(dv), .delta_x(ddx), .delta_y(ddy), .l_press(lp), .l_release(lr),
-        .r_press(rp), .cursor_x(cx), .cursor_y(cy), .rd_addr(rd_addr), .rd_data(rd_data), .wp(wp),
+        .r_press(rp), .nudge_l(1'b0), .nudge_r(1'b0), .cursor_x(cx), .cursor_y(cy), .rd_addr(rd_addr), .rd_data(rd_data), .wp(wp),
         .n_samples(n_s), .grabbing(grabbing), .swipe_done(sdone), .swipe_cancel(scancel),
         .too_short(sshort), .stance_x(stance), .live_power(lpow), .trail_bus(tbus), .trail_valid(tval));
 

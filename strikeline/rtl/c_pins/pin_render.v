@@ -28,11 +28,40 @@ module pin_render (
     input  wire [9:0]   rake_y,
     input  wire         wobble_phase,
     input  wire         debug,
+    input  wire         fp,              // first-person view
+    input  wire [179:0] pins_fp,         // 10 x {vis, x[7:0], base row[5:0], size class[2:0]}
     output reg  [15:0]  color,
     output reg          en
 );
     reg [1:0] spr_rom [0:2047];
-    initial $readmemh("pin_sprites.mem", spr_rom);
+    reg [3:0] fp_rom  [0:127];            // {red, half-width} per {size class, row above base}
+    initial begin
+        $readmemh("pin_sprites.mem", spr_rom);
+        $readmemh("pin_fp.mem", fp_rom);
+    end
+
+    // ---------------- first person: standing pins seen from behind ---------
+    // pin 1 is nearest the camera, so the lowest pin number wins (occlusion)
+    reg        fp_hit, fp_red;
+    integer    kk;
+    reg [17:0] o;
+    reg signed [8:0] odx;
+    reg [8:0]  oax;
+    reg signed [7:0] ov;
+    reg [3:0]  w;
+    always @(*) begin
+        fp_hit = 1'b0; fp_red = 1'b0;
+        for (kk = 9; kk >= 0; kk = kk - 1) begin
+            o   = pins_fp[18*kk +: 18];
+            odx = $signed({2'b00, px_x}) - $signed({o[16], o[16:9]});
+            oax = odx[8] ? -odx : odx;
+            ov  = $signed({2'b00, o[8:3]}) - $signed({2'b00, px_y});    // rows above the base
+            w   = fp_rom[{o[2:0], ov[3:0]}];
+            if (o[17] && ov >= 0 && ov <= 15 && w != 4'hF && oax <= {6'd0, w[2:0]}) begin
+                fp_hit = 1'b1; fp_red = w[3];
+            end
+        end
+    end
 
     wire signed [11:0] wy = cam_y + 12'sd63 - $signed({6'd0, px_y});
 
@@ -117,7 +146,9 @@ module pin_render (
 
     always @(*) begin
         en = 1'b0; color = `C_WHITE;
-        if (px_x < `SCR_LANE_W) begin
+        if (fp) begin
+            if (px_x < `SCR_LANE_W && fp_hit) begin en = 1'b1; color = fp_red ? `C_RED : `C_WHITE; end
+        end else if (px_x < `SCR_LANE_W) begin
             if (hit && pick_up) begin
                 en = 1'b1; color = (pc == 2'd2) ? `C_RED : white;
             end else if (on_rake) begin

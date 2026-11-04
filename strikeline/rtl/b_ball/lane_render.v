@@ -18,10 +18,13 @@
 //           the oil zone, the ball, the path the ball has taken
 //           (ball_trace) and a bracket for the part of the lane on screen.
 //=============================================================================
+(* use_dsp = "yes" *)   // multiplies go to idle DSP slices (saves LUTs; resource squeeze)
 module lane_render (
     input  wire [6:0]  px_x,
     input  wire [5:0]  px_y,
     input  wire signed [10:0] cam_y,
+    input  wire        fp,               // first-person view (else overhead)
+    input  wire signed [10:0] cam_fp,    // first-person camera (world y, inches)
     input  wire [`SET_W-1:0] settings,
     input  wire        minimap_on,
     input  wire [15:0] ball_x,
@@ -35,7 +38,23 @@ module lane_render (
     output reg         en
 );
     wire neon = settings[`SET_THEME];
-    wire signed [11:0] wy = cam_y + 12'sd63 - $signed({6'd0, px_y});
+    // ---------------- screen pixel -> lane point ------------------------------
+    // overhead: 1 px = 1 in, lane x = px, lane y = cam_y + 63 - py
+    // first person: row py looks dist[py] inches ahead of the camera and
+    //   lane x = 30 + (px - 30) * inv[py] / 256   (persp.mem, one multiply)
+    reg [25:0] persp_rom [0:63];
+    initial $readmemh("persp.mem", persp_rom);
+    wire [25:0] pr   = persp_rom[px_y];
+    wire [10:0] pdst = pr[25:15];
+    wire [14:0] pinv = pr[14:0];
+    wire signed [22:0] pmul = $signed({1'b0, px_x} - 8'sd30) * $signed({1'b0, pinv});
+    wire signed [11:0] fx_s = 12'sd30 + (pmul >>> 8);
+    wire sky      = fp && (px_y <= 6'd12);
+    wire off_lane = fp && (fx_s < 0 || fx_s > 12'sd59);           // beside the lane
+    wire [6:0] lx = fp ? fx_s[6:0] : px_x;                        // lane x (inches)
+    wire signed [11:0] wy = fp ? $signed({cam_fp[10], cam_fp}) + $signed({1'b0, pdst})
+                               : cam_y + 12'sd63 - $signed({6'd0, px_y});
+    wire fine = !fp || (pinv <= 15'd512);      // boards visible only where 1 in >= 0.5 px
     wire [9:0] oil_in = settings[`SET_OIL] ? 10'd540 : 10'd480;
 
     // ---------------- palettes ----------------------------------------------
@@ -82,14 +101,14 @@ module lane_render (
         end
     endfunction
 
-    wire gutter_l = (px_x <= 7'd8);
-    wire gutter_r = (px_x >= 7'd51) && (px_x <= 7'd59);
-    wire gut_mid  = (px_x == 7'd4) || (px_x == 7'd5) || (px_x == 7'd54) || (px_x == 7'd55);
-    wire wall     = (px_x == 7'd0 || px_x == 7'd59) && (wy >= 12'sd690);
-    wire dots     = (wy == 12'sd84) && (px_x == 7'd47 || px_x == 7'd45 || px_x == 7'd42 ||
-                     px_x == 7'd18 || px_x == 7'd15 || px_x == 7'd13);
+    wire gutter_l = (lx <= 7'd8);
+    wire gutter_r = (lx >= 7'd51) && (lx <= 7'd59);
+    wire gut_mid  = (lx == 7'd4) || (lx == 7'd5) || (lx == 7'd54) || (lx == 7'd55);
+    wire wall     = (lx == 7'd0 || lx == 7'd59) && (wy >= 12'sd690);
+    wire dots     = (wy == 12'sd84) && (lx == 7'd47 || lx == 7'd45 || lx == 7'd42 ||
+                     lx == 7'd18 || lx == 7'd15 || lx == 7'd13);
     // oil sheen: thin diagonal glints every 32 rows (they slide past as the camera scrolls)
-    wire sheen    = ((wy[4:0] + {px_x[3:0], 1'b0}) & 5'h1F) == 5'd0;
+    wire sheen    = fine && (((wy[4:0] + {lx[3:0], 1'b0}) & 5'h1F) == 5'd0);
 
     // ---------------- minimap ------------------------------------------------
     wire [6:0]  mx   = px_x - `SCR_MAP_X0;                    // 0..8
@@ -123,15 +142,19 @@ module lane_render (
         color = `C_BLACK;
         if (px_x < `SCR_LANE_W) begin
             // ------------------------- lane view --------------------------
-            if (wall)                         color = c_wall;
+            if (sky)                          color = (px_y >= 6'd9) ? (neon ? 16'h300C : 16'h4208) :
+                                                          (neon ? 16'h0806 : 16'h0109);       // masking unit
+            else if (off_lane)                color = neon ? 16'h1004 : 16'h2104;            // next to the lane
+            else if (wall)                    color = c_wall;
             else if (wy >= 12'sd756)          color = (wy >= 12'sd770) ? 16'h18E3 : `C_BLACK;  // pit
             else if (gutter_l || gutter_r)    color = gut_mid ? c_gut_mid : c_gutter;
-            else if (wy < 0)                  color = (wy[3:0] == 4'h0 && px_x[2:0] == 3'd4) ? c_spot : c_approach;
-            else if (wy == 0)                 color = c_foul;
-            else if (wy >= 12'sd708)          color = spot_hit(px_x, wy) ? c_spot : c_deck;
-            else if (arrow_hit(px_x, wy) || dots) color = c_arrow;
+            else if (wy < 0)                  color = (wy[3:0] == 4'h0 && lx[2:0] == 3'd4) ? c_spot : c_approach;
+            else if (wy == 0 || (fp && wy > 0 && wy < 12'sd3))
+                                              color = c_foul;     // (first person: 2 in so far rows still hit it)
+            else if (wy >= 12'sd708)          color = spot_hit(lx, wy) ? c_spot : c_deck;
+            else if (arrow_hit(lx, wy) || dots) color = c_arrow;
             else if (wy < $signed({2'b00, oil_in}) && sheen) color = c_oil;
-            else                              color = px_x[0] ? c_board_a : c_board_b;
+            else                              color = (fine && lx[0]) ? c_board_a : c_board_b;
         end else if (minimap_on && px_x >= `SCR_MAP_X0 && px_x <= `SCR_MAP_X0 + 7'd8) begin
             // ------------------------- minimap -----------------------------
             if (px_y < 6'd4 && mx != 0 && mx != 8)

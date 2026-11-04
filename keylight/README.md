@@ -2,8 +2,8 @@
 
 EE2026 I-FDP, AY2026/27 Sem 1. Flip a switch to play a note, and follow the guide light above each switch. The OLED shows falling notes, menus and an on-screen piano.
 
-- The full spec is in `KeyLight_Engineer_Prompt.md`.
-- Ownership and the roadmap are in `KeyLight_Roadmap_and_Work_Split.md`.
+- The full spec is in `../prompts/KeyLight_Engineer_Prompt.md`.
+- Ownership and the roadmap are in `../prompts/KeyLight_Roadmap_and_Work_Split.md`.
 - Every signal between parts is described in `docs/INTERFACES.md`.
 
 ## Hardware

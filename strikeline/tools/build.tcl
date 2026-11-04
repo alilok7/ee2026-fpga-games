@@ -6,7 +6,8 @@
 #   drc.rpt, failing_paths.txt (empty = timing met)
 set root  [file normalize [file join [file dirname [info script]] ..]]
 set dest  [file join $root build]
-set work  [file normalize [file join $::env(TEMP) strikeline_build]]
+# a fresh work folder per run: a locked .Xil folder from an older run cannot block it
+set work  [file normalize [file join $::env(TEMP) strikeline_build_[clock seconds]]]
 set part  xc7a35tcpg236-1
 file delete -force $work
 file mkdir $dest

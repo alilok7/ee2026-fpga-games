@@ -90,12 +90,13 @@ module tb_screens;
             force u_top.u_swipe.hold_samples = 10'd0;
             force u_top.u_turn.ms = 12'd200;
             if (cam > -100) force u_top.u_cam.cam_y = cam;
+            if (cam > -100 && cam < 690) force u_top.u_cam.cam_fp = cam - 26;   // first person: 40 in behind the ball
         end
     endtask
     task thaw;
         begin
             release u_top.tick_phys; release u_top.u_swipe.hold_samples;
-            release u_top.u_turn.ms; release u_top.u_cam.cam_y;
+            release u_top.u_turn.ms; release u_top.u_cam.cam_y; release u_top.u_cam.cam_fp;
         end
     endtask
 

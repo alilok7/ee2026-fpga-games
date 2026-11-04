@@ -33,6 +33,11 @@ module ball_render (
     input  wire [1:0]  ball_lb,
     input  wire [5:0]  angle,
     input  wire        debug,
+    input  wire        fp,               // first-person view: ball from persp_proj
+    input  wire        fb_vis,
+    input  wire signed [7:0] fb_x,
+    input  wire [5:0]  fb_row,           // floor contact row
+    input  wire [2:0]  fb_rad,
     input  wire        contact_pulse,
     input  wire [15:0] contact_px,
     input  wire [15:0] contact_py,
@@ -75,18 +80,27 @@ module ball_render (
     wire [15:0] lit   = base | 16'h4208;                                    // brighter
     wire [15:0] shade = {1'b0, base[15:12], 1'b0, base[10:6], 1'b0, base[4:1]};   // half
 
-    // ---------------- debug: velocity line and contact cross ---------------
-    wire signed [9:0] ex = ball_vx >>> 6;                                   // px
-    wire signed [9:0] ey = -(ball_vy >>> 6);                                // screen up
-    wire signed [9:0]  dxs = dx[9:0], dys = dy[9:0];    // part-selects are unsigned
-    wire signed [21:0] crs = dxs * ey - dys * ex;
-    wire signed [21:0] dot = dxs * ex + dys * ey;
-    wire signed [21:0] len2 = ex * ex + ey * ey;
-    wire [9:0]  aex = ex[9] ? -ex : ex;
-    wire [9:0]  aey = ey[9] ? -ey : ey;
-    wire [21:0] acrs = crs[21] ? -crs : crs;
-    wire on_vel = (adx < 12'd40) && (ady < 12'd40) && (len2 != 0) &&
-                  (acrs <= {12'd0, (aex > aey) ? aex : aey}) && (dot >= 0) && (dot <= len2);
+    // ---------------- debug: velocity arrow and contact cross ---------------
+    // The velocity is drawn as an arrow in one of 8 directions (the same
+    // octants as the pin fall directions) with a length of 1 px per 64 VEL
+    // units (~18 px at 17 mph). Only comparisons, no multipliers: a pixel is
+    // on the arrow if it lies on that axis / diagonal from the ball centre
+    // and within the length.
+    wire signed [11:0] ex = ball_vx >>> 6;                                  // px
+    wire signed [11:0] ey = -(ball_vy >>> 6);                               // screen y (down)
+    wire [11:0] aex = ex[11] ? -ex : ex;
+    wire [11:0] aey = ey[11] ? -ey : ey;
+    wire [11:0] vlen = (aex > aey) ? aex + (aey >> 1) : aey + (aex >> 1);  // ~ |v| in px
+    wire horiz = aex > (aey << 1);                    // E / W
+    wire vert  = aey > (aex << 1);                    // N / S
+    // screen axes: +x right, +y DOWN. ex = vx and ey = -vy are the arrow's
+    // screen components, so the arrow's pixels have the same signs as (ex, ey)
+    wire x_ok = ex[11] ? (dx <= 0) : (dx >= 0);
+    wire y_ok = ey[11] ? (dy <= 0) : (dy >= 0);
+    wire on_dir = vert  ? (dx == 0 && y_ok) :
+                  horiz ? (dy == 0 && x_ok) :
+                          (x_ok && y_ok && (adx == ady));
+    wire on_vel = (vlen != 0) && on_dir && (adx <= vlen) && (ady <= vlen) && (adx < 12'd40) && (ady < 12'd40);
 
     reg [4:0] ct_frames;                      // 0.5 s of contact marker
     always @(posedge clk) begin
@@ -107,9 +121,21 @@ module ball_render (
     wire on_cross = (ct_frames != 0) && ((cdx == 0 && (cdy >= -2 && cdy <= 2)) ||
                                          (cdy == 0 && (cdx >= -2 && cdx <= 2)));
 
+    // first person: a circle of radius fb_rad standing on row fb_row
+    wire signed [8:0] fdx = $signed({2'b00, px_x}) - $signed({fb_x[7], fb_x});
+    wire signed [8:0] fdy = $signed({3'b000, px_y}) - ($signed({3'b000, fb_row}) - $signed({6'd0, fb_rad}));
+    wire [8:0] afx = fdx[8] ? -fdx : fdx;
+    wire [8:0] afy = fdy[8] ? -fdy : fdy;
+    wire [7:0] fr2 = fb_rad * fb_rad;
+    wire in_fb = fb_vis && afx <= 9'd8 && afy <= 9'd8 &&
+                 ({4'd0, afx[3:0]} * afx[3:0] + {4'd0, afy[3:0]} * afy[3:0] <= {1'b0, fr2} + 9'd1);
+    wire fb_lit = (fdx + fdy) < -$signed({6'd0, fb_rad});
+
     always @(*) begin
         en = 1'b0; color = base;
-        if (px_x < `SCR_LANE_W) begin
+        if (fp) begin
+            if (px_x < `SCR_LANE_W && in_fb) begin en = 1'b1; color = fb_lit ? lit : base; end
+        end else if (px_x < `SCR_LANE_W) begin
             if (debug && on_cross)       begin en = 1'b1; color = `C_RED;   end
             else if (in_ball) begin
                 en = 1'b1;

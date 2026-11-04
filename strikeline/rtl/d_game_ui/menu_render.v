@@ -77,6 +77,8 @@ module menu_render (
     endfunction
 
     wire neon = settings[`SET_THEME];
+    // settings rows set by switches in v2 (shown dimmed, read-only)
+    wire sw_row = (game_state == `GS_SETTINGS) && (row == 3'd1 || row == 3'd2 || row == 3'd3 || row == 3'd5);
     wire [15:0] c_bg    = neon ? 16'h0806 : 16'h0109;
     wire [15:0] c_title = neon ? 16'h780F : 16'h8A22;
     wire [15:0] c_hov   = neon ? 16'h300C : 16'h2967;
@@ -186,16 +188,18 @@ module menu_render (
                 if (row == hover) color = c_hov;
                 if (col >= 4'd1 && col < 4'd7)
                     txt = tx_s(`S_SETN + {row - 3'd1, 2'b00} + {row - 3'd1, 1'b0} + col - 4'd1, 1'b0, fx, fy,
-                               row == hover ? Y : W, 0, 1'b0);
+                               sw_row ? c_dim : (row == hover ? Y : W), 0, 1'b0);
+                else if (sw_row && col == 4'd15)                  // "this one is on a switch"
+                    txt = tx_l(6'd51, 1'b0, fx, fy, c_dim, 0, 1'b0);
                 else if (col >= 4'd9 && col < 4'd14) begin
                     case (row)
-                        3'd1: txt = tx_s(`S_SETV + (settings[`SET_OIL] ? 11'd5 : 11'd0) + col - 4'd9, 1'b0, fx, fy, C, 0, 1'b0);
+                        3'd1: txt = tx_s(`S_SETV + (settings[`SET_OIL] ? 11'd5 : 11'd0) + col - 4'd9, 1'b0, fx, fy, sw_row ? c_dim : C, 0, 1'b0);
                         3'd2: txt = tx_s(`S_SETV + 11'd10 + {settings[`SET_LB_HI:`SET_LB_LO], 2'b00} +
-                                         settings[`SET_LB_HI:`SET_LB_LO] + col - 4'd9, 1'b0, fx, fy, C, 0, 1'b0);
-                        3'd3: txt = tx_s(`S_SETV + (settings[`SET_LEFTY] ? 11'd30 : 11'd25) + col - 4'd9, 1'b0, fx, fy, C, 0, 1'b0);
-                        3'd4: if (col == 4'd9) txt = tx_l(6'd17 + settings[`SET_SENS_HI:`SET_SENS_LO], 1'b0, fx, fy, C, 0, 1'b0);
-                        3'd5: txt = tx_s(`S_SETV + (settings[`SET_THEME] ? 11'd40 : 11'd35) + col - 4'd9, 1'b0, fx, fy, C, 0, 1'b0);
-                        3'd6: if (col == 4'd9) txt = tx_l(6'd17 + settings[`SET_BRI_HI:`SET_BRI_LO], 1'b0, fx, fy, C, 0, 1'b0);
+                                         settings[`SET_LB_HI:`SET_LB_LO] + col - 4'd9, 1'b0, fx, fy, sw_row ? c_dim : C, 0, 1'b0);
+                        3'd3: txt = tx_s(`S_SETV + (settings[`SET_LEFTY] ? 11'd30 : 11'd25) + col - 4'd9, 1'b0, fx, fy, sw_row ? c_dim : C, 0, 1'b0);
+                        3'd4: if (col == 4'd9) txt = tx_l(6'd17 + settings[`SET_SENS_HI:`SET_SENS_LO], 1'b0, fx, fy, sw_row ? c_dim : C, 0, 1'b0);
+                        3'd5: txt = tx_s(`S_SETV + (settings[`SET_THEME] ? 11'd40 : 11'd35) + col - 4'd9, 1'b0, fx, fy, sw_row ? c_dim : C, 0, 1'b0);
+                        3'd6: if (col == 4'd9) txt = tx_l(6'd17 + settings[`SET_BRI_HI:`SET_BRI_LO], 1'b0, fx, fy, sw_row ? c_dim : C, 0, 1'b0);
                         default: txt = tx_s(`S_SETV + 11'd45 + {erase_step, 2'b00} + erase_step + col - 4'd9,
                                             1'b0, fx, fy, (erase_step == 2'd1) ? `C_RED : C, 0, 1'b0);
                     endcase

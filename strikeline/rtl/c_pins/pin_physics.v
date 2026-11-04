@@ -35,7 +35,14 @@
 //   pushes fallen pins into the pit), then FULL = 10 pins on their spots,
 //   SWEEP = keep only the standing pins, LEAVE = exactly rack_mask.
 //=============================================================================
-module pin_physics (
+module pin_physics #(
+    // ---- tuning knobs (feel), defaults = the tuned values, see C_DESIGN.md ----
+    parameter [15:0] R_DOWN   = 16'd224,          // footprint of a lying pin, 1/64 in (3.5 in)
+    parameter [19:0] TOPPLE_P = 20'd2200,         // push that tips a standing pin, Q3.16 (~0.034 in/tick, 2 mph)
+    parameter        FRIC_SH  = 8,                // sliding friction: v -= v >> FRIC_SH per tick
+    parameter        DL_S1    = 3,                // (1+e)/2 = 1 - 2^-DL_S1 - 2^-DL_S2 (e = 0.625)
+    parameter        DL_S2    = 4
+) (
     input  wire        clk,
     input  wire        rst,
     input  wire        tick_phys,
@@ -55,6 +62,7 @@ module pin_physics (
     output wire signed [15:0] pin_rd_vx,
     output wire signed [15:0] pin_rd_vy,
     output wire        pin_rd_solid,
+    output wire        pin_rd_upright,
     // status
     output wire [239:0] pin_vis,         // 10 x {x[5:0], y[9:0], state[2:0], dir[2:0], stage[1:0]}
     output wire [9:0]  standing,         // STANDING or WOBBLING
@@ -67,15 +75,13 @@ module pin_physics (
     // falling / fallen pin is 15 in long and sweeps a much bigger area, so
     // it collides as a 4.0 in circle ("messenger" pins carry the action).
     //   upright + fallen : 6.4 in      fallen + fallen : 8.0 in
-    localparam [16:0] NEAR    = 17'd576;              // 9 in quick reject
-    localparam [35:0] R2_MIX  = 36'd167772;           // (6.4 in * 64)^2
-    localparam [17:0] INV_MIX = 18'd40;               // 2^14 / (6.4 * 64)
-    localparam [35:0] R2_DD   = 36'd262144;           // (8.0 in * 64)^2
-    localparam [17:0] INV_DD  = 18'd32;               // 2^14 / (8.0 * 64)
-    localparam [19:0] TOPPLE   = 20'd1300;            // Q3.16, ~0.02 in/tick (ball and pin hits)
-    // below this a slide stops. Must be >= 256: for 0 < v < 256 the friction
-    // step v >> 8 is 0, so a slower pin would slide forever (found by tb_top)
-    localparam [19:0] STOP_V   = 20'd320;
+    localparam [16:0] NEAR    = {R_DOWN, 1'b0} + 17'd64;          // 2R + 1 in quick reject
+    localparam [35:0] R2_MIX  = (R_DOWN + 36'd154) * (R_DOWN + 36'd154);   // (2.4 in + R)^2
+    localparam [35:0] R2_DD   = (R_DOWN + 36'd0) * (R_DOWN + 36'd0) * 36'd4;    // (2R)^2
+    localparam [19:0] TOPPLE  = TOPPLE_P;
+    // below this a slide stops. Must be >= 2^FRIC_SH: for smaller v the
+    // friction step v >> FRIC_SH is 0 and a pin would slide forever (tb_top)
+    localparam [19:0] STOP_V   = (20'd1 << FRIC_SH) + 20'd64;
     localparam [21:0] KICK_L = {`W_KICK_L, 6'd0}, KICK_R = {`W_KICK_R, 6'd0};
     localparam [21:0] BACK_Y = 22'd2867200;           // 700 in: pins cannot slide back further
     localparam [21:0] PIT_Y  = {`W_PIN_PIT, 6'd0};
@@ -84,7 +90,9 @@ module pin_physics (
     // ---------------- ROMs --------------------------------------------------
     reg [31:0] spot_rom [0:9];
     reg [7:0]  pair_rom [0:44];
+    reg [8:0]  inv_rom  [0:127];                  // 2^14 / |d|, indexed by d^2 >> 12
     initial begin
+        $readmemh("inv_len.mem", inv_rom);
         $readmemh("pin_spots.mem", spot_rom);
         $readmemh("pin_pairs.mem", pair_rom);
     end
@@ -163,8 +171,8 @@ module pin_physics (
                 end
                 mx = $signed({1'b0, fx(r)}) + (fvx(r) >>> 4);
                 my = $signed({1'b0, fy(r)}) + (fvy(r) >>> 4);
-                wx = fvx(r) - (fvx(r) >>> 8);
-                wy = fvy(r) - (fvy(r) >>> 8);
+                wx = fvx(r) - (fvx(r) >>> FRIC_SH);
+                wy = fvy(r) - (fvy(r) >>> FRIC_SH);
                 ax = wx[19] ? -wx : wx;
                 ay = wy[19] ? -wy : wy;
                 if (ax < STOP_V) wx = 0;
@@ -186,6 +194,7 @@ module pin_physics (
     assign pin_rd_vx    = rr[54:39];
     assign pin_rd_vy    = rr[34:19];
     assign pin_rd_solid = (rr[14:12] != `PS_OFF);
+    assign pin_rd_upright = upright(rr[14:12]);
     genvar g;
     generate
         for (g = 0; g < 10; g = g + 1) begin : g_vis
@@ -211,7 +220,8 @@ module pin_physics (
                S_PD = 5'd5, S_PE = 5'd6, S_PF = 5'd7, S_PG = 5'd8, S_PH = 5'd9,
                S_PI = 5'd10, S_PJ = 5'd11, S_PK = 5'd12, S_PL = 5'd13, S_PM = 5'd14,
                S_PNEXT = 5'd15, S_RAKE = 5'd16, S_PLACE = 5'd17, S_IMP1 = 5'd18, S_IMP2 = 5'd19,
-               S_PA2 = 5'd20, S_PA3 = 5'd21, S_PN = 5'd22, S_PW = 5'd23, S_PQ = 5'd24;
+               S_PA2 = 5'd20, S_PA3 = 5'd21, S_PN = 5'd22, S_PW = 5'd23, S_PQ = 5'd24, S_PQ2 = 5'd25,
+               S_IMP1B = 5'd26;
     reg [4:0] st;
     reg       rack_run;
     reg [3:0] ui;
@@ -231,6 +241,8 @@ module pin_physics (
     reg signed [24:0] dl;
     reg signed [19:0] dvx, dvy, ndvx, ndvy;
     reg               mixed, topple_q;
+    reg [17:0]        inv_q;
+    reg [19:0]        hax, hay;                  // |dv| components (registered)
     reg [2:0]         dir_p, dir_n;              // fall direction for +dv / -dv
 
     // ---------------- registered read ports --------------------------------
@@ -250,10 +262,9 @@ module pin_physics (
                      (upright(fs(rA)) && upright(fs(rB))) || adx > NEAR || ady > NEAR;
     wire [35:0] d2_full  = d2 + mp[35:0];
     wire [35:0] r2_pair  = mixed ? R2_MIX  : R2_DD;
-    wire [17:0] inv_pair = mixed ? INV_MIX : INV_DD;
     wire signed [42:0] vrn = (t + mp) >>> 14;          // (v_i - v_j) . n, Q3.16
     wire signed [24:0] vrn25 = vrn[24:0];
-    wire signed [24:0] dl_calc = vrn25 - (vrn25 >>> 3) - (vrn25 >>> 4);
+    wire signed [24:0] dl_calc = vrn25 - (vrn25 >>> DL_S1) - (vrn25 >>> DL_S2);
 
     // separation steps: n (Q1.14) >> 8 = 1/64 in, >> 7 = 1/32 in
     wire signed [17:0] n1x = nx >>> 8, n1y = ny >>> 8, n2x = nx >>> 7, n2y = ny >>> 7;
@@ -352,8 +363,13 @@ module pin_physics (
                         scan_pend <= 1'b0; ui <= 4'd0; st <= S_UPD;
                     end
                 end
-                S_IMP1: begin                                      // rA = rec[imp_pin] next
-                    topple_q <= oct_norm(imp_vx, imp_vy) > {1'b0, TOPPLE};
+                S_IMP1: begin                                      // |dv| parts first (timing)
+                    hax <= imp_vx[19] ? -imp_vx : imp_vx;
+                    hay <= imp_vy[19] ? -imp_vy : imp_vy;
+                    st <= S_IMP1B;
+                end
+                S_IMP1B: begin                                     // topple? which way?
+                    topple_q <= ((hax > hay) ? hax + (hay >> 1) : hay + (hax >> 1)) > TOPPLE;
                     dir_p    <= dir8(imp_vx, imp_vy);
                     st <= S_IMP2;
                 end
@@ -380,9 +396,12 @@ module pin_physics (
                 end
                 S_PB: begin ma <= dy; mb <= dy; st <= S_PC; end
                 S_PC: begin d2 <= mp[35:0]; st <= S_PD; end
-                S_PD: if (d2_full < r2_pair) begin ma <= dx; mb <= inv_pair; st <= S_PE; end
+                S_PD: if (d2_full < r2_pair) begin                 // unit normal: d / |d| (ROM)
+                          inv_q <= {9'd0, inv_rom[d2_full[18:12]]};
+                          ma <= dx; mb <= {9'd0, inv_rom[d2_full[18:12]]}; st <= S_PE;
+                      end
                       else st <= S_PNEXT;
-                S_PE: begin ma <= dy; mb <= inv_pair; st <= S_PF; end
+                S_PE: begin ma <= dy; mb <= inv_q; st <= S_PF; end
                 S_PF: begin nx <= mp[17:0]; st <= S_PG; end
                 S_PG: begin ny <= mp[17:0]; ma <= fvx(rA) - fvx(rB); mb <= nx; st <= S_PH; end
                 S_PH: begin ma <= fvy(rA) - fvy(rB); mb <= ny; st <= S_PI; end
@@ -401,10 +420,15 @@ module pin_physics (
                 S_PK: begin ma <= dl; mb <= ny; st <= S_PL; end
                 S_PL: begin dvx <= mp >>> 14; st <= S_PM; end
                 S_PM: begin dvy <= mp >>> 14; st <= S_PQ; end
-                S_PQ: begin                                        // decide: topple? which way?
+                S_PQ: begin                                        // |dv| parts first (timing)
                     ndvx <= -dvx; ndvy <= -dvy;
-                    topple_q <= oct_norm(dvx, dvy) > {1'b0, TOPPLE};
-                    dir_p <= dir8(dvx, dvy); dir_n <= dir8(-dvx, -dvy);
+                    hax <= dvx[19] ? -dvx : dvx;
+                    hay <= dvy[19] ? -dvy : dvy;
+                    st <= S_PQ2;
+                end
+                S_PQ2: begin                                       // decide: topple? which way?
+                    topple_q <= ((hax > hay) ? hax + (hay >> 1) : hay + (hax >> 1)) > TOPPLE;
+                    dir_p <= dir8(dvx, dvy); dir_n <= dir8(ndvx, ndvy);
                     st <= S_PN;
                 end
                 S_PN: begin                                        // pin i loses dv along n, pin j gains it

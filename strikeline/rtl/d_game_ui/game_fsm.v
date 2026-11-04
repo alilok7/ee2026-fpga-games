@@ -32,7 +32,10 @@ module game_fsm (
     input  wire [4:0]  btn_press,
     input  wire [4:0]  btn_repeat,
     input  wire [4:0]  btn_long,
-    input  wire        sw_lefty,
+    input  wire        sw_lefty,          // sw15
+    input  wire [3:0]  sw_play,           // {sw14 long oil, sw13 neon, sw12 16 lb, sw11 12 lb}
+    output reg         nudge_l,           // btnL / btnR while aiming: move one board
+    output reg         nudge_r,
     // turn_fsm
     input  wire [`GS_W-1:0] tstate,
     input  wire        t_active,
@@ -121,8 +124,13 @@ module game_fsm (
     // settings fields
     reg [`SET_W-1:0] set_r;
     always @(*) begin
+        // v2: the physical play settings come from switches (live, visible on
+        // the board); the menu keeps mouse sensitivity and brightness
         settings = set_r;
-        settings[`SET_LEFTY] = set_r[`SET_LEFTY] | sw_lefty;
+        settings[`SET_OIL]   = sw_play[3];
+        settings[`SET_THEME] = sw_play[2];
+        settings[`SET_LB_HI:`SET_LB_LO] = sw_play[1] ? 2'd2 : sw_play[0] ? 2'd0 : 2'd1;
+        settings[`SET_LEFTY] = sw_lefty;
     end
     reg set_dirty;
     assign settings_raw = set_r;
@@ -136,7 +144,7 @@ module game_fsm (
 
     always @(posedge clk) begin
         go_new <= 0; go_resume <= 0; abort <= 0; c_settings <= 0; c_insert <= 0; c_gameend <= 0;
-        c_defaults <= 0; save_req <= 0; want_replay <= 0; skip <= 0;
+        c_defaults <= 0; save_req <= 0; want_replay <= 0; skip <= 0; nudge_l <= 0; nudge_r <= 0;
         if (rst) begin
             mode <= M_BOOT; set_r <= `SET_DEFAULT; set_dirty <= 0; hover <= 3'd2; chip_two <= 0;
             has_save <= 0; leave_idx <= 3'd1; tab_quick <= 0; erase_step <= 0; name <= 0; name_pos <= 0;
@@ -181,12 +189,18 @@ module game_fsm (
                     endcase
                 end
                 M_PLAY: begin
-                    if (r_press || b_card) card_show <= ~card_show;
+                    // v2 buttons: L/R move the stance one board, U replay,
+                    // D scorecard, C skip the result, hold L quit
+                    if (r_press || btn_press[`BTN_D]) card_show <= ~card_show;
+                    if (tstate == `GS_AIM) begin
+                        nudge_l <= btn_press[`BTN_L] | btn_repeat[`BTN_L];
+                        nudge_r <= btn_press[`BTN_R] | btn_repeat[`BTN_R];
+                    end
                     if (tstate == `GS_RESULT) begin
-                        if (m_press || btn_press[`BTN_D]) want_replay <= 1;
+                        if (m_press || btn_press[`BTN_U]) want_replay <= 1;
                         if (click || b_sel) skip <= 1;
                     end
-                    if (t_kind[`PK_SPARE] && (b_back || (r_press && tstate == `GS_AIM))) begin
+                    if (t_kind[`PK_SPARE] && (btn_long[`BTN_L] || (r_press && tstate == `GS_AIM))) begin
                         abort <= 1; mode <= M_PRACT;
                     end else if (!t_kind[`PK_SPARE] && btn_long[`BTN_L]) begin
                         abort <= 1; mode <= M_MENU;                     // saved at the last frame
@@ -257,14 +271,10 @@ module game_fsm (
                         if (set_dirty) begin c_settings <= 1; save_req <= 1; set_dirty <= 0; end
                         mode <= M_MENU; hover <= 3'd6;
                     end else if (act) begin
-                        set_dirty <= (hover != 3'd7);
+                        set_dirty <= (hover == 3'd4) || (hover == 3'd6);
+                        // rows 1, 2, 3, 5 (oil, ball, hand, theme) are on switches now
                         case (hover)
-                            3'd1: set_r[`SET_OIL] <= ~set_r[`SET_OIL];
-                            3'd2: set_r[`SET_LB_HI:`SET_LB_LO] <= (set_r[`SET_LB_HI:`SET_LB_LO] == 2'd2) ? 2'd0 :
-                                                                 set_r[`SET_LB_HI:`SET_LB_LO] + 2'd1;
-                            3'd3: set_r[`SET_LEFTY] <= ~set_r[`SET_LEFTY];
                             3'd4: set_r[`SET_SENS_HI:`SET_SENS_LO] <= set_r[`SET_SENS_HI:`SET_SENS_LO] + 2'd1;
-                            3'd5: set_r[`SET_THEME] <= ~set_r[`SET_THEME];
                             3'd6: set_r[`SET_BRI_HI:`SET_BRI_LO] <= set_r[`SET_BRI_HI:`SET_BRI_LO] + 2'd1;
                             3'd7: begin
                                 if (erase_step == 2'd0) erase_step <= 2'd1;

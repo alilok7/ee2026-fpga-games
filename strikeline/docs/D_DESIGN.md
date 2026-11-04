@@ -40,6 +40,15 @@ BOOT -> TITLE -> MENU --QUICK/FULL/RESUME--> PLAY ===go_new/go_resume===>  CLEAR
 ## Scoring
 The rolls live in the save image, so a resumed game rescores itself. `score_engine` walks each player's rolls: 3 reads + 1 compute clock per frame, about 100 clocks for both players. A frame total is shown only once its bonus balls are known. The 10th frame has its own 3 boxes. Marks are ready-made glyph codes (X / âˆ’ digit). The test covers 300, 299, 150, 0, 90, 190, 10, 24, 20, 30, the classic 167 game with its running totals and marks, an unfinished strike, and a Quick Game.
 
+## Distinct roles for buttons and switches (v2)
+- **Switches = live physical settings:** sw11 / sw12 ball 12 / 16 lb (both down = 14), sw13 neon theme, sw14 long oil, sw15 left-handed, sw4 classic view (plus sw0-3: pause, minimap, debug, slow motion). `game_fsm` builds `settings` from them; the Settings menu shows these rows dimmed with an "S" (read-only) and keeps mouse sensitivity, brightness and erase.
+- **Buttons = in-game actions the mouse does not have:** btnL / btnR move the stance one board, btnU replay, btnD scorecard, btnC skip, hold btnL quit. Menus keep U / D / C / L navigation.
+
+## Two totals: official and provisional (v2)
+- **Official** (`game0/1`, scorecard): only frames whose bonus balls are known, exactly like a paper scorecard.
+- **Provisional** (`prov0/1`, 7-seg and HUD): the same walk also adds each frame's pins plus the bonus balls thrown *so far*, so a strike shows +10 at once and the number moves after every ball, like a bowling-alley screen. With a finished game the two are equal (tested: 300, 167). After X X: official 0, provisional 30.
+- **7-seg** (`seg7_ctrl.v`): menu word → ball speed for 3 s after a throw → provisional points. In 2-player games the left digit is the player number; at game over it alternates P1 / P2 every 1.5 s; in Spare Challenge it shows made.tries.
+
 ## Persistence
 - **Image** (`save_image`): settings, lifetime stats, two top-5 tables, the game in progress. Layout in `INTERFACES.md`.
 - **One writer** (`persist_ctrl`): each command type has a pending flag and latched arguments; the FSM serves them one at a time. The top-5 insert scans for the first slot the score beats, moves the lower entries down from the bottom up (so nothing is overwritten before it is copied), then writes the new entry.

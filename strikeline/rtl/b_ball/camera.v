@@ -25,7 +25,8 @@ module camera (
     input  wire [`GS_W-1:0] game_state,
     input  wire [15:0] ball_y,
     input  wire signed [15:0] ball_vy,
-    output reg  signed [10:0] cam_y
+    output reg  signed [10:0] cam_y,
+    output reg  signed [10:0] cam_fp     // first person: world y of the camera
 );
     localparam signed [11:0] CAM_MIN = -12'sd40, CAM_MAX = 12'sd700;
 
@@ -44,6 +45,28 @@ module camera (
         endcase
         if (target < CAM_MIN) target = CAM_MIN;
         if (target > CAM_MAX) target = CAM_MAX;
+    end
+
+    // first person: 40 in behind the ball (aiming: 45 in behind the foul line),
+    // same low-pass filter and the same speed lead
+    reg  signed [11:0] tfp;
+    always @(*) begin
+        tfp = (game_state == `GS_ROLL) ? by - 12'sd40 + lead : -12'sd40;
+        if (tfp < -12'sd60)  tfp = -12'sd60;
+        if (tfp > 12'sd690)  tfp = 12'sd690;
+    end
+    reg  signed [11:0] tfp_q;
+    always @(posedge clk) tfp_q <= tfp;
+    wire signed [11:0] gfp  = tfp_q - cam_fp;
+    wire signed [11:0] sfp  = gfp >>> 3;
+    always @(posedge clk) begin
+        if (rst) cam_fp <= -11'sd40;
+        else if (game_state != `GS_ROLL) cam_fp <= tfp_q[10:0];         // aiming: fixed spot
+        else if (tick_frame && !paused) begin
+            if (sfp != 0)      cam_fp <= cam_fp + sfp[10:0];
+            else if (gfp > 0)  cam_fp <= cam_fp + 11'sd1;
+            else if (gfp < 0)  cam_fp <= cam_fp - 11'sd1;
+        end
     end
 
     reg  signed [11:0] target_q;                 // registered (timing)

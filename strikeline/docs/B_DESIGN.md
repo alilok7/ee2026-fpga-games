@@ -33,6 +33,14 @@ Why the hook starts at the oil line: oil makes the lane slippery, so the ball sk
 | gains 4 / 66 (1/16 LSB) | 1.5 boards | 7.6 boards | just under the 8–12 board target |
 | **gains 4 / 76 (16 lb), 80 (14 lb), 88 (12 lb)** | **1.5 boards** | **8.7 boards** | spin-4 hook ball from board 42 = strike |
 
+## v2 physics changes (Phase B)
+- **Bug fixed (was in v1):** `relx <= vx[23:8] - pin_vx` - a part-select is *unsigned* in Verilog, so a ball moving left (every left hook) had a huge positive relative speed, the contact maths saw "separating" and the ball slid through pins. Now `$signed(vx[23:8])`. Found by tracing one pocket hit pin by pin (the 1 pin was never touched).
+- **True normal:** `n = d * inv_len[d^2 >> 12]` (128-entry 1/|d| ROM) instead of a fixed 1/6.7 in, so impulses stay right when the ball meets a pin already overlapping.
+- **Lying pins** have the same footprint for the ball as for other pins (3.5 in).
+- **Hook length** grows with the revs: 256 + 96 × |spin| ticks (spin 4 = 640, as before).
+- **Hooking costs forward speed:** the forward deceleration grows by the hook acceleration.
+- **Drive:** a spinning ball deflects less: `kb × (1 − |spin| / 16)`.
+
 ## Ball → pin collision (per pin, sequential, one multiplier)
 1. Quick reject: `|dx|` or `|dy|` > 7 in, skip (no multiply).
 2. `|d|² = dx² + dy² < (Rb + Rp)² = (6.7 in)²`. Squares, so **no square root**.
@@ -42,6 +50,12 @@ Why the hook starts at the oil line: oil makes the lane slippery, so the ball sk
 6. A per-pin "touching" flag gives one impulse per contact. It clears when the pin is 0.2 in further away.
 
 Cycle budget: 4 clocks per tick for integration, 4 per near pin, about 20 per hit pin. Worst case is about 200 clocks out of 97 656.
+
+## First-person view (v2)
+- While aiming and rolling the OLED shows the lane from behind the ball; the pin action cuts to the overhead deck camera (TV-style). sw4 forces the classic top-down view.
+- **No 3-D maths:** the camera has a fixed height and tilt, so screen row y always looks at the same distance ahead, `dist = 1530 / (y - 12)` inches (horizon on row 12), and one inch across is `(y - 12) / 51` px there. `persp.mem` stores `dist` and `inv = 51*256/(y-12)` per row; a lane pixel is at `world y = cam_fp + dist[y]`, `world x = 30 + (px - 30) * inv[y] >> 8` (one multiply). The existing lane "texture" (boards, oil, arrows, deck) is then evaluated at that point unchanged. Boards are only drawn where 1 in ≥ 0.5 px (no shimmer far away).
+- `persp_proj.v` projects the ball and the 10 pins once per frame (row = 12 + 1530/dz, x = 30 + (wx-30)·r/51) with one sequential divider (~220 clocks per frame); `ball_render` draws a circle of the projected radius, `pin_render` (C) draws pin silhouettes from a 128-entry size-class ROM.
+- The first-person camera sits 40 in behind the ball with the same low-pass filter and speed lead as the overhead camera.
 
 ## Camera
 `cam += (target − cam) >> 3` once per frame is a first-order low-pass filter. On its own it would lag a ball moving at 5 in/frame by 40 px (the ball would sit at the top of the screen). So the target includes a **lead** of the same size, `vy >> 5` (8 frames × 17 ticks/frame × vy), and the ball stays near the bottom with the lane ahead in view. Targets: −12 while aiming (foul line visible), the ball while rolling, 700 during pin action (whole deck). Clamped to [−40, 700].
@@ -71,5 +85,6 @@ Pure combinational: world y = `cam_y + 63 − py` and world x = px. Then a chain
 11. **What does slow motion do?** `timebase` passes 1 of every 4 physics ticks. The physics code is unchanged.
 12. **Explain the camera.** A first-order filter, `cam += (target − cam) >> 3`, with a speed lead so the steady-state lag is cancelled.
 13. **How is the ball drawn?** A range check `dx² + dy² ≤ 18` (|dx| ≤ 4, so the square is a 5-entry table), lit from the top left. Finger holes come from a 64-entry ROM indexed by the spin angle.
-14. **How does the oil setting change the game?** It moves the SKID→HOOK boundary from 40 to 45 ft: less dry lane, a smaller and later hook (checked in the test).
+14. **How does the first-person view work without 3-D maths?** Fixed camera height and tilt → each screen row is at a fixed distance (1530/(y-12) in); a ROM gives that distance and the lateral scale per row, one multiply gives the lane x. Objects: row = 12 + 1530/dz, one divider for 11 objects per frame.
+15b. **How does the oil setting change the game?** It moves the SKID→HOOK boundary from 40 to 45 ft: less dry lane, a smaller and later hook (checked in the test).
 15. **What happens if a ball is in the gutter?** It snaps to the channel centre, can't touch pins, rolls into the pit and scores 0. D shows GUTTER.

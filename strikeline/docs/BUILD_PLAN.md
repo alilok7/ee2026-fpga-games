@@ -1,6 +1,6 @@
 # StrikeLine build plan (engineer's working plan)
 
-Spec: `../Bowling_Engineer_Prompt.md`. Roadmap: `../Bowling_Roadmap_and_Work_Split.md`.
+Spec: `../../prompts/Bowling_Engineer_Prompt.md`. Roadmap: `../../prompts/Bowling_Roadmap_and_Work_Split.md`.
 StrikeLine lives in `strikeline/` and is fully separate from KeyLight (repo root).
 
 ## Order of work

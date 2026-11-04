@@ -34,6 +34,19 @@ FALLING / DOWN --past the deck end--> OFF (in the pit)
 ## Register file structure (resource squeeze)
 The 10 pin records (99 bits each: x, y, vx, vy, state, direction, timer) are written through **exactly two write ports**, A and B, because at most two pins change in one clock (one pin in UPDATE or for a ball impulse, both pins of a pair in the pair iterator). There are also three whole-rack operations: rake, placement, and the settle timeout. Each record bit therefore has a 4-input multiplexer. The first version wrote the arrays from about 8 places, with the hit logic inlined three times, and used 5 714 LUTs. The same behaviour now passes the same 21 checks in far fewer LUTs (see the resource log in INTERFACES.md).
 
+## Tuning log (v2, measured by `sim/b/tb_carry.v`)
+The carry test throws a grid of start boards × spin × speed and classifies each ball by where it enters the head-pin row: pocket (hooking into 1-3), nose (dead centre), Brooklyn (wrong side), light (outside the pocket). Real bowling: pocket hits usually strike, the others usually do not.
+
+| Version | Pocket | Nose | Brooklyn | Light | Note |
+|---|---|---|---|---|---|
+| v1 (lying pin 4.0 in, topple 1300) | 1/3 | 3/3 | 2/4 | 4/6 | everything strikes: unrealistic, plus the unsigned bug |
+| bug fixed, 4.0 in / 1300 | 1/4 | 0/3 | 2/3 | 0/6 | |
+| 3.0 in / 2200 | 2/4 | 0/3 | 1/3 | 0/6 | |
+| pocket-focused, 3.5 in / 2200 | 4/5 | 0/1 | — | 0/12 | chosen |
+| **final (3.5 in, topple 2200 ≈ 2 mph), full test** | **5/9** | **0/4** | **1/3** | **0/12** | test limits: ≥ 50 %, ≤ 40 %, ≤ 50 %, ≤ 30 % |
+
+The knobs are module parameters of `pin_physics` (`R_DOWN`, `TOPPLE_P`, `FRIC_SH`, `DL_S1/DL_S2`) and `ball_physics` (`R_DOWN`), so a tuning experiment needs no code change. Pin-pin momentum is now checked on every collision in `tb_physics` (46 collisions, 0 errors).
+
 ## Settle detector (`pin_settle`)
 After the throw: wait until the ball is in the pit, then until **every pin is quiet** (no wobbling, no falling, all stopped) for 0.5 s. A **4 s timeout** after the ball reaches the deck forces wobblers upright and fallen pins still. Then it reports `pins_down = popcount(standing_before & ~standing)` and starts the split detector.
 

@@ -36,11 +36,11 @@ module tb_scoring;
 
     reg  sc_start = 0;
     reg  [3:0] start_frame = 0;
-    wire [27:0] cw; wire [9:0] ok0, ok1; wire [8:0] g0, g1;
+    wire [27:0] cw; wire [9:0] ok0, ok1; wire [8:0] g0, g1, pv0, pv1;
     wire sc_done;
     score_engine u_s (.clk(clk), .rst(rst), .start(sc_start), .start_frame(start_frame), .ra(ra_s),
         .rd(rd_s), .card_addr(5'd0), .card_word(cw), .ok0(ok0), .ok1(ok1),
-        .game0(g0), .game1(g1), .done(sc_done));
+        .game0(g0), .game1(g1), .prov0(pv0), .prov1(pv1), .done(sc_done));
 
     integer errors = 0;
     task check(input cond, input [8*48-1:0] msg);
@@ -88,6 +88,7 @@ module tb_scoring;
 
         nr = 0; fill(10, 12); play(12, 0);
         check(g0 == 300 && ok0 == 10'h3FF, "perfect game = 300");
+        check(pv0 == 300, "provisional = official when the game is complete (300)");
         check(mark(0,1) == 56 && mark(9,0) == 56 && mark(9,2) == 56, "strike marks X");
 
         nr = 0; fill(10, 11); fill(9, 1); play(12, 0);
@@ -128,12 +129,20 @@ module tb_scoring;
         rolls[8]=8; rolls[9]=2; rolls[10]=0; rolls[11]=6; rolls[12]=10; rolls[13]=10; rolls[14]=10;
         rolls[15]=8; rolls[16]=1; play(17, 0);
         check(g0 == 167, "classic example = 167");
+        check(pv0 == 167, "provisional = 167 for the finished classic game");
         check(total(1) == 39 && total(3) == 66 && total(7) == 120, "classic running totals 39/66/120");
         check(mark(1,0) == 23 && mark(1,1) == 15 && mark(2,0) == 25 && mark(2,1) == 13, "marks 7 / 9 -");
 
         // unfinished game: a strike waits for its bonus balls
         rolls[0] = 10; rolls[1] = 10; play(2, 0);
         check(ok0 == 10'h000 && g0 == 0, "strike total unknown until 2 bonus balls");
+        check(pv0 == 30, "provisional after X X = 30 (20 + 10), official still 0");
+        rolls[0] = 7; rolls[1] = 3; play(2, 0);
+        check(g0 == 0 && pv0 == 10, "provisional after a spare = 10, official 0");
+        rolls[0] = 7; rolls[1] = 3; rolls[2] = 5; play(3, 0);
+        check(g0 == 15 && pv0 == 20, "7/ then 5: official 15, provisional 20");
+        rolls[0] = 10; rolls[1] = 4; play(2, 0);
+        check(g0 == 0 && pv0 == 18, "X then 4: provisional 18 (14 + 4)");
 
         // Quick game (frames 8-10): X X XXX = 90
         nr = 0; fill(10, 5); play(5, 7);

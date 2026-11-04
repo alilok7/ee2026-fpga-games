@@ -96,6 +96,7 @@ module My_Top_Module (
         .ps2_clk(PS2Clk), .ps2_data(PS2Data));
 
     wire [6:0]  cursor_x;
+    wire        nudge_l, nudge_r;                 // btnL / btnR while aiming (from D)
     wire [5:0]  cursor_y;
     wire        delta_valid, l_level, r_level, mm_level, l_press, l_release, r_press, m_press;
     wire signed [11:0] delta_x, delta_y;
@@ -126,8 +127,8 @@ module My_Top_Module (
     swipe_capture u_swipe (
         .clk(clk), .rst(rst), .tick_sample(tick_sample), .tick_1ms(tick_1ms), .game_state(game_state),
         .busy(feat_busy | plot_busy), .delta_valid(delta_valid), .delta_x(delta_x), .delta_y(delta_y),
-        .l_press(l_press), .l_release(l_release), .r_press(r_press), .cursor_x(cursor_x),
-        .cursor_y(cursor_y), .rd_addr(ring_addr), .rd_data(ring_data), .wp(wp), .n_samples(n_samples),
+        .l_press(l_press), .l_release(l_release), .r_press(r_press), .nudge_l(nudge_l),
+        .nudge_r(nudge_r), .cursor_x(cursor_x), .cursor_y(cursor_y), .rd_addr(ring_addr), .rd_data(ring_data), .wp(wp), .n_samples(n_samples),
         .grabbing(grabbing), .swipe_done(swipe_done), .swipe_cancel(swipe_cancel), .too_short(too_short),
         .stance_x(stance_x), .live_power(live_power), .trail_bus(trail_bus), .trail_valid(trail_valid));
 
@@ -157,7 +158,7 @@ module My_Top_Module (
     wire [3:0]  pin_rd_idx;
     wire [15:0] pin_rd_x, pin_rd_y;
     wire signed [15:0] pin_rd_vx, pin_rd_vy;
-    wire        pin_rd_solid, impulse_valid, scan_done, contact_pulse;
+    wire        pin_rd_solid, pin_rd_upright, impulse_valid, scan_done, contact_pulse;
     wire [3:0]  impulse_pin;
     wire signed [15:0] impulse_vx, impulse_vy, ball_vx, ball_vy;
     wire [15:0] ball_x, ball_y, ball_angle, contact_px, contact_py;
@@ -167,16 +168,16 @@ module My_Top_Module (
         .clk(clk), .rst(rst), .tick_phys(tick_phys), .game_state(game_state), .settings(settings),
         .stance_x(stance_x), .throw_valid(throw_valid), .throw_vy(throw_vy), .throw_vx(throw_vx),
         .throw_spin(throw_spin), .throw_x0(throw_x0), .pin_rd_idx(pin_rd_idx), .pin_rd_x(pin_rd_x),
-        .pin_rd_y(pin_rd_y), .pin_rd_vx(pin_rd_vx), .pin_rd_vy(pin_rd_vy), .pin_rd_solid(pin_rd_solid),
+        .pin_rd_y(pin_rd_y), .pin_rd_vx(pin_rd_vx), .pin_rd_vy(pin_rd_vy), .pin_rd_solid(pin_rd_solid), .pin_rd_upright(pin_rd_upright),
         .impulse_valid(impulse_valid), .impulse_pin(impulse_pin), .impulse_vx(impulse_vx),
         .impulse_vy(impulse_vy), .scan_done(scan_done), .ball_x(ball_x), .ball_y(ball_y),
         .ball_vx(ball_vx), .ball_vy(ball_vy), .ball_phase(ball_phase), .ball_spin(ball_spin),
         .ball_angle(ball_angle), .contact_pulse(contact_pulse), .contact_px(contact_px),
         .contact_py(contact_py));
 
-    wire signed [10:0] cam_y;
+    wire signed [10:0] cam_y, cam_fp;
     camera u_cam (.clk(clk), .rst(rst), .tick_frame(tick_frame), .paused(paused), .game_state(game_state),
-                  .ball_y(ball_y), .ball_vy(ball_vy), .cam_y(cam_y));
+                  .ball_y(ball_y), .ball_vy(ball_vy), .cam_y(cam_y), .cam_fp(cam_fp));
 
     wire throw_go = throw_valid && (game_state == `GS_THROW);
     wire [5:0] trace_row;
@@ -196,7 +197,7 @@ module My_Top_Module (
         .impulse_valid(impulse_valid), .impulse_pin(impulse_pin), .impulse_vx(impulse_vx),
         .impulse_vy(impulse_vy), .rack_go(rack_go), .rack_cmd(rack_cmd), .rack_mask(rack_mask),
         .force_settle(force_settle), .pin_rd_idx(pin_rd_idx), .pin_rd_x(pin_rd_x), .pin_rd_y(pin_rd_y),
-        .pin_rd_vx(pin_rd_vx), .pin_rd_vy(pin_rd_vy), .pin_rd_solid(pin_rd_solid), .pin_vis(pin_vis),
+        .pin_rd_vx(pin_rd_vx), .pin_rd_vy(pin_rd_vy), .pin_rd_solid(pin_rd_solid), .pin_rd_upright(pin_rd_upright), .pin_vis(pin_vis),
         .standing(standing), .busy(pin_busy), .rack_busy(rack_busy), .rake_y(rake_y));
 
     pin_settle u_settle (
@@ -254,11 +255,11 @@ module My_Top_Module (
     // =================== D: scoring =============================================
     wire [3:0]  start_frame;
     wire        score_start, score_done;
-    wire [4:0]  card_addr; wire [27:0] card_word; wire [9:0] ok0, ok1; wire [8:0] game0, game1;
+    wire [4:0]  card_addr; wire [27:0] card_word; wire [9:0] ok0, ok1; wire [8:0] game0, game1, prov0, prov1;
     score_engine u_score (
         .clk(clk), .rst(rst), .start(score_start), .start_frame(start_frame), .ra(ra_score), .rd(rd_score),
         .card_addr(card_addr), .card_word(card_word), .ok0(ok0), .ok1(ok1), .game0(game0), .game1(game1),
-        .done(score_done));
+        .prov0(prov0), .prov1(prov1), .done(score_done));
 
     // =================== D: game FSM + turn FSM ================================
     wire go_new, go_resume, abort, t_active, t_game_over, want_replay, skip, card_show;
@@ -271,7 +272,8 @@ module My_Top_Module (
         .clk(clk), .rst(rst), .tick_game(tick_game), .load_done(load_done), .cursor_x(cursor_x),
         .cursor_y(cursor_y), .mouse_move(delta_valid), .l_press(l_press), .r_press(r_press),
         .m_press(m_press), .wheel(wheel), .btn_press(btn_press), .btn_repeat(btn_repeat),
-        .btn_long(btn_long), .sw_lefty(lefty_sw), .tstate(tstate), .t_active(t_active),
+        .btn_long(btn_long), .sw_lefty(lefty_sw), .sw_play(sw_level[14:11]),
+        .nudge_l(nudge_l), .nudge_r(nudge_r), .tstate(tstate), .t_active(t_active),
         .t_game_over(t_game_over), .t_kind(t_kind), .go_new(go_new), .go_resume(go_resume),
         .kind_out(kind_out), .leave_mask(leave_mask), .abort(abort), .game0(game0), .game1(game1),
         .ra(ra_game), .rd(rd_game), .persist_busy(persist_busy), .c_settings(c_settings),
@@ -308,6 +310,19 @@ module My_Top_Module (
     wire in_play = (game_state >= `GS_AIM && game_state <= `GS_SWEEP) || game_state == `GS_REPLAY;
     wire ball_visible_live = in_play && (ball_phase != `BP_PIT);
 
+    // ---- B: first-person view while aiming and rolling (sw4 up = classic top-down);
+    //      the pin action cuts to the overhead deck camera, like TV bowling
+    wire fp = !sw_level[4] && (game_state == `GS_AIM || game_state == `GS_THROW || game_state == `GS_ROLL);
+    wire        fb_vis;
+    wire signed [7:0] fb_x;
+    wire [5:0]  fb_row;
+    wire [2:0]  fb_rad;
+    wire [179:0] pins_fp;
+    persp_proj u_persp (
+        .clk(clk), .rst(rst), .tick_frame(tick_frame), .cam_fp(cam_fp), .ball_visible(ball_visible_live),
+        .ball_x(ball_x), .ball_y(ball_y), .pin_vis(pin_vis), .b_vis(fb_vis), .b_x(fb_x), .b_row(fb_row),
+        .b_rad(fb_rad), .pins_fp(pins_fp));
+
     // ---- D: instant replay (middle click / btnD in RESULT). While it plays,
     //      the renderers draw the recorded ball, camera and pins.
     wire        rp_active, rp_vis;
@@ -333,7 +348,8 @@ module My_Top_Module (
     wire [5:0]  led_a;
 
     lane_render u_lane (
-        .px_x(px_x), .px_y(px_y), .cam_y(v_cam), .settings(settings), .minimap_on(minimap && in_play),
+        .px_x(px_x), .px_y(px_y), .cam_y(v_cam), .fp(fp), .cam_fp(cam_fp), .settings(settings),
+        .minimap_on(minimap && in_play),
         .ball_x(v_ball_x), .ball_y(v_ball_y), .ball_visible(ball_visible),
         .trace_row(trace_row), .trace_data(trace_data),
         .pins_standing(standing), .blink(frame_cnt[3]), .color(lane_c), .en(lane_en));
@@ -342,16 +358,17 @@ module My_Top_Module (
         .clk(clk), .rst(rst), .tick_frame(tick_frame), .px_x(px_x), .px_y(px_y), .cam_y(v_cam),
         .ball_x(v_ball_x), .ball_y(v_ball_y), .ball_vx(ball_vx), .ball_vy(ball_vy), .visible(ball_visible),
         .ball_lb(settings[`SET_LB_HI:`SET_LB_LO]), .angle(v_angle), .debug(debug && !rp_active),
+        .fp(fp), .fb_vis(fb_vis), .fb_x(fb_x), .fb_row(fb_row), .fb_rad(fb_rad),
         .contact_pulse(contact_pulse), .contact_px(contact_px), .contact_py(contact_py),
         .color(ball_c), .en(ball_en));
 
     pin_render u_pinr (
         .px_x(px_x), .px_y(px_y), .cam_y(v_cam), .pin_vis(v_pins), .rake_y(rake_y),
-        .wobble_phase(frame_cnt[2]), .debug(debug), .color(pin_c), .en(pin_en));
+        .wobble_phase(frame_cnt[2]), .debug(debug), .fp(fp), .pins_fp(pins_fp), .color(pin_c), .en(pin_en));
 
     gesture_render u_ar (
         .clk(clk), .rst(rst), .tick_frame(tick_frame), .px_x(px_x), .px_y(px_y), .game_state(game_state),
-        .lefty(settings[`SET_LEFTY]), .cursor_x(cursor_x), .cursor_y(cursor_y), .grabbing(grabbing),
+        .fp(fp), .lefty(settings[`SET_LEFTY]), .cursor_x(cursor_x), .cursor_y(cursor_y), .grabbing(grabbing),
         .trail_bus(trail_bus), .trail_valid(trail_valid), .stance_x(stance_x), .cam_y(cam_y),
         .live_power(live_power), .throw_valid(throw_valid), .throw_spin(throw_spin),
         .throw_mph10(throw_mph10), .aim_level(aim_level), .aim_right(aim_right), .reject(reject),
@@ -370,7 +387,7 @@ module My_Top_Module (
     hud_render u_hud (
         .clk(clk), .rst(rst), .tick_frame(tick_frame), .px_x(px_x), .px_y(px_y), .game_state(game_state),
         .settings(settings), .kind(t_kind), .player(player), .frame(frame), .ball_no(ball_no),
-        .score(player ? game1 : game0), .pins_standing(standing), .popup_id(popup_id),
+        .score(player ? prov1 : prov0), .pins_standing(standing), .popup_id(popup_id),
         .popup_n(popup_n), .banner(banner), .ghost(ghost), .grabbing(grabbing), .paused(paused),
         .saving(saving), .leave_idx(leave_idx), .spare_made(spare_made), .spare_tries(spare_tries),
         .stance_x(stance_x), .color(hud_c), .en(hud_en), .txt(hud_t));
@@ -397,7 +414,8 @@ module My_Top_Module (
     seg7_ctrl u_segc (
         .clk(clk), .rst(rst), .tick_game(tick_game), .game_state(game_state), .hover(hover),
         .paused(paused), .throw_valid(throw_valid), .mph10(throw_mph10),
-        .score(game_state == `GS_GAMEOVER ? game0 : (player ? game1 : game0)),
+        .score0(prov0), .score1(prov1), .player(player), .two(t_kind[`PK_TWO]),
+        .spare(t_kind[`PK_SPARE]), .made(spare_made), .tries(spare_tries),
         .glyphs(seg_glyphs), .dps(seg_dps));
     seg7_driver u_seg (
         .clk(clk), .rst(rst), .tick_1ms(tick_1ms), .glyphs(seg_glyphs), .dps(seg_dps), .blink(4'b0000),

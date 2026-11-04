@@ -71,7 +71,11 @@ Flash slots: A = 0x3E0000, B = 0x3F0000 (each in its own 64 KB sector). The newe
 | 2 (resource squeeze) | 16 020 (77.0 %) | 6 792 | 3 | 10 | −5.71 ns, 3 417 paths | pins: 2 write ports; replay: shift registers; scores, flash page, trace: LUTRAM |
 | 3 (pipelining) | 15 802 (76.0 %) | 7 519 | 3 | 10 | −2.52 ns, 234 paths | reset replicated (max_fanout); pin reads and writes registered; ball / camera / 7-seg registers |
 | 4 | 15 804 (76.0 %) | 7 716 | 3 | 10 | −0.66 ns, 17 paths | hit decision registered, Swipe Lab plot 2 stages, features totals registered |
-| **5 (final)** | **15 727 (75.6 %)** | **7 766 (18.7 %)** | **3 (6 %)** | **10 (11 %)** | **+0.089 ns setup, +0.017 ns hold, 0 failing** | Swipe Lab extent in 2 stages; all timing constraints met at 100 MHz |
+| **5 (v1 release)** | **15 727 (75.6 %)** | **7 766 (18.7 %)** | **3 (6 %)** | **10 (11 %)** | **+0.089 ns setup, +0.017 ns hold, 0 failing** | Swipe Lab extent in 2 stages; all timing constraints met at 100 MHz |
+| 6 (v2 Phase A) | 15 750 (75.7 %) | — | 3 | 10 | +0.140 ns, 0 failing | provisional score, 7-seg rework |
+| 7 (v2 first try) | 16 689 (80.2 %) | 8 312 | 3 | 10 | −0.35 ns, 59 paths | first-person view + physics changes: over budget |
+| 8 | 15 735 (75.7 %) | — | 3 | 87 | −2.50 ns, 145 paths | `use_dsp` on all renderers: too many DSPs, registers pulled into DSPs |
+| **9 (v2 release)** | **15 785 (75.9 %)** | — | **3** | **51 (57 %)** | **+0.251 ns setup, +0.032 ns hold, 0 failing** | debug arrow without multipliers; `use_dsp` only for the lane perspective and projector; projector, pin impulse and scoring paths registered |
 
 The 3 BRAM tiles are the replay buffer (2 × RAMB36), plus one tile holding two RAMB18s: the Swipe Lab bitmap and A's speed-curve ROM. The 10 DSP48 slices are the three shared multipliers (A, B, C) and constant/small multiplies that synthesis chose to map to DSPs. The per-module numbers come from `tools/synth_util.tcl` → `build/hier_utilization.rpt`.
 

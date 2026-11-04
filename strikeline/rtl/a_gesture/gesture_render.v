@@ -27,6 +27,7 @@ module gesture_render (
     input  wire [6:0]  px_x,
     input  wire [5:0]  px_y,
     input  wire [`GS_W-1:0] game_state,
+    input  wire        fp,               // first-person view: no top-down aim guides
     input  wire        lefty,
     input  wire [6:0]  cursor_x,
     input  wire [5:0]  cursor_y,
@@ -183,9 +184,9 @@ module gesture_render (
             // ---- lane graphics ----
             if (in_lane && tr_hit && (grabbing || aiming || trail_valid != 0)) begin
                 en = 1'b1; color = tr_col;
-            end else if (in_lane && aiming && !grabbing && px_x == bx && py_s < ball_row - 12'sd6 && px_y[1:0] == 2'b00) begin
+            end else if (in_lane && aiming && !fp && !grabbing && px_x == bx && py_s < ball_row - 12'sd6 && px_y[1:0] == 2'b00) begin
                 en = 1'b1; color = 16'hC618;                                   // target line
-            end else if (in_lane && aiming && sm >= 0 && sm <= 2 && adxb <= {5'd0, sm[1:0]}) begin
+            end else if (in_lane && aiming && !fp && sm >= 0 && sm <= 2 && adxb <= {5'd0, sm[1:0]}) begin
                 en = 1'b1; color = `C_YELLOW;                                  // stance marker
             end
             // ---- panel meters ----

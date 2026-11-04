@@ -163,6 +163,14 @@ module tb_top;
         check(first_down == 10 ? (u_top.u_score.fr_mem[7][11:6] == 6'd56) :
               (u_top.u_score.fr_mem[7][17:12] == ((first_down == 0) ? 6'd13 : 6'd16 + first_down)),
               "the scorecard shows the first ball's mark");
+        // 7-seg: ball speed for 3 s after the throw, then the PROVISIONAL points
+        // (a strike already counts 10). Digits 1..0 = tens, ones (39 = blank)
+        repeat (3_200_000) @(posedge clk);
+        $display("      7-seg glyphs %0d %0d %0d %0d, provisional %0d", u_top.u_segc.glyphs[23:18],
+                 u_top.u_segc.glyphs[17:12], u_top.u_segc.glyphs[11:6], u_top.u_segc.glyphs[5:0], u_top.prov0);
+        check(u_top.prov0 == first_down, "provisional score = pins of the first ball");
+        check(u_top.u_segc.glyphs[5:0] == first_down % 10 &&
+              u_top.u_segc.glyphs[11:6] == ((first_down >= 10) ? 1 : 39), "7-seg shows the provisional score");
 
         // ---------------- finish frame 8 (second ball unless strike) ---------------
         wait_state(`GS_AIM, 6000);

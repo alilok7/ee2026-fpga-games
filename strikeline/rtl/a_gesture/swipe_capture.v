@@ -37,6 +37,8 @@ module swipe_capture (
     input  wire        l_press,
     input  wire        l_release,
     input  wire        r_press,
+    input  wire        nudge_l,          // btnL / btnR while aiming: one board left / right
+    input  wire        nudge_r,
     input  wire [6:0]  cursor_x,
     input  wire [5:0]  cursor_y,
     // to gesture_features / swipe_lab_plot (read port of the ring)
@@ -60,10 +62,21 @@ module swipe_capture (
 
     // ---------------- stance: ball centre under the pointer -----------------
     // Clamp so the whole ball (radius 4.3 in) is on the lane: 14..46 in.
+    // The pointer sets it when the mouse moves; btnL / btnR move it exactly
+    // one board for precise aiming without mouse jitter.
     wire [6:0] st_px = (cursor_x < 7'd14) ? 7'd14 : (cursor_x > 7'd46) ? 7'd46 : cursor_x;
+    reg  [6:0] st_board;
+    always @(posedge clk) begin
+        if (rst) st_board <= 7'd30;
+        else if (in_aim && !grabbing) begin
+            if (delta_valid)                         st_board <= st_px;
+            else if (nudge_l && st_board > 7'd14)    st_board <= st_board - 7'd1;
+            else if (nudge_r && st_board < 7'd46)    st_board <= st_board + 7'd1;
+        end
+    end
     always @(posedge clk) begin
         if (rst)                    stance_x <= `W_LANE_CX;
-        else if (in_aim && !grabbing) stance_x <= {3'b000, st_px, 6'd32}; // pixel centre
+        else if (in_aim && !grabbing) stance_x <= {3'b000, st_board, 6'd32}; // pixel centre
     end
 
     // ---------------- ring buffer: 64 x 64-bit distributed RAM ---------------

@@ -2,7 +2,7 @@
 
 EE2026 I-FDP, AY2026/27 Sem 1. Hold left-click on the lane, flick the mouse forward and let go. Flick speed sets the ball speed, direction sets the aim, and curving the flick makes the ball hook late, like a real ball leaving the oil. Pins collide, wobble and fall; frames are scored by real ten-pin rules; games are saved to flash after every frame.
 
-- Spec: `../Bowling_Engineer_Prompt.md`. Roadmap: `../Bowling_Roadmap_and_Work_Split.md`.
+- Spec: `../prompts/Bowling_Engineer_Prompt.md`. Roadmap: `../prompts/Bowling_Roadmap_and_Work_Split.md`.
 - Every signal between the parts: `docs/INTERFACES.md`. Each part: `docs/A..D_DESIGN.md` (with 15 Q&A each).
 - Demo: `docs/DEMO_SCRIPT.md`. Sources and AI use: `docs/REFERENCES_AND_AI_USE.md`.
 
@@ -40,18 +40,27 @@ sim/<a|b|d|top>/tb_*.v   self-checking testbenches (sim/d/flash_model.v = SPI fl
 | `tb_resume` (D) | fast check of the RESUME path on the whole bitstream |
 | `tb_screens` (all) | screenshots of the real OLED output (`python tools/screens_to_png.py <sim run folder> build/screens`) |
 
-## Controls
+## Controls (v2)
 | Input | Use |
 |---|---|
-| Mouse move / left click | Point, choose; on the lane: stance, then hold + flick to throw |
-| Right click / btnR | Scorecard (in a game), back (menus); cancels a swipe |
-| Middle click / btnD | (in RESULT) instant replay of the throw at half speed |
-| Wheel / btnU, btnD | Letters when entering initials; menus also follow U/D |
-| btnC / btnL | Choose / back. Hold btnL 1 s = leave the game (it is saved) |
+| Mouse move | Point in menus; on the lane: pick the stance board |
+| Hold left-click + flick up | Throw (speed = flick speed, curve = hook) |
+| Right click | Scorecard in a game, back in menus, cancels a swipe |
+| Middle click / **btnU** | (on a result) instant replay at half speed |
+| Wheel / btnU, btnD | Letters when entering initials; menu navigation |
+| **btnL / btnR** (aiming) | Move the stance exactly one board left / right |
+| **btnD** (in a game) | Scorecard |
+| **btnC** | Choose; skip a result |
+| Hold **btnL** 1 s | Leave the game (it is saved) |
 | btnU + btnD 2 s | Soft reset (saves kept) |
-| `sw[0]` `sw[1]` `sw[2]` `sw[3]` `sw[15]` | Pause, minimap, physics debug view, slow motion, left-handed |
-| `led[9:0]` / `led[15:10]` | Pins standing / power while swiping, then spin direction |
-| 7-seg | Menu word, ball speed after a throw, then the score |
+| **sw11 / sw12** | Ball 12 lb / 16 lb (both down = 14 lb) |
+| **sw13** | Neon "cosmic bowling" theme |
+| **sw14** | Long oil (45 ft): the ball hooks later and less |
+| **sw15** | Left-handed (boards counted from the left) |
+| **sw4** | Classic top-down view (default: first person while aiming / rolling) |
+| sw0 / sw1 / sw2 / sw3 | Pause / minimap / physics debug view / slow motion |
+| `led[9:0]` / `led[15:10]` | Pins standing / power while swiping, then the hook |
+| 7-seg | Menu word; ball speed after a throw; then the points so far (2 players: left digit = player); Spare Challenge: made.tries |
 
 ## On-board checklist (first time on hardware)
 1. Program → title "STRIKE LINE" with a rolling ball; 7-seg `bOWL`.

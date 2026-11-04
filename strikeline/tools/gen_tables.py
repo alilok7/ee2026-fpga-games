@@ -10,6 +10,10 @@ Owners: the part that reads each table (named below). Run: python tools/gen_tabl
   pin_pairs.mem    (C) 45 x 8 bit   {i, j} for the pair iterator, i < j
   pin_adj.mem      (C) 10 x 10 bit  adjacency (pins 12 in apart) for split detection
   leaves.mem       (D) 8 x 10 bit   Spare Challenge leaves (bit k = pin k+1)
+  inv_len.mem      (B, C) 128 x 9 bit  2^14 / |d| for the collision normal, indexed by d^2 >> 12
+  persp.mem        (B) 64 x 26 bit {dist[10:0], inv[14:0]} first-person view, per screen row
+  pin_fp.mem       (C) 128 x 4 bit {red, half-width[2:0]} standing pin seen from behind,
+                   address {size class[2:0], row above the base[3:0]}
 """
 import math
 import os
@@ -117,6 +121,67 @@ def leaves():
     write("leaves.mem", [sum(1 << (p - 1) for p in lv) for lv in LEAVES], 10)
 
 
+# ---------------------------------------------------------------- B, C: 1/|d|
+# n = d * inv_len[d^2 >> 12] >> 0 gives the unit normal in Q1.14 without a
+# square root or divider: bin i covers d^2 in [i*4096, (i+1)*4096) (1/64-in
+# units), |d| is taken at the bin centre. Error < 1.6 % for |d| > 2 in.
+def inv_len():
+    out = []
+    for i in range(128):
+        d = math.sqrt((i + 0.5) * 4096.0)
+        out.append(min(511, int(round(16384.0 / d))))
+    write("inv_len.mem", out, 9)
+
+
+# ---------------------------------------------------------------- B: first person
+# Camera at a fixed height and tilt: screen row y (horizon at y = 12) always
+# looks at the same distance ahead of the camera,  dist = 1530 / (y - 12) in,
+# and one inch across the lane covers (y - 12) / 51 px there. So a lane pixel
+# is at  world y = camera + dist[y],  world x = 30 + (px - 30) * inv[y] / 256
+# with inv[y] = 51 * 256 / (y - 12): a ROM and one multiply, no 3-D maths.
+HORIZON, K = 12, 1530
+
+
+def persp():
+    out = []
+    for y in range(64):
+        r = y - HORIZON
+        if r <= 0:
+            out.append(0)
+            continue
+        dist = min(2047, int(round(K / r)))
+        inv = min(32767, int(round(51 * 256 / r)))
+        out.append((dist << 15) | inv)
+    write("persp.mem", out, 26)
+
+
+# a standing pin seen from behind, 8 sizes (height in px), drawn upward from its base row
+PIN_H = [2, 3, 4, 6, 8, 10, 12, 15]
+
+
+def pin_fp():
+    prof = [(0.0, 1.0), (0.12, 1.9), (0.30, 2.4), (0.50, 1.9), (0.67, 0.9),
+            (0.80, 1.2), (0.90, 1.25), (1.0, 0.0)]       # radius (in) along the height
+
+    def radius(t):
+        for (t0, r0), (t1, r1) in zip(prof, prof[1:]):
+            if t0 <= t <= t1:
+                return r0 + (r1 - r0) * (t - t0) / (t1 - t0)
+        return 0.0
+    out = []
+    for c, h in enumerate(PIN_H):
+        scale = h / 15.0                                 # px per inch
+        for v in range(16):                              # rows above the base
+            if v >= h:
+                out.append(0xF)                          # 0xF = empty row
+                continue
+            t = (v + 0.5) / h
+            hw = min(6, int(radius(t) * scale + 0.35))
+            red = 1 if 0.62 <= t <= 0.74 and h >= 6 else 0
+            out.append((red << 3) | hw)
+    write("pin_fp.mem", out, 4)
+
+
 if __name__ == "__main__":
     os.makedirs(DATA, exist_ok=True)
     speed_curve()
@@ -124,3 +189,6 @@ if __name__ == "__main__":
     ball_marker()
     pins()
     leaves()
+    inv_len()
+    persp()
+    pin_fp()

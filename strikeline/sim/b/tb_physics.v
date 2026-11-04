@@ -35,7 +35,7 @@ module tb_physics;
     wire [3:0]  ridx;
     wire [15:0] rx, ry;
     wire signed [15:0] rvx, rvy;
-    wire        rsolid, iv, sdone;
+    wire        rsolid, rup, iv, sdone;
     wire [3:0]  ipin;
     wire signed [15:0] ivx, ivy, bvx, bvy;
     wire [15:0] bx, by;
@@ -48,7 +48,7 @@ module tb_physics;
         .clk(clk), .rst(rst), .tick_phys(tick_phys), .game_state(gs), .settings(settings),
         .stance_x(tx0), .throw_valid(tv), .throw_vy(tvy), .throw_vx(tvx), .throw_spin(tspin),
         .throw_x0(tx0), .pin_rd_idx(ridx), .pin_rd_x(rx), .pin_rd_y(ry), .pin_rd_vx(rvx),
-        .pin_rd_vy(rvy), .pin_rd_solid(rsolid), .impulse_valid(iv), .impulse_pin(ipin),
+        .pin_rd_vy(rvy), .pin_rd_solid(rsolid), .pin_rd_upright(rup), .impulse_valid(iv), .impulse_pin(ipin),
         .impulse_vx(ivx), .impulse_vy(ivy), .scan_done(sdone), .ball_x(bx), .ball_y(by),
         .ball_vx(bvx), .ball_vy(bvy), .ball_phase(bph), .ball_spin(bspin), .ball_angle(bang),
         .contact_pulse(cpulse), .contact_px(cpx), .contact_py(cpy));
@@ -63,7 +63,7 @@ module tb_physics;
         .clk(clk), .rst(rst), .tick_phys(tick_phys), .scan_done(sdone), .impulse_valid(iv),
         .impulse_pin(ipin), .impulse_vx(ivx), .impulse_vy(ivy), .rack_go(rack_go),
         .rack_cmd(rack_cmd), .rack_mask(rack_mask), .force_settle(force_s), .pin_rd_idx(ridx),
-        .pin_rd_x(rx), .pin_rd_y(ry), .pin_rd_vx(rvx), .pin_rd_vy(rvy), .pin_rd_solid(rsolid),
+        .pin_rd_x(rx), .pin_rd_y(ry), .pin_rd_vx(rvx), .pin_rd_vy(rvy), .pin_rd_solid(rsolid), .pin_rd_upright(rup),
         .pin_vis(vis), .standing(standing), .busy(pbusy), .rack_busy(rbusy), .rake_y(rake));
 
     pin_settle u_settle (
@@ -83,6 +83,21 @@ module tb_physics;
     // ---- watchers -----------------------------------------------------------
     reg seen_gutter, seen_hook, seen_roll, seen_skid;
     integer forced = 0;                          // settles that needed the 4 s timeout
+    // ---- pin-pin momentum: every collision C computes (state S_PN) -------
+    // equal masses, so vx_i + vx_j and vy_i + vy_j must not change, unless a
+    // pin was only made to wobble (its base absorbs the push by design)
+    integer pp_hits = 0, pp_bad = 0, sbx, sby, sax, say;
+    always @(posedge clk) if (u_pins.st == 5'd22) begin          // S_PN
+        @(posedge clk);                                          // nA/nB are now registered
+        sbx = $signed(u_pins.rA[54:35]) + $signed(u_pins.rB[54:35]);
+        sby = $signed(u_pins.rA[34:15]) + $signed(u_pins.rB[34:15]);
+        sax = $signed(u_pins.nA[54:35]) + $signed(u_pins.nB[54:35]);
+        say = $signed(u_pins.nA[34:15]) + $signed(u_pins.nB[34:15]);
+        if (u_pins.nA[14:12] != `PS_WOBBLING && u_pins.nB[14:12] != `PS_WOBBLING) begin
+            pp_hits = pp_hits + 1;
+            if (sax - sbx > 2 || sbx - sax > 2 || say - sby > 2 || sby - say > 2) pp_bad = pp_bad + 1;
+        end
+    end
     always @(posedge clk) if (force_s) forced = forced + 1;
     reg [15:0] x_at_oil, x_at_deck;
     reg        oil_done, deck_done;
@@ -250,6 +265,8 @@ module tb_physics;
         throw(17.0, 0.0, 360, 3);
         check(res_down >= 6, "pocket hook ball carries >= 6 pins");
         check(forced == 0, "every throw settled when the pins stopped (no 4 s timeout)");
+        $display("      pin-pin collisions checked: %0d, momentum errors: %0d", pp_hits, pp_bad);
+        check(pp_hits > 20 && pp_bad == 0, "pin-pin collisions conserve momentum");
         $display("      timeouts used: %0d", forced);
         check(worst_overlap < 2048, "pins never stay overlapping for 2 s");
         $display("      worst overlap run %0d ticks", worst_overlap);

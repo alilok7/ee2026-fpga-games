@@ -35,7 +35,9 @@
 // Multiplier use: 2 per tick for the hook + 4 per near pin + 10 per hit.
 // Cycle budget: worst case 10 hits = ~200 clocks of 97 656 (0.2 %).
 //=============================================================================
-module ball_physics (
+module ball_physics #(
+    parameter [15:0] R_DOWN = 16'd224             // lying-pin footprint (same as C), 1/64 in (3.5 in)
+) (
     input  wire        clk,
     input  wire        rst,
     input  wire        tick_phys,
@@ -54,6 +56,7 @@ module ball_physics (
     input  wire signed [15:0] pin_rd_vx,
     input  wire signed [15:0] pin_rd_vy,
     input  wire        pin_rd_solid,
+    input  wire        pin_rd_upright,   // standing or wobbling (else lying: bigger footprint)
     // impulse to C
     output reg         impulse_valid,
     output reg  [3:0]  impulse_pin,
@@ -72,15 +75,22 @@ module ball_physics (
     output reg  [15:0] contact_px,
     output reg  [15:0] contact_py
 );
-    localparam [10:0] HOOK_LEN = 11'd640;          // ticks of hooking (0.63 s)
-    localparam [17:0] INV_RBP  = 18'd38;           // 2^14 / (6.7 in * 64)
-    localparam [35:0] R2_HIT   = 36'd183869;       // (6.7 in * 64)^2
-    localparam [35:0] R2_CLR   = 36'd201601;       // (6.9 in * 64)^2
-    localparam [16:0] NEAR     = 17'd448;          // 7 in: quick reject box
+    // contact distance: ball 4.3 in + standing pin 2.4 in = 6.7 in, or
+    // + lying pin 4.0 in (the same footprint C uses pin to pin) = 8.3 in
+    localparam [35:0] R2_HIT_UP = 36'd183869;      // (6.7 in * 64)^2
+    localparam [35:0] R2_CLR_UP = 36'd201601;      // (6.9 in * 64)^2
+    localparam [35:0] R2_HIT_DN = (R_DOWN + 36'd275) * (R_DOWN + 36'd275);   // (4.3 in + R)^2
+    localparam [35:0] R2_CLR_DN = (R_DOWN + 36'd288) * (R_DOWN + 36'd288);   // + 0.2 in
+    localparam [16:0] NEAR_UP   = 17'd448;         // 7 in: quick reject box
+    localparam [16:0] NEAR_DN   = R_DOWN + 17'd320;           // 4.3 in + R + 0.7 in
 
     // ---------------- ROM of ball parameters --------------------------------
     reg [63:0] prm_rom [0:7];
-    initial $readmemh("ball_params.mem", prm_rom);
+    reg [8:0]  inv_rom [0:127];                    // 2^14 / |d|, indexed by d^2 >> 12
+    initial begin
+        $readmemh("ball_params.mem", prm_rom);
+        $readmemh("inv_len.mem", inv_rom);
+    end
     wire [63:0] prm      = prm_rom[{settings[`SET_OIL], settings[`SET_LB_HI:`SET_LB_LO]}];
     wire [7:0]  dec_oil  = prm[63:56];
     wire [7:0]  dec_dry  = prm[55:48];
@@ -118,7 +128,13 @@ module ball_physics (
     // C's read port is latched in S_P0 (timing: index -> C's mux -> here)
     reg [15:0] prx, pry;
     reg signed [15:0] prvx, prvy;
-    reg        prs, far_q;
+    reg        prs, far_q, prup;
+    reg [17:0] inv_q;                              // 1/|d| of this contact
+    reg [10:0] hook_len;                           // set at the throw: longer for more spin
+    reg [17:0] kb_eff;                             // ball deflection, less for a spinning ball
+    wire [35:0] r2_hit = prup ? R2_HIT_UP : R2_HIT_DN;
+    wire [35:0] r2_clr = prup ? R2_CLR_UP : R2_CLR_DN;
+    wire [16:0] near   = prup ? NEAR_UP   : NEAR_DN;
     reg signed [16:0] pdx_q, pdy_q;
     wire signed [16:0] pdx = $signed({1'b0, prx}) - $signed({1'b0, ball_x});
     wire signed [16:0] pdy = $signed({1'b0, pry}) - $signed({1'b0, ball_y});
@@ -133,7 +149,13 @@ module ball_physics (
     wire signed [31:0] nxp = $signed({2'b00, x}) + vx;
     wire signed [31:0] nyp = $signed({2'b00, y}) + vy;
     wire [15:0] nx16 = nxp[29:14];
-    wire signed [23:0] vy_dec  = vy - $signed({16'd0, (ball_phase == `BP_SKID) ? dec_oil : dec_dry});
+    // while hooking, friction turns forward speed into sideways speed: the
+    // forward deceleration grows by the size of the hook acceleration
+    wire signed [23:0] hacc     = mp[27:4];
+    wire [23:0]        hacc_abs = hacc[23] ? -hacc : hacc;
+    wire signed [23:0] vy_dec  = vy - $signed({16'd0, (ball_phase == `BP_SKID) ? dec_oil : dec_dry})
+                                    - ((ball_phase == `BP_HOOK) ? $signed(hacc_abs) : 24'sd0);
+    wire [2:0] spin_abs = throw_spin[3] ? -throw_spin[2:0] : throw_spin[2:0];
     wire signed [23:0] vy_min  = $signed({`W_SPEED_MIN, 8'd0});
     wire signed [23:0] vy_next = (vy_dec < vy_min) ? vy_min : vy_dec;
 
@@ -167,6 +189,7 @@ module ball_physics (
             nx <= 0; ny <= 0; t <= 0; vrn <= 0; sp <= 0; sb <= 0; dpx <= 0; dbx <= 0;
             impulse_pin <= 0; impulse_vx <= 0; impulse_vy <= 0; contact_px <= 0; contact_py <= 0;
             prx <= 0; pry <= 0; prvx <= 0; prvy <= 0; prs <= 0; pdx_q <= 0; pdy_q <= 0; far_q <= 0;
+            prup <= 1'b1; inv_q <= 0; hook_len <= 11'd640; kb_eff <= 0;
         end else begin
             // ---- a throw starts the roll (only from the throwing state) ----
             if (throw_pend && st == S_IDLE) begin
@@ -174,6 +197,10 @@ module ball_physics (
                 vx <= {throw_vx, 8'd0}; vy <= {throw_vy, 8'd0};
                 ball_spin <= throw_spin; ball_phase <= `BP_SKID;
                 hook_ticks <= 0; touching <= 0;
+                // more revs take longer to roll out: 256 + 96 ticks per spin level
+                hook_len <= 11'd256 + {2'b00, spin_abs, 6'd0} + {3'b000, spin_abs, 5'd0};
+                // a spinning ball drives through the pins: kb * (1 - |spin| / 16)
+                kb_eff <= kb - ((kb * spin_abs) >> 4);
             end else if (aim_state && st == S_IDLE && !throw_valid) begin
                 // waiting on the foul line under the stance pointer
                 ball_phase <= `BP_IDLE;
@@ -204,7 +231,7 @@ module ball_physics (
                         `BP_HOOK: begin
                             vx <= vx - mp[27:4];
                             hook_ticks <= hook_ticks + 11'd1;
-                            if (hook_ticks == HOOK_LEN) ball_phase <= `BP_ROLL;
+                            if (hook_ticks == hook_len) ball_phase <= `BP_ROLL;
                         end
                         default: ;                                // ROLL, GUTTER: straight
                     endcase
@@ -225,16 +252,20 @@ module ball_physics (
                 // ---------------- pin scan ----------------------------------
                 S_P0: begin                                       // latch C's read port
                     prx <= pin_rd_x; pry <= pin_rd_y; prvx <= pin_rd_vx; prvy <= pin_rd_vy; prs <= pin_rd_solid;
+                    prup <= pin_rd_upright;
                     st <= S_PQ;
                 end
                 S_PQ: begin                                       // offsets, registered (timing)
-                    pdx_q <= pdx; pdy_q <= pdy; far_q <= (adx > NEAR) || (ady > NEAR);
+                    pdx_q <= pdx; pdy_q <= pdy; far_q <= (adx > near) || (ady > near);
                     st <= S_P1;
                 end
                 S_P1: begin
                     dx <= pdx_q; dy <= pdy_q;
-                    relx <= vx[23:8] - prvx;
-                    rely <= vy[23:8] - prvy;
+                    // (a part-select is UNSIGNED in Verilog: without $signed a
+                    //  ball moving left read as a huge positive speed and slid
+                    //  through the pins - found by the carry-map trace)
+                    relx <= $signed(vx[23:8]) - prvx;
+                    rely <= $signed(vy[23:8]) - prvy;
                     if (!prs || far_q) begin
                         touching[pin_rd_idx] <= 1'b0;
                         st <= S_NEXT;
@@ -246,15 +277,19 @@ module ball_physics (
                 S_P2: begin ma <= dy; mb <= dy; st <= S_P3; end    // req B: dy^2
                 S_P3: begin d2 <= mp[35:0]; st <= S_P4; end        // A ready
                 S_P4: begin                                       // B ready -> |d|^2
-                    if (d2_full < R2_HIT) begin
+                    if (d2_full < r2_hit) begin
                         if (touching[pin_rd_idx]) st <= S_NEXT;   // already pushed
-                        else begin ma <= dx; mb <= INV_RBP; st <= S_N1; end   // req C
+                        else begin                                // req C: dx / |d|
+                            inv_q <= {9'd0, inv_rom[d2_full[18:12]]};
+                            ma <= dx; mb <= {9'd0, inv_rom[d2_full[18:12]]};
+                            st <= S_N1;
+                        end
                     end else begin
-                        if (d2_full > R2_CLR) touching[pin_rd_idx] <= 1'b0;
+                        if (d2_full > r2_clr) touching[pin_rd_idx] <= 1'b0;
                         st <= S_NEXT;
                     end
                 end
-                S_N1:  begin ma <= dy; mb <= INV_RBP; st <= S_N2; end         // req D
+                S_N1:  begin ma <= dy; mb <= inv_q; st <= S_N2; end           // req D: dy / |d|
                 S_N2:  begin nx <= mp[17:0]; st <= S_N3; end                   // C ready
                 S_N3:  begin ny <= mp[17:0]; ma <= relx; mb <= nx; st <= S_N4; end // D, req E
                 S_N4:  begin ma <= rely; mb <= ny; st <= S_N5; end             // req F
@@ -268,7 +303,7 @@ module ball_physics (
                         st <= S_N7;
                     end
                 end
-                S_N7:  begin ma <= vrn; mb <= kb; st <= S_N8; end              // req H
+                S_N7:  begin ma <= vrn; mb <= kb_eff; st <= S_N8; end          // req H
                 S_N8:  begin sp <= mp >>> 12; st <= S_N9; end                  // G ready
                 S_N9:  begin sb <= mp >>> 12; ma <= sp; mb <= nx; st <= S_N10; end // H, req I
                 S_N10: begin ma <= sp; mb <= ny; st <= S_N11; end              // req J

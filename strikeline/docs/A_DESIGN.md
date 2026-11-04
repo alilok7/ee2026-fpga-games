@@ -26,7 +26,8 @@ MouseCtl --xpos/ypos/new_event--> mouse_setup --delta, buttons--> swipe_capture 
 4. **Speed = peak 80 ms forward motion in the last ~120 ms**, not "the last 40 ms". 40 ms is less than two mouse packets, and players often stop just before letting go. The index `motion >> 3` reads a concave ROM curve, 10–22 mph.
 5. **Aim = whole-swipe ratio** `|dx| × 256 / forward` from the divider. A dead zone of about 6° counts as straight, and the gain is low (45° gives a 1.6° launch), because a 1° error already moves the ball 12 in at the pins. This is what lets a stranger throw a strike.
 6. **Spin = signed sum of cross products** of successive filtered velocities. For a constant speed each term is |v|²·sin(turn), so `turn = C × N / E` (E = Σ|v|²) is the total turn in radians, independent of speed. **Zero-velocity samples are skipped**: one sample in five does not move (40 Hz packets), and a zero vector would break the chain of turns. Testing showed a constant −15 bias per packet before this fix. Quantised: under 0.125 rad is straight, then one level per 0.0625 rad, up to 7. A curve to the left gives positive spin and a left hook ("what you draw is what you get").
-7. **Robustness:** right-click cancels; holding for more than 3 s cancels (covers an unplugged mouse); fewer than 4 samples means "too short"; grabs are only accepted in AIM / Swipe Lab.
+7. **Stance by buttons (v2):** btnL / btnR move the stance exactly one board (precise aim without mouse jitter); moving the mouse takes over again.
+8. **Robustness:** right-click cancels; holding for more than 3 s cancels (covers an unplugged mouse); fewer than 4 samples means "too short"; grabs are only accepted in AIM / Swipe Lab.
 
 ## FSMs
 - `mouse_setup`: MAX → CENTRE → RUN → (new_event) WAIT 4 clocks → READ (delta, re-centre) → OUT → RUN.
