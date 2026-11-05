@@ -9,13 +9,7 @@ set_clock_groups -asynchronous -group [get_clocks sys_clk_pin] -group [get_clock
 ## every path into the captured colour gets 7 clocks (see render_scan.v).
 set_multicycle_path -setup 7 -to [get_cells {u_comp/pix_reg[*]}]
 set_multicycle_path -hold  6 -to [get_cells {u_comp/pix_reg[*]}]
-## The Swipe Lab bitmap is a block RAM read from the pixel position: the
-## address gets 3 clocks; the RAM reads it on the 3rd edge, so its output has
-## the remaining 5 clocks to the captured colour (8 in all).
-set_multicycle_path -setup 3 -from [get_cells {u_scan/px_*_reg[*]}] -to [get_cells -hier -filter {NAME =~ *u_plot/bmp_reg*}]
-set_multicycle_path -hold  2 -from [get_cells {u_scan/px_*_reg[*]}] -to [get_cells -hier -filter {NAME =~ *u_plot/bmp_reg*}]
-set_multicycle_path -setup 5 -from [get_cells -hier -filter {NAME =~ *u_plot/bmp_reg*}] -to [get_cells {u_comp/pix_reg[*]}]
-set_multicycle_path -hold  4 -from [get_cells -hier -filter {NAME =~ *u_plot/bmp_reg*}] -to [get_cells {u_comp/pix_reg[*]}]
+## (v3.5: the Swipe Lab bitmap and its multicycle rules were removed with the practice section)
 ## v3: B latches C's pin read port 2 clocks after it sets the index (state S_PW)
 set_multicycle_path -setup 2 -from [get_cells {u_ball/pin_rd_idx_reg[*]}] -to [get_cells -hier -filter {NAME =~ u_ball/pr*_reg*}]
 set_multicycle_path -hold  1 -from [get_cells {u_ball/pin_rd_idx_reg[*]}] -to [get_cells -hier -filter {NAME =~ u_ball/pr*_reg*}]

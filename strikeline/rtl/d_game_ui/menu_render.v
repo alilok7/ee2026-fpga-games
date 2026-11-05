@@ -141,10 +141,10 @@ module menu_render (
             if (row == 3'd0) begin
                 color = c_title;
                 if (mrow == 4'd0 && mcol < 5'd24)
-                    txt = tx_s((hover == 3'd1 && !has_save) ? `S_MHINT + 11'd168 + mcol :
+                    txt = tx_s((hover == 3'd1 && !has_save) ? `S_MHINT + 11'd144 + mcol :      // "NO SAVED GAME YET" (item 6)
                                `S_MHINT + {hover - 3'd1, 4'd0} + {hover - 3'd1, 3'd0} + mcol,
                                1'b1, mfx, mfy, W, 0, 1'b0);
-            end else begin
+            end else if (row != 3'd7) begin                // v3.5: 6 items (no PRACTICE)
                 if (row == hover) color = c_hov;
                 if (col >= 4'd1 && col < 4'd12)
                     txt = tx_s(`S_MENU + ({row - 3'd1, 3'd0} + {row - 3'd1, 1'b0} + (row - 3'd1)) + col - 4'd1,
@@ -155,29 +155,7 @@ module menu_render (
                 end
             end
         end
-        // ===================================================== PRACTICE
-        `GS_PRACTICE_SPARE: begin
-            if (row == 3'd0) begin
-                color = c_title;
-                if (col >= 4'd4 && col < 4'd12) txt = tx_s(`S_PRACT + col - 4'd4, 1'b0, fx, fy, W, 0, 1'b0);
-            end else if (mrow == 4'd9) begin            // hint (y 54..59 spans rows 6 and 7)
-                if (mcol < 5'd24) txt = tx_s(`S_PRACH + mcol, 1'b1, mfx, mfy, c_dim, 0, 1'b0);
-            end else begin
-                if (row == hover && (row == 3'd2 || row == 3'd3 || row == 3'd4 || row == 3'd6)) color = c_hov;
-                case (row)
-                    3'd2: if (col >= 4'd1) txt = tx_s(`S_PRAC + col - 4'd1, 1'b0, fx, fy, row == hover ? Y : W, 0, 1'b0);
-                    3'd3: if (col >= 4'd1) txt = tx_s(`S_PRAC + 11'd15 + col - 4'd1, 1'b0, fx, fy, row == hover ? Y : W, 0, 1'b0);
-                    3'd4: if (col >= 4'd3 && col <= 4'd11) begin
-                              color = (row == hover) ? `C_MAGENTA : 16'h0410;
-                              if (col == 4'd3)       txt = tx_l(6'd59, 1'b0, fx, fy, W, 0, 1'b0);   // [
-                              else if (col == 4'd11) txt = tx_l(6'd61, 1'b0, fx, fy, W, 0, 1'b0);   // ]
-                              else txt = tx_s(`S_LEAVE + {leave_idx, 3'd0} - leave_idx + col - 4'd4, 1'b0, fx, fy, W, 0, 1'b0);
-                          end
-                    3'd6: if (col >= 4'd1) txt = tx_s(`S_PRAC + 11'd30 + col - 4'd1, 1'b0, fx, fy, row == hover ? Y : W, 0, 1'b0);
-                    default: ;
-                endcase
-            end
-        end
+        // (v3.5: the PRACTICE screen was removed)
         // ===================================================== SETTINGS
         `GS_SETTINGS: begin
             if (row == 3'd0) begin
@@ -235,11 +213,16 @@ module menu_render (
                     else if (mcol >= 5'd13 && mcol < 5'd19)  txt = tx_s(`S_SPRS + mcol - 5'd13, 1'b1, mfx, mfy, c_dim, 0, 1'b0);
                     else if (mcol >= 5'd20)                  txt = tx_l(dg5(b16, mcol - 5'd19), 1'b1, mfx, mfy, W, 0, 1'b0);
                 end else begin
+                    // v3.5: BEST = the best game OF THE TAB SHOWN (FULL or QUICK), i.e.
+                    // entry 1 of that top-5 table. (v3.4 read IM_BEST, which only
+                    // Full games ever update, so after Quick games it looked stuck.)
                     if (mcol < 5'd12) begin ra_lo = `IM_GAMES; ra_hi = `IM_GAMES + 7'd1; end
+                    else              begin ra_lo = tbl;       ra_hi = tbl + 7'd1;       end
                     if (mcol < 5'd5)       txt = tx_s(`S_GAMES + mcol, 1'b1, mfx, mfy, c_dim, 0, 1'b0);
                     else if (mcol >= 5'd6 && mcol < 5'd11) txt = tx_l(dg5(b16, mcol - 5'd6), 1'b1, mfx, mfy, W, 0, 1'b0);
                     else if (mcol >= 5'd13 && mcol < 5'd17) txt = tx_s(`S_BEST + mcol - 5'd13, 1'b1, mfx, mfy, c_dim, 0, 1'b0);
-                    else if (mcol >= 5'd18 && mcol < 5'd21) txt = tx_l(dg3(b9, mcol - 5'd18), 1'b1, mfx, mfy, W, 0, 1'b0);
+                    else if (mcol >= 5'd18 && mcol < 5'd21)
+                        txt = tx_l(rd_hi[7] ? dg3(b9, mcol - 5'd18) : (mcol == 5'd20 ? 6'd16 : 6'd0), 1'b1, mfx, mfy, W, 0, 1'b0);
                 end
             end
         end

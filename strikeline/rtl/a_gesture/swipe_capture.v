@@ -63,7 +63,7 @@ module swipe_capture (
 );
     // ---------------- where a grab is allowed -------------------------------
     wire in_aim = (game_state == `GS_AIM);
-    wire in_lab = (game_state == `GS_PRACTICE_SWIPE);
+    wire in_lab = 1'b0;                   // (v3.5: no Swipe Lab any more)
     wire grab_ok = (in_aim && grab_zone) || (in_lab && !busy);
 
     // ---------------- stance: ball centre under the pointer -----------------

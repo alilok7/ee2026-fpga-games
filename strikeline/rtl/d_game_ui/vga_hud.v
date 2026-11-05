@@ -38,6 +38,8 @@ module vga_hud (
     input  wire        v3d,              // this pixel uses the 3-D game layout
     input  wire        u_in,             // this pixel is inside the UI window
     input  wire        rp_full,          // v3.3: full-screen replay
+    input  wire [6:0]  sign_row,         // v3.5: middle row of the masking unit (160 x 120)
+    input  wire        sign_ok,          // ...and it is tall enough for the sign
     input  wire [`GS_W-1:0]  game_state,
     input  wire [`SET_W-1:0] settings,
     input  wire [`PK_W-1:0]  kind,
@@ -248,6 +250,7 @@ module vga_hud (
     // single-size 5x7 rows inside the view
     wire       vc_ok = (vxc < 8'd112);              // inside the centred 112-wide area
     wire [7:0] pq    = (vxc - 8'd24) >> 2;          // pause hint column
+    wire [6:0] sgy   = vy - (sign_row - 7'd2);      // sign glyph row 0..4
     wire [3:0] vc6 = vc_ok ? c6(vxc[6:0]) : 4'd15;
     wire [2:0] vf6 = f6(vxc[6:0]);
     wire in_ban_box = (vxc >= 8'd20) && (vxc <= 8'd91) && (vy >= 7'd38) && (vy <= 7'd51);
@@ -399,8 +402,9 @@ module vga_hud (
                     end
                 end
                 // masking-unit sign
-                if (vy >= 7'd19 && vy <= 7'd23 && vc4c >= 5'd9 && vc4c < 5'd19)
-                    txt = tx_s(`S_VTITLE + vc4c - 5'd9, 1'b1, vf4c, vy[2:0] - 3'd3, neon ? `C_CYAN : 16'hFE60, 0, 1'b0);
+                // (v3.5: the sign sits on the masking unit, which moves and grows with the camera)
+                if (sign_ok && vy >= sign_row - 7'd2 && vy <= sign_row + 7'd2 && vc4c >= 5'd9 && vc4c < 5'd19)
+                    txt = tx_s(`S_VTITLE + vc4c - 5'd9, 1'b1, vf4c, sgy[2:0], neon ? `C_CYAN : 16'hFE60, 0, 1'b0);
                 // ZOOM title (v3.1: right button held)
                 else if (aiming && aim_zoom && vy >= 7'd33 && vy < 7'd41 && vc6 >= 4'd5 && vc6 < 4'd13)
                     txt = tx_s(`S_PVIEW + vc6 - 4'd5, 1'b0, vf6, vy[2:0] - 3'd1, Y, `C_BLACK, 1'b1);

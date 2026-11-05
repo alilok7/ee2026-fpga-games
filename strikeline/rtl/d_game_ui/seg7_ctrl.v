@@ -79,13 +79,11 @@ module seg7_ctrl (
                 3'd1: g_c = {R, E, S, U};
                 3'd2: g_c = {6'd3, BL, F, R};
                 3'd3: g_c = {6'd1, 6'd0, F, R};
-                3'd4: g_c = {P, R, A, Cc};
-                3'd5: g_c = {H, I, BL, BL};
-                3'd6: g_c = {S, E, T, BL};
+                // (v3.5: PRACTICE removed from the menu)
+                3'd4: g_c = {H, I, BL, BL};
+                3'd5: g_c = {S, E, T, BL};
                 default: g_c = {H, E, L, P};
             endcase
-            `GS_PRACTICE_SPARE: g_c = {P, R, A, Cc};
-            `GS_PRACTICE_SWIPE: begin g_c = speed_g; d_c = 4'b0010; end
             `GS_SETTINGS: g_c = {S, E, T, BL};
             `GS_SCORES:   g_c = {H, I, BL, BL};
             `GS_HELP:     g_c = {H, E, L, P};

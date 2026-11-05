@@ -149,7 +149,9 @@ module turn_fsm (
             end else case (st)
                 T_IDLE: begin
                     if (go_new) begin
-                        kind <= kind_in; active <= 1;
+                        // (v3.5: no Spare Challenge - the spare bit is always 0,
+                        //  so synthesis removes the spare logic everywhere)
+                        kind <= kind_in & 3'b011; active <= 1;
                         player <= 0; ball_no <= 0; n0 <= 0; n1 <= 0; streak0 <= 0; streak1 <= 0;
                         frame <= kind_in[`PK_FULL] ? 4'd0 : 4'd7;
                         spare_made <= 0; spare_tries <= 0; ghost <= 1'b1; popup_id <= P_NONE;

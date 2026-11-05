@@ -215,7 +215,7 @@ module ball_physics #(
     // The ball waits under the stance pointer while aiming. Not during the
     // swipe itself (GS_THROW): the stance is locked then, and a late state
     // change could otherwise reset a ball that was just thrown.
-    wire aim_state = (game_state == `GS_AIM) || (game_state == `GS_PRACTICE_SWIPE);
+    wire aim_state = (game_state == `GS_AIM);              // (v3.5: no Swipe Lab)
 
     // A throw can arrive while the FSM is busy with a tick (~30 clocks), so it
     // is remembered until the FSM is idle: a throw is never lost.

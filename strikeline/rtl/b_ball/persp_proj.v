@@ -47,8 +47,13 @@ module persp_proj (
     output reg  signed [9:0] b_x,
     output reg  [7:0]  b_row,            // row of the floor contact
     output reg  [3:0]  b_rad,
-    output wire [359:0] pins_fp          // 10 x 36 bit (see above)
+    output wire [359:0] pins_fp,         // 10 x 36 bit (see above)
+    // v3.5 backdrop: two upright planes, once per frame after the 11 objects
+    output reg  [7:0]  rp_mu,            // masking unit at 700 in: r = 2K / d
+    output reg  [7:0]  rp_bw,            // back curtain at 790 in
+    output reg  [15:0] mu_step           // lanes (64 in) per pixel on the panel, Q16 = 52224 / rp_mu
 );
+    localparam signed [11:0] Y_MU = 12'sd700, Y_BW = 12'sd790;
     // one projection at a time
     reg  [3:0]  k;                        // 0 = ball, 1..10 = pins
     reg         dv_go;
@@ -128,13 +133,17 @@ module persp_proj (
         assign pins_fp[36*g +: 36] = pf[g];
     end endgenerate
 
-    localparam S_IDLE = 4'd0, S_DIV = 4'd1, S_WAIT = 4'd2, S_SEL = 4'd3, S_RES = 4'd4,
-               S_MUL = 4'd5, S_MUL2 = 4'd6, S_OUT = 4'd7, S_PRE = 4'd8, S_MUL3 = 4'd9, S_WR = 4'd10,
-               S_SEL0 = 4'd11, S_MUL4 = 4'd12;
+    localparam S_IDLE = 5'd0, S_DIV = 5'd1, S_WAIT = 5'd2, S_SEL = 5'd3, S_RES = 5'd4,
+               S_MUL = 5'd5, S_MUL2 = 5'd6, S_OUT = 5'd7, S_PRE = 5'd8, S_MUL3 = 5'd9, S_WR = 5'd10,
+               S_SEL0 = 5'd11, S_MUL4 = 5'd12,
+               S_B0 = 5'd13, S_B0W = 5'd14, S_B1 = 5'd15, S_B1W = 5'd16, S_B2 = 5'd17, S_B2W = 5'd18;
+    // backdrop plane distances (camera to plane, inches); >= 1
+    wire signed [11:0] d_mu = Y_MU - $signed({cam_fp[10], cam_fp});
+    wire signed [11:0] d_bw = Y_BW - $signed({cam_fp[10], cam_fp});
     reg [4:0]  hw5_q, hh5_q, neck_q;               // final small values (registered, timing)
     reg signed [9:0] xpos_q, xlean_q;
     reg [7:0]  row_q;
-    reg [3:0] st;
+    reg [4:0] st;
     integer q;
     // final bar values
     wire [9:0]  hw_full = {4'd0, hw_q[15:10]};                     // ex*r*5 >> 10
@@ -153,6 +162,7 @@ module persp_proj (
             s_wx <= 0; s_wy <= 0; s_on <= 0; s_bar <= 0; s_fall0 <= 0; s_dsx <= 0; s_ex <= 0; s_ey <= 0;
             r_q <= 0; xo_q <= 0; rr_q <= 0; hw_q <= 0; dep_q <= 0; pv <= 0; cls_q <= 0; brad_q <= 1; th_q <= 0; word_q <= 0;
             b_vis <= 0; b_x <= 0; b_row <= 0; b_rad <= 0;
+            rp_mu <= 8'd8; rp_bw <= 8'd7; mu_step <= 16'd6528;
             for (q = 0; q < 10; q = q + 1) pf[q] <= 36'd0;
         end else case (st)
             S_IDLE: if (tick_frame) begin k <= 4'd0; st <= S_PRE; end
@@ -185,7 +195,7 @@ module persp_proj (
                 // culled every object.)
                 if (!s_on || s_wy < 12'sd35) begin
                     if (k == 0) b_vis <= 1'b0; else pf[k - 4'd1] <= 36'd0;
-                    if (k == 4'd10) st <= S_IDLE; else begin k <= k + 4'd1; st <= S_PRE; end
+                    if (k == 4'd10) st <= S_B0; else begin k <= k + 4'd1; st <= S_PRE; end
                 end else begin
                     num <= {k_fp[14:0], 1'b0}; den <= {4'd0, s_wy};      // 2K / dz
                     dv_go <= 1'b1;
@@ -198,7 +208,7 @@ module persp_proj (
                 // more than 35 in away and still too near to be on screen
                 if (quo > 16'd180) begin
                     if (k == 0) b_vis <= 1'b0; else pf[k - 4'd1] <= 36'd0;
-                    if (k == 4'd10) st <= S_IDLE; else begin k <= k + 4'd1; st <= S_PRE; end
+                    if (k == 4'd10) st <= S_B0; else begin k <= k + 4'd1; st <= S_PRE; end
                 end else begin
                     r_q <= (quo > 16'd179) ? 8'd179 : quo[7:0]; st <= S_MUL;
                 end
@@ -234,9 +244,31 @@ module persp_proj (
             end
             S_WR: begin                                    // write the pin word (timing)
                 if (k != 0) pf[k - 4'd1] <= word_q;
-                if (k == 4'd10) st <= S_IDLE;
+                if (k == 4'd10) st <= S_B0;
                 else begin k <= k + 4'd1; st <= S_PRE; end
             end
+            // ---- v3.5 backdrop planes (same divider; ~100 clocks) ----
+            S_B0: begin                                    // masking unit: r = 2K / d
+                num <= {k_fp[14:0], 1'b0}; den <= (d_mu < 12'sd1) ? 16'd1 : {4'd0, d_mu};
+                dv_go <= 1'b1; st <= S_B0W;
+            end
+            S_B0W: if (dv_done) begin
+                rp_mu <= (quo > 16'd255) ? 8'd255 : (quo == 16'd0) ? 8'd1 : quo[7:0];
+                st <= S_B1;
+            end
+            S_B1: begin                                    // back curtain
+                num <= {k_fp[14:0], 1'b0}; den <= (d_bw < 12'sd1) ? 16'd1 : {4'd0, d_bw};
+                dv_go <= 1'b1; st <= S_B1W;
+            end
+            S_B1W: if (dv_done) begin
+                rp_bw <= (quo > 16'd255) ? 8'd255 : (quo == 16'd0) ? 8'd1 : quo[7:0];
+                st <= S_B2;
+            end
+            S_B2: begin                                    // lanes per pixel on the panel
+                num <= 16'd52224; den <= {8'd0, rp_mu};
+                dv_go <= 1'b1; st <= S_B2W;
+            end
+            S_B2W: if (dv_done) begin mu_step <= quo; st <= S_IDLE; end
             default: st <= S_IDLE;
         endcase
     end

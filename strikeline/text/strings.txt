@@ -8,16 +8,15 @@
 TITLE1  = "STRIKE"
 TITLE2  = "LINE"
 CLICK   = "CLICK TO PLAY"
-LIST MENU 11  = "RESUME GAME", "QUICK GAME", "FULL GAME", "PRACTICE", "HIGH SCORES", "SETTINGS", "HELP"
-// menu hints (3x5 font, 24 columns)
-LIST MHINT 24 = "CONTINUE YOUR SAVED GAME", "FRAMES 8-10  CLICK P=1/2", "10 FRAMES   CLICK P=1/2", "SWIPE LAB AND SPARES", "TOP 5 GAMES AND STATS", "SPIN MOUSE SCREEN", "HOW TO THROW", "NO SAVED GAME YET"
+// (v3.5: PRACTICE removed - 6 items)
+LIST MENU 11  = "RESUME GAME", "QUICK GAME", "FULL GAME", "HIGH SCORES", "SETTINGS", "HELP"
+// menu hints (3x5 font, 24 columns); the last one is shown on RESUME with no save
+LIST MHINT 24 = "CONTINUE YOUR SAVED GAME", "FRAMES 8-10  CLICK P=1/2", "10 FRAMES   CLICK P=1/2", "TOP 5 GAMES AND STATS", "SPIN MOUSE SCREEN", "HOW TO THROW", "NO SAVED GAME YET"
 LIST CHIP 2   = "1P", "2P"
 
-// ---- practice ----
-PRACT   = "PRACTICE"
-LIST PRAC 15  = "SWIPE LAB", "SPARE CHALLENGE", "BACK"
+// (v3.5: the practice section was removed; LEAVE stays only because the
+//  Spare Challenge panel code in hud_render still names it - synthesis drops it)
 LIST LEAVE 7  = "10 PIN", "7-10", "4-6", "3-6-10", "BUCKET", "5-7", "6-7-10", "1-2-4-7"
-PRACH   = "CLICK LEAVE TO CHANGE IT"
 
 // ---- settings ----
 SETT    = "SETTINGS"
@@ -57,8 +56,6 @@ LIST AMSG 13  = "SWIPE FASTER", "SWIPE FORWARD", "CANCELLED"
 HOOKW   = "HOOK"
 STRT    = "STRAIGHT"
 LIST LABW 4   = "SPD", "AIM", "SPIN", "PTS", "BD"
-LAB     = "SWIPE LAB"
-LABH    = "SWIPE ANYWHERE"
 POWERW  = "PWR"
 
 // ---- v3: VGA panel (D) and aim preview ----

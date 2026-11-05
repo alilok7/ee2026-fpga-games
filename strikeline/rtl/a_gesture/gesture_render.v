@@ -13,8 +13,7 @@
 //          swipe was refused ("SWIPE FASTER" ...) for 1.5 s
 //   PANEL  POWER bar (live while swiping, then the throw's speed) and SPIN
 //          bar (left/right of centre) in x 71..95, y 36..63
-//   LAB    Swipe Lab: the plotted raw (grey) / filtered (yellow) path and the
-//          measured numbers
+//   (the v2-v3.4 Swipe Lab screen was removed in v3.5 with the practice section)
 // Cursor layer (on top of everything): an arrow in menus, a crosshair on
 //   the lane, a filled dot while the ball is held.
 // LEDs: power level while swiping; after the throw, spin as a bar that
@@ -51,8 +50,6 @@ module gesture_render (
     input  wire [1:0]  reject_msg,
     input  wire        cancel,
     input  wire [7:0]  n_samples,
-    output wire [11:0] lab_addr,
-    input  wire [1:0]  lab_px,
     output reg  [15:0] color,
     output reg         en,
     output reg  [`TX_W-1:0] txt,
@@ -108,7 +105,6 @@ module gesture_render (
     wire in_lane  = (px_x < `SCR_LANE_W);
     wire in_game  = (game_state >= `GS_AIM && game_state <= `GS_SWEEP);
     wire aiming   = (game_state == `GS_AIM) || (game_state == `GS_THROW);
-    wire lab      = (game_state == `GS_PRACTICE_SWIPE);
     wire [6:0] bx = stance_x[12:6];
     wire signed [11:0] ball_row  = 12'sd63 - (12'sd5 - cam_y);         // ball centre row (y = 5 in)
     wire signed [11:0] foul_row  = 12'sd63 + cam_y;                    // y = 0
@@ -154,46 +150,11 @@ module gesture_render (
     wire signed [7:0] spin_px = (lbl_frames != 0) ? -({{4{l_spin[3]}}, l_spin} * 8'sd2) : 8'sd0;
     wire signed [7:0] dxc = $signed({1'b0, px_x}) - 8'sd83;             // spin bar centre x = 83
 
-    // lab: right column numbers (cols 16..23), bitmap in x 0..63
-    assign lab_addr = {px_y, px_x[5:0]};
-
     // ---------------- world layer -------------------------------------------
+    // (v3.5: the Swipe Lab screen was removed with the practice section)
     always @(*) begin
         en = 1'b0; color = `C_BLACK; txt = {`TX_W{1'b0}};
-        if (lab) begin
-            en = 1'b1;
-            color = (px_x < 7'd64) ? ((lab_px == 2'd2) ? `C_YELLOW : (lab_px == 2'd1) ? 16'h7BEF :
-                    (px_x == 7'd32 || px_y == 6'd60) ? 16'h2104 : `C_BLACK) : 16'h1082;
-            // text: title, hint, right column
-            if (mrow == 4'd0 && mcol < 5'd9)
-                txt = tx_s(`S_LAB + mcol, 1'b1, {1'b0, mfx}, mfy, `C_CYAN, `C_BLACK, 1'b0);
-            else if (mrow == 4'd9 && mcol < 5'd14)
-                txt = tx_s(`S_LABH + mcol, 1'b1, {1'b0, mfx}, mfy, 16'h8410, `C_BLACK, 1'b0);
-            else if (mcol >= 5'd17) begin
-                case (mrow)
-                    4'd1: if (mcol < 5'd20) txt = tx_s(`S_LABW + 0 + (mcol - 5'd17), 1'b1, {1'b0, mfx}, mfy, 16'hAD55, 16'h1082, 1'b0);
-                    4'd2: case (mcol)
-                              5'd17: txt = tx_l(dig(m_h), 1'b1, {1'b0, mfx}, mfy, `C_WHITE, 0, 1'b0);
-                              5'd18: txt = tx_l(dig(m_t), 1'b1, {1'b0, mfx}, mfy, `C_WHITE, 0, 1'b0);
-                              5'd19: txt = tx_l(6'd14,    1'b1, {1'b0, mfx}, mfy, `C_WHITE, 0, 1'b0);   // '.'
-                              5'd20: txt = tx_l(dig(m_o), 1'b1, {1'b0, mfx}, mfy, `C_WHITE, 0, 1'b0);
-                              default: ;
-                          endcase
-                    4'd3: if (mcol < 5'd20) txt = tx_s(`S_LABW + 4 + (mcol - 5'd17), 1'b1, {1'b0, mfx}, mfy, 16'hAD55, 0, 1'b0);
-                    4'd4: if (mcol == 5'd17) txt = tx_l(l_aim == 0 ? 6'd16 : (l_right ? 6'd50 : 6'd44), 1'b1, {1'b0, mfx}, mfy, `C_WHITE, 0, 1'b0);
-                          else if (mcol == 5'd18 && l_aim != 0) txt = tx_l(dig({1'b0, l_aim}), 1'b1, {1'b0, mfx}, mfy, `C_WHITE, 0, 1'b0);
-                    4'd5: if (mcol < 5'd21) txt = tx_s(`S_LABW + 8 + (mcol - 5'd17), 1'b1, {1'b0, mfx}, mfy, 16'hAD55, 0, 1'b0);
-                    4'd6: if (mcol == 5'd17) txt = tx_l(l_spin == 0 ? 6'd16 : (l_spin[3] ? 6'd50 : 6'd44), 1'b1, {1'b0, mfx}, mfy, `C_YELLOW, 0, 1'b0);
-                          else if (mcol == 5'd18 && l_spin != 0) txt = tx_l(dig(spin_mag), 1'b1, {1'b0, mfx}, mfy, `C_YELLOW, 0, 1'b0);
-                    4'd7: if (mcol < 5'd20) txt = tx_s(`S_LABW + 12 + (mcol - 5'd17), 1'b1, {1'b0, mfx}, mfy, 16'hAD55, 0, 1'b0);
-                    4'd8: if (mcol == 5'd17) txt = tx_l(dig(n_t), 1'b1, {1'b0, mfx}, mfy, `C_WHITE, 0, 1'b0);
-                          else if (mcol == 5'd18) txt = tx_l(dig(n_o), 1'b1, {1'b0, mfx}, mfy, `C_WHITE, 0, 1'b0);
-                    default: ;
-                endcase
-            end
-            if (msg_frames != 0 && mrow == 4'd8 && mcol < 5'd13)
-                txt = tx_s(`S_AMSG + {msg, 3'b000} + {msg, 2'b00} + msg + mcol, 1'b1, {1'b0, mfx}, mfy, `C_RED, `C_BLACK, 1'b1);
-        end else if (in_game) begin
+        if (in_game) begin
             // ---- lane graphics ----
             if (!scr && tr_hit && (grabbing || aiming || trail_valid != 0)) begin
                 en = 1'b1; color = tr_col;
@@ -263,7 +224,7 @@ module gesture_render (
     always @(*) begin
         cur_en = 1'b0; cur_color = `C_WHITE;
         if (show_cur) begin
-            if (in_game || lab) begin
+            if (in_game) begin
                 if (grabbing) begin                                     // holding the ball: dot
                     if (cdx >= -1 && cdx <= 1 && cdy >= -1 && cdy <= 1) begin cur_en = 1'b1; cur_color = `C_YELLOW; end
                 end else if ((cdx == 0 && cdy >= -2 && cdy <= 2) || (cdy == 0 && cdx >= -2 && cdx <= 2)) begin

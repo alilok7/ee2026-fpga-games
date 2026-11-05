@@ -10,7 +10,8 @@
 //     > B ball > C pins > B lane > black                    (as in v2)
 //   VGA 3-D game layout (v3d):
 //     A cursor > D vga_hud (strip, panel, popups) > A trail
-//     > B ball / C pins (the NEARER one: larger screen row) > B lane > black
+//     > B ball / C pins (the NEARER one: larger screen row)
+//     > B backdrop (v3.5: ceiling, masking unit, curtain) > B lane > black
 //   VGA outside the window (menus etc.): A cursor > D vga_hud backdrop
 //   VGA full-screen replay (v3.3, rp_full): D vga_hud (camera overlay, sides)
 //     > B ball > C pins > B lane (top-down, stretched); no pointer, no HUD
@@ -45,6 +46,7 @@ module compositor (
     input  wire        ball_en,  input wire [15:0] ball_c, input wire [7:0] ball_depth,
     input  wire        pin_en,   input wire [15:0] pin_c,  input wire [7:0] pin_depth,
     input  wire        lane_en,  input wire [15:0] lane_c,
+    input  wire        bd_en,    input wire [15:0] bd_c,      // v3.5: ceiling / masking unit / curtain
     output reg  [15:0] pix
 );
     wire vga_out_win = !scr && !v3d && !u_in && !rp_full; // VGA backdrop around the window
@@ -104,6 +106,7 @@ module compositor (
             else if (pin_front)                  mixed = pin_c;
             else if (ball_en)                    mixed = ball_c;
             else if (pin_en)                     mixed = pin_c;
+            else if (bd_en)                      mixed = bd_c;
             else if (lane_en)                    mixed = lane_c;
         end else begin
             if (l_sc[16])                        mixed = l_sc[15:0];

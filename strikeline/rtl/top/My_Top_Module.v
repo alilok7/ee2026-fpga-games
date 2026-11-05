@@ -151,10 +151,10 @@ module My_Top_Module (
     wire        grab_zone = classic ? (ucur_x < `SCR_LANE_W && cursor_x >= `UI_X0 && cursor_y >= `UI_Y0)
                                     : (cursor_x < `V_VIEW_W && cursor_y >= `V_TOP_H);
 
-    wire [6:0]  ring_addr, feat_addr, plot_addr, wp;
+    wire [6:0]  ring_addr, feat_addr, wp;
     wire [63:0] ring_data;
     wire [7:0]  n_samples;
-    wire grabbing, swipe_done, swipe_cancel, too_short, feat_busy, plot_busy;
+    wire grabbing, swipe_done, swipe_cancel, too_short, feat_busy;
     wire [15:0] stance_x;
     wire [2:0]  live_power;
     wire [479:0] trail_bus;
@@ -162,15 +162,12 @@ module My_Top_Module (
     wire [6:0]  target_in;                        // v3: aim guide target (wheel)
     wire        steer_valid;                      // v3: sideways mouse motion while rolling (A -> B)
     wire signed [11:0] steer_dx;
-    // features and plotting never overlap (the plot starts with 4096 clocks
-    // of clearing), so the read-port select can be a register (timing)
-    reg plot_sel;
-    always @(posedge clk) plot_sel <= plot_busy;
-    assign ring_addr = plot_sel ? plot_addr : feat_addr;
+    // (v3.5: the Swipe Lab plotter is gone; only gesture_features reads the ring)
+    assign ring_addr = feat_addr;
 
     swipe_capture u_swipe (
         .clk(clk), .rst(rst), .tick_sample(tick_sample), .tick_1ms(tick_1ms), .game_state(game_state),
-        .busy(feat_busy | plot_busy), .delta_valid(delta_valid), .delta_x(delta_x), .delta_y(delta_y),
+        .busy(feat_busy), .delta_valid(delta_valid), .delta_x(delta_x), .delta_y(delta_y),
         .l_press(l_press), .l_release(l_release), .r_press(r_press), .nudge_l(nudge_l),
         .nudge_r(nudge_r), .cursor_x(cursor_x), .cursor_y(cursor_y), .aim_px(aim_px), .grab_zone(grab_zone),
         .wheel(wheel), .target_in(target_in),
@@ -194,12 +191,6 @@ module My_Top_Module (
         .throw_mph10(throw_mph10), .reject(reject), .reject_msg(reject_msg), .aim_level(aim_level),
         .aim_right(aim_right));
 
-    wire in_lab = (game_state == `GS_PRACTICE_SWIPE);
-    wire [11:0] lab_addr;
-    wire [1:0]  lab_px;
-    swipe_lab_plot u_plot (
-        .clk(clk), .rst(rst), .start(in_lab && (throw_valid || reject)), .wp(wp), .n_samples(n_samples),
-        .rd_addr(plot_addr), .rd_data(ring_data), .busy(plot_busy), .px_addr(lab_addr), .px_data(lab_px));
 
     // =================== B: ball, camera ======================================
     wire [3:0]  pin_rd_idx;
@@ -399,10 +390,12 @@ module My_Top_Module (
     wire [7:0]  fb_row;
     wire [3:0]  fb_rad;
     wire [359:0] pins_fp;
+    wire [7:0]  rp_mu, rp_bw;                     // v3.5 backdrop planes
+    wire [15:0] mu_step;
     persp_proj u_persp (
         .clk(clk), .rst(rst), .tick_frame(tick_frame), .cam_fp(cam_fp), .k_fp(k_fp), .ball_visible(ball_visible_live),
         .ball_x(ball_x), .ball_y(ball_y), .pin_vis(pin_vis), .b_vis(fb_vis), .b_x(fb_x), .b_row(fb_row),
-        .b_rad(fb_rad), .pins_fp(pins_fp));
+        .b_rad(fb_rad), .pins_fp(pins_fp), .rp_mu(rp_mu), .rp_bw(rp_bw), .mu_step(mu_step));
 
     wire [15:0] lane_c, ball_c, pin_c, a_c, cur_c, menu_c, hud_c, sc_c, vh_c;
     wire [15:0] lane_c0;                          // lane colour before the haze
@@ -428,6 +421,16 @@ module My_Top_Module (
     // v3.4: depth haze / wood grain, outside lane_render (no DSP slices)
     color_dim u_ldim (.c(lane_c0), .lvl(lane_tint), .o(lane_c));
 
+    // v3.5: the far end of the alley (ceiling, masking unit, curtain) at its real distance
+    wire [15:0] bd_c;
+    wire        bd_en;
+    wire [6:0]  sign_row;
+    wire        sign_ok;
+    backdrop_render u_bdrop (
+        .clk(clk), .fp(v3d), .hx(hx), .hy(hy), .rp_mu(rp_mu), .rp_bw(rp_bw), .mu_step(mu_step),
+        .frame_cnt(frame_cnt), .neon(settings[`SET_THEME]), .color(bd_c), .en(bd_en),
+        .sign_row(sign_row), .sign_ok(sign_ok));
+
     ball_render u_ballr (
         .clk(clk), .rst(rst), .tick_frame(tick_frame), .vx(hx), .vy(hy), .ux(ux), .uy(uy), .cam_y(v_cam),
         .ball_x(v_ball_x), .ball_y(v_ball_y), .ball_vx(ball_vx), .ball_vy(ball_vy), .visible(ball_visible),
@@ -449,7 +452,7 @@ module My_Top_Module (
         .live_power(live_power), .throw_valid(throw_valid), .throw_spin(throw_spin),
         .throw_mph10(throw_mph10), .aim_level(aim_level), .aim_right(aim_right), .reject(reject),
         .reject_msg(reject_msg), .cancel(swipe_cancel | too_short), .n_samples(n_samples),
-        .lab_addr(lab_addr), .lab_px(lab_px), .color(a_c), .en(a_en), .txt(a_t),
+        .color(a_c), .en(a_en), .txt(a_t),
         .cur_color(cur_c), .cur_en(cur_en), .led_a(led_a));
 
     menu_render u_menu (
@@ -476,7 +479,8 @@ module My_Top_Module (
 
     vga_hud u_vhud (
         .clk(clk), .rst(rst), .tick_frame(tick_frame), .vx(sx), .vy(sy), .hx(hx), .hy(hy), .v3d(v3d), .u_in(u_in),
-        .rp_full(rp_full), .game_state(game_state), .settings(settings), .kind(t_kind), .player(player), .frame(frame),
+        .rp_full(rp_full), .sign_row(sign_row), .sign_ok(sign_ok),
+        .game_state(game_state), .settings(settings), .kind(t_kind), .player(player), .frame(frame),
         .ball_no(ball_no), .score0(prov0), .score1(prov1), .card_addr(vh_card_addr), .card_word(card_word),
         .pins_standing(standing), .popup_id(popup_id), .popup_n(popup_n), .banner(banner),
         .paused(paused), .saving(saving), .grabbing(grabbing), .live_power(live_power),
@@ -497,7 +501,8 @@ module My_Top_Module (
         .menu_t(menu_t), .a_en(a_en && !oled_score), .a_c(a_c), .a_t(oled_score ? {`TX_W{1'b0}} : a_t),
         .ball_en(ball_en && !oled_score), .ball_c(ball_c),
         .ball_depth(ball_depth), .pin_en(pin_en && in_play && !oled_score), .pin_c(pin_c), .pin_depth(pin_depth),
-        .lane_en(lane_en && in_play && !oled_score), .lane_c(lane_c), .pix(pix));
+        .lane_en(lane_en && in_play && !oled_score), .lane_c(lane_c),
+        .bd_en(bd_en && in_play), .bd_c(bd_c), .pix(pix));
 
     // =================== LEDs, 7-seg ===========================================
     assign led[9:0]   = in_play ? standing : (load_done ? 10'd0 : {10{frame_cnt[4]}});

@@ -116,17 +116,15 @@ module tb_screens;
         shot("title");
         click;  move_to(30, 20);  repeat (100000) @(posedge clk);
         shot("menu");
-        move_to(30, 52); click;  repeat (100000) @(posedge clk);   // SETTINGS
+        // v3.5 menu rows: 1 RESUME 2 QUICK 3 FULL 4 HIGH SCORES 5 SETTINGS 6 HELP
+        move_to(30, 44); click;  repeat (100000) @(posedge clk);   // SETTINGS
         move_to(30, 12); click;  repeat (100000) @(posedge clk);   // spin sensitivity -> HIGH
         shot("settings");
-        rclick; move_to(30, 44); click; repeat (100000) @(posedge clk); // HIGH SCORES
+        rclick; move_to(30, 36); click; repeat (100000) @(posedge clk); // HIGH SCORES
         shot("scores");
-        rclick; move_to(30, 60); click; repeat (100000) @(posedge clk); // HELP
+        rclick; move_to(30, 52); click; repeat (100000) @(posedge clk); // HELP
         shot("help");
-        click; move_to(30, 36); click; repeat (100000) @(posedge clk);  // PRACTICE
-        move_to(30, 36); repeat (100000) @(posedge clk);
-        shot("practice");
-        rclick; move_to(30, 20); click;                                 // QUICK GAME
+        click; move_to(30, 20); click;                                  // QUICK GAME
         wait_state(`GS_AIM, 4000); aim_at(40); repeat (100000) @(posedge clk);
         freeze(-1000, -40); shot("aim"); thaw;
         // ZOOM (v3.1): hold the right button while aiming; the wheel moves the
@@ -168,15 +166,7 @@ module tb_screens;
         mleft = 1; packet(0, 0); packet(0, -70); packet(0, -70); packet(0, -70); packet(0, -70); mleft = 0; packet(0, 0);
         wait_state(`GS_PINACTION, 6000); repeat (40 * 1500) @(posedge clk);
         freeze(700, 640); shot("debug"); thaw;
-        // Swipe Lab: leave the game (hold btnL), PRACTICE -> SWIPE LAB, one curved swipe
-        sw[4] = 0; sw[1] = 0; sw[2] = 0;
-        btnL = 1; repeat (1100000) @(posedge clk); btnL = 0;
-        wait_state(`GS_MENU, 500); move_to(30, 36); click;         // PRACTICE
-        repeat (50000) @(posedge clk); move_to(30, 20); click;     // SWIPE LAB
-        wait_state(`GS_PRACTICE_SWIPE, 500);
-        mleft = 1; packet(0, 0); packet(0, -60); packet(-6, -60); packet(-14, -60); packet(-24, -55);
-        packet(-34, -50); mleft = 0; packet(0, 0); repeat (20000) @(posedge clk);
-        freeze(-1000, -1000); shot("lab"); thaw;
+        // (v3.5: the Swipe Lab screenshot was removed with the practice section)
         $display("PASS tb_screens: done");
         $finish;
     end

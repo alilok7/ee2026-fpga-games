@@ -83,13 +83,11 @@ module game_fsm (
     output reg         want_replay,
     output reg         skip
 );
-    localparam M_TITLE = 4'd0, M_MENU = 4'd1, M_PLAY = 4'd2, M_PRACT = 4'd3, M_LAB = 4'd4,
+    // (v3.5: the practice modes PRACT / LAB were removed; codes 3 and 4 are free)
+    localparam M_TITLE = 4'd0, M_MENU = 4'd1, M_PLAY = 4'd2,
                M_SET = 4'd5, M_SCORES = 4'd6, M_HELP = 4'd7, M_OVER = 4'd8, M_NAME = 4'd9,
                M_BOOT = 4'd10, M_QUAL = 4'd11;
     reg [3:0] mode;
-
-    reg [9:0] leaves_rom [0:7];
-    initial $readmemh("leaves.mem", leaves_rom);
 
     // ---------------- input events -----------------------------------------
     wire b_up   = btn_press[`BTN_U] | btn_repeat[`BTN_U];
@@ -114,8 +112,6 @@ module game_fsm (
             M_TITLE, M_BOOT: game_state = `GS_TITLE;
             M_MENU:   game_state = `GS_MENU;
             M_PLAY:   game_state = tstate;
-            M_PRACT:  game_state = `GS_PRACTICE_SPARE;
-            M_LAB:    game_state = `GS_PRACTICE_SWIPE;
             M_SET:    game_state = `GS_SETTINGS;
             M_SCORES: game_state = `GS_SCORES;
             M_HELP:   game_state = `GS_HELP;
@@ -179,16 +175,17 @@ module game_fsm (
                 end
                 M_TITLE: if (click || b_sel) begin mode <= M_MENU; hover <= 3'd2; end
                 M_MENU: begin
+                    // v3.5: 6 rows (PRACTICE removed): RESUME, QUICK, FULL, HIGH SCORES, SETTINGS, HELP
+                    if (hover == 3'd7) hover <= 3'd6;
                     if (b_back) mode <= M_TITLE;
                     else if ((act_chip && (row_at == 3'd2 || row_at == 3'd3)) || b_card) chip_two <= ~chip_two;
                     else if (act) case (hover)
                         3'd1: if (has_save) begin go_resume <= 1; card_show <= 0; mode <= M_PLAY; end
                         3'd2: begin kind_out <= {1'b0, chip_two, 1'b0}; go_new <= 1; card_show <= 0; mode <= M_PLAY; end
                         3'd3: begin kind_out <= {1'b0, chip_two, 1'b1}; go_new <= 1; card_show <= 0; mode <= M_PLAY; end
-                        3'd4: begin mode <= M_PRACT; hover <= 3'd2; end
-                        3'd5: mode <= M_SCORES;
-                        3'd6: begin mode <= M_SET; erase_step <= 0; hover <= 3'd1; end
-                        3'd7: mode <= M_HELP;
+                        3'd4: mode <= M_SCORES;
+                        3'd5: begin mode <= M_SET; erase_step <= 0; hover <= 3'd1; end
+                        3'd6: mode <= M_HELP;
                         default: ;
                     endcase
                 end
@@ -215,10 +212,8 @@ module game_fsm (
                     if (tstate == `GS_REPLAY && (click || b_sel)) skip <= 1;
                     // v3.4: paused (sw0): a click / btnC leaves the game (saved at the last frame)
                     if (paused && (click || b_sel)) begin
-                        abort <= 1; mode <= t_kind[`PK_SPARE] ? M_PRACT : M_MENU;
-                    end else if (t_kind[`PK_SPARE] && (btn_long[`BTN_L] || (r_press && tstate == `GS_AIM))) begin
-                        abort <= 1; mode <= M_PRACT;
-                    end else if (!t_kind[`PK_SPARE] && btn_long[`BTN_L]) begin
+                        abort <= 1; mode <= M_MENU;
+                    end else if (btn_long[`BTN_L]) begin
                         abort <= 1; mode <= M_MENU;                     // saved at the last frame
                     end else if (t_game_over) begin
                         mode <= M_QUAL; q <= 0; qual_p <= 0; newhi <= 0;
@@ -270,24 +265,10 @@ module game_fsm (
                         end
                     end
                 end
-                M_PRACT: begin
-                    if (b_back || r_press) begin mode <= M_MENU; hover <= 3'd4; end
-                    else if (act) case (hover)
-                        3'd2: mode <= M_LAB;
-                        3'd3: begin
-                            kind_out <= 3'b100; leave_mask <= leaves_rom[leave_idx];
-                            go_new <= 1; card_show <= 0; mode <= M_PLAY;
-                        end
-                        3'd4: leave_idx <= leave_idx + 3'd1;
-                        3'd6: begin mode <= M_MENU; hover <= 3'd4; end
-                        default: ;
-                    endcase
-                end
-                M_LAB: if (b_back || r_press) begin mode <= M_PRACT; hover <= 3'd2; end
                 M_SET: begin
                     if (b_back || r_press) begin
                         if (set_dirty) begin c_settings <= 1; save_req <= 1; set_dirty <= 0; end
-                        mode <= M_MENU; hover <= 3'd6;
+                        mode <= M_MENU; hover <= 3'd5;
                     end else if (act) begin
                         set_dirty <= (hover == 3'd1) || (hover == 3'd4) || (hover == 3'd6);
                         // rows 2, 3, 5 (ball, hand, theme) are on switches; row 1 = spin sensitivity (v3)
@@ -309,9 +290,9 @@ module game_fsm (
                 M_SCORES: begin
                     if (click && cursor_y < 6'd8 && cursor_x >= 7'd60) tab_quick <= ~tab_quick;
                     else if (b_up || b_down) tab_quick <= ~tab_quick;
-                    if (b_back || r_press) begin mode <= M_MENU; hover <= 3'd5; end
+                    if (b_back || r_press) begin mode <= M_MENU; hover <= 3'd4; end
                 end
-                M_HELP: if (b_back || r_press || click || b_sel) begin mode <= M_MENU; hover <= 3'd7; end
+                M_HELP: if (b_back || r_press || click || b_sel) begin mode <= M_MENU; hover <= 3'd6; end
                 default: mode <= M_MENU;
             endcase
         end

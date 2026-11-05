@@ -71,8 +71,12 @@ module lane_render (
     wire signed [25:0] pmul = $signed({1'b0, vx} - {1'b0, `H_CX}) * $signed({1'b0, pinv});
     wire signed [12:0] fx_s = 13'sd30 + (pmul >>> 8);
     wire sky      = fp && (vy <= `H_HOR);
-    wire off_lane = fp && (fx_s < 0 || fx_s > 13'sd59);           // beside the lane
-    wire [6:0] lx = fp ? fx_s[6:0] : ux;                          // lane x (inches)
+    wire off_lane = fp && (fx_s < 0 || fx_s > 13'sd59);           // beside OUR lane
+    // v3.5: the alley repeats every 64 in (60 in of lane with its gutters +
+    // 4 in of capping), so beside our lane the same zones draw the
+    // neighbouring lanes; x within a lane = fx_s mod 64 (the low 6 bits)
+    wire [6:0] lx = fp ? {1'b0, fx_s[5:0]} : ux;                  // lane x (inches)
+    wire capping  = fp && (fx_s[5:0] >= 6'd60);
     wire signed [12:0] wy = fp ? $signed({cam_fp[10], cam_fp}) + $signed({1'b0, dz})
                                : cam_y + 13'sd63 - $signed({7'd0, uy});
     // one screen row covers about dist / r inches of lane: more than 8 (far
@@ -155,12 +159,12 @@ module lane_render (
     wire signed [12:0] gdx   = $signed({6'd0, lx}) - x_ln;
     wire [12:0]        agdx  = gdx[12] ? -gdx : gdx;
     wire [6:0]         gtol  = (pinv[14:8] == 0) ? 7'd0 : pinv[14:8];        // inches per pixel
-    wire on_guide = fp && aim_guide && (wy > 13'sd8) && (wy < 13'sd760) && (agdx <= {6'd0, gtol}) &&
+    wire on_guide = fp && aim_guide && !off_lane && (wy > 13'sd8) && (wy < 13'sd760) && (agdx <= {6'd0, gtol}) &&
                     (coarse ? (vy[1] == 1'b0) : (wy[3] == 1'b0)) && !gutter_l && !gutter_r;
     wire signed [12:0] tdy = wy - 13'sd196;
     wire [6:0]  atx = (lx > target_in) ? lx - target_in : target_in - lx;
     // (a diamond; on coarse rows a 2-row bar, else it would be one row or none)
-    wire on_target = fp && aim_guide && (coarse ?
+    wire on_target = fp && aim_guide && !off_lane && (coarse ?
                      ((tdy >= -13'sd12) && (tdy <= 13'sd12) && ({6'd0, atx} <= 13'd2 + {6'd0, gtol})) :
                      ((tdy >= -13'sd6) && (tdy <= 13'sd6) &&
                       ({6'd0, atx} + (tdy[12] ? -tdy : tdy) <= 13'd5 + {6'd0, gtol})));
@@ -169,15 +173,11 @@ module lane_render (
     // ---------------- 3-D surroundings --------------------------------------
     // masking unit: a lit band above the pins; ceiling above it. A light runs
     // along the band in the neon theme.
-    wire [7:0] mu_row = `H_HOR - vy;                                // 0 at the horizon
-    wire mu_light = neon && (vx[8:4] == frame_cnt[6:2]) ;
-    wire [15:0] c_sky = (mu_row >= 8'd16) ? (neon ? 16'h0806 : 16'h1082) :          // ceiling
-                        (mu_row == 8'd15 || mu_row == 8'd0) ? (neon ? `C_CYAN : 16'hC5A0) :  // trim
-                        (mu_row == 8'd14 || mu_row == 8'd1) ? (neon ? 16'h0410 : 16'h8360) : // trim shade
-                        mu_light ? `C_MAGENTA : (neon ? 16'h300C : 16'h6000);          // band
-    // next to the lane: capping, then the neighbouring approaches
-    wire [12:0] aoff = fx_s[12] ? -fx_s : fx_s - 13'sd59;
-    wire [15:0] c_side = (aoff <= 13'd4) ? (neon ? 16'h2004 : 16'h3986) : (neon ? 16'h1004 : 16'h2104);
+    // (v3.5: the ceiling, masking unit and curtain are drawn by
+    //  backdrop_render at their real distance; this is only a fallback)
+    wire [15:0] c_sky = 16'h0841;
+    // the capping between two lanes (raised, lit on top)
+    wire [15:0] c_cap = neon ? 16'h2004 : 16'h4A49;
 
     // ---------------- minimap (UI space) -------------------------------------
     wire [6:0]  mx   = ux - `SCR_MAP_X0;                      // 0..8
@@ -240,7 +240,9 @@ module lane_render (
             // ------------------------- 3-D view (VGA) ---------------------
             if (vx >= `H_VIEW_W || vy < `H_TOP_H) en = 1'b0;
             else if (sky)                     color = c_sky;
-            else if (off_lane)                color = c_side;
+            else if (capping)                 begin color = c_cap; tint = zt; end
+            // a neighbouring lane: the same zones, one step darker (our lane stands out)
+            else if (off_lane)                begin color = zone; tint = (zt == 2'd0) ? 2'd1 : 2'd2; end
             else if (on_target)               color = `C_YELLOW;
             else if (on_guide)                color = c_guide;
             else begin                        color = zone; tint = zt; end

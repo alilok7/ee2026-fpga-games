@@ -156,13 +156,21 @@ module ball_render (
     wire [10:0] asx = sdx[10] ? -sdx : sdx;
     wire in_shadow = fb_vis && (sdy >= -11'sd2) && (sdy <= 11'sd0) &&
                      (asx <= {7'd0, fb_rad} - ((sdy == -11'sd2) ? 11'd2 : 11'd0));
-    // v3.4: the oiled lane is glossy: a faint mirror image of the ball's
-    // lower half just below its contact row, narrowing with distance
+    // v3.5: the oiled lane is glossy, so it mirrors the ball: the image is the
+    // ball upside down, centred r below the contact row - narrow at the
+    // contact point and widening below it (|dx|^2 + (sdy - r)^2 <= r^2). Only
+    // its upper half is drawn, and as a screen-door (every 2nd pixel near the
+    // ball, every 4th further down) in the ball's darker shades, so the wood
+    // shows through and the reflection fades with distance.
     wire [10:0] afd = fdx[10] ? -fdx : fdx;
-    wire in_refl = fb_vis && (fb_rad >= 4'd3) && (sdy >= 11'sd1) && (sdy <= $signed({8'd0, fb_rad[3:1]})) &&
-                   (afd + sdy[10:0] <= {7'd0, fb_rad});
-    // half ball colour, half lane wood (a blend with a constant, no read-back)
-    wire [15:0] refl = {1'b0, base[15:12], 1'b0, base[10:6], 1'b0, base[4:1]} + 16'h6B28;
+    wire signed [10:0] mdy = sdy - $signed({7'd0, fb_rad});         // to the mirrored centre
+    wire [10:0] amd = mdy[10] ? -mdy : mdy;
+    wire [9:0]  md2 = afd[4:0] * afd[4:0] + amd[4:0] * amd[4:0];
+    wire        near_r = (sdy <= $signed({8'd0, fb_rad[3:1]}));       // upper quarter of the image
+    wire        door = near_r ? (vx[0] ^ vy[0]) : (vx[0] & vy[0]);     // 1/2, then 1/4 of the pixels
+    wire in_refl = fb_vis && (fb_rad >= 4'd3) && (sdy >= 11'sd1) && (sdy <= $signed({7'd0, fb_rad})) &&
+                   (afd <= 11'd16) && (md2 <= {2'b00, fr2}) && door;
+    wire [15:0] refl = near_r ? shade : dark;
 
     always @(*) begin
         en = 1'b0; color = base;

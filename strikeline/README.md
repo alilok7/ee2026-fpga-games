@@ -68,7 +68,8 @@ sim/<a|b|d|top>/tb_*.v   self-checking testbenches (sim/d/flash_model.v = SPI fl
 | **sw4** | Classic top-down view on the VGA too (default: 3-D first person during play) |
 | sw0 / sw1 / sw2 / sw3 | Pause / minimap / physics debug view / slow motion |
 | `led[9:0]` / `led[15:10]` | Pins standing / power while swiping, then the hook |
-| 7-seg | Menu word; ball speed after a throw; then the points so far (2 players: left digit = player); Spare Challenge: made.tries |
+| 7-seg | Menu word; ball speed after a throw; then the points so far (2 players: left digit = player) |
+| (v3.5) | The PRACTICE section (Swipe Lab, Spare Challenge) was removed to free logic for the 3-D background |
 
 ## On-board checklist (first time on hardware)
 1. Program → VGA: the STRIKELINE title around the framed menu; OLED: title "STRIKE LINE" with a rolling ball; 7-seg `bOWL`.

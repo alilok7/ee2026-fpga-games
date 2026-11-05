@@ -23,11 +23,16 @@ Extra hardware: a **VGA monitor** on the Basys3 VGA connector (main screen, 640 
 ### Pause, initials, high scores (v3.4)
 | Where | Input | Effect |
 |---|---|---|
-| Paused (sw0 up) | Click or btnC | **Leave the game** (it is saved at the last frame; RESUME GAME continues it). From Spare Challenge: back to PRACTICE |
+| Paused (sw0 up) | Click or btnC | **Leave the game** (it is saved at the last frame; RESUME GAME continues it with its scores) |
 | Entering initials | Wheel or btnU / btnD | Change the letter (A..Z) |
 | Entering initials | Click or btnC | Confirm the letter, next one; after the 3rd the score is saved |
 | Entering initials | **Right click or btnL** | Back to the previous letter |
-| HIGH SCORES | — | Top 5 (FULL / QUICK tabs), then lifetime STRIKES and SPARES, GAMES finished and BEST game |
+| HIGH SCORES | — | Top 5 (FULL / QUICK tabs), then lifetime STRIKES and SPARES, GAMES finished, and BEST = the best game of the tab shown (v3.5; v3.4 counted Full games only) |
+
+### v3.5: main menu, background
+- **Main menu:** RESUME GAME, QUICK GAME, FULL GAME, HIGH SCORES, SETTINGS, HELP. The PRACTICE section (Swipe Lab, Spare Challenge) was removed to make room on the chip.
+- **3-D view:** the far end of the alley is built at its real distance: the masking unit with a light over each lane and the STRIKELINE sign, the black curtain behind the pit, and the ceiling. They grow with the pins as the camera rolls in. Neighbouring lanes on both sides (slightly darker).
+- **Ball reflection:** the mirror image of the ball on the glossy lane, see-through and fading away from the ball.
 
 ### Settings menu (v3)
 Row 1 is now **SPIN** sensitivity: **NORM**, **HIGH** (2×), **MAX** (4×), **SOFT** (½). Mouse sensitivity, brightness and erase saves as before; oil length stays on sw14 only.
