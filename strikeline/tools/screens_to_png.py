@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """screens_to_png.py - turn tb_screens' OLED captures into PNG images (x4 scale).
 
-Usage: python tools/screens_to_png.py <folder with screen_*.txt> [out folder]
+Usage: python tools/screens_to_png.py <folder with screen_*.txt / screen2_*.txt> [out folder]
 Each capture is 6144 RGB565 hex values in OLED order (x fastest, 96 x 64).
 """
 import glob
@@ -28,5 +28,5 @@ if __name__ == "__main__":
     src = sys.argv[1]
     dst = sys.argv[2] if len(sys.argv) > 2 else src
     os.makedirs(dst, exist_ok=True)
-    for p in sorted(glob.glob(os.path.join(src, "screen_*.txt"))):
+    for p in sorted(glob.glob(os.path.join(src, "screen*_*.txt"))):
         print(convert(p, dst))

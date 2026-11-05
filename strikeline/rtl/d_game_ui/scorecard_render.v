@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 `include "strike_defs.vh"
 //=============================================================================
-// scorecard_render.v : the bowling scorecard overlay (top of the screen)
+// scorecard_render.v : the bowling scorecard (top of OLED 2, y 0..35)
 //-----------------------------------------------------------------------------
 // Owner   : Student D
 // Layout  : header row (3x5): P1/P2 and both totals; then two rows of five
@@ -11,8 +11,8 @@
 //             bottom: running total, shown once that frame is known
 //           Marks come ready-made from score_engine (X / - digits), totals
 //           are turned into digits here (combinational double dabble).
-// Shown   : automatically for 2 s after each frame, or toggled with
-//           right-click / btnR.
+// Shown   : v3: on OLED 2 (Student C's screen2.v decides when). Before v3
+//           it was an overlay on the lane, toggled with right-click / btnD.
 //=============================================================================
 module scorecard_render (
     input  wire [6:0]  px_x,

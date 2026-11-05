@@ -26,7 +26,7 @@ read_vhdl [list [file join $root rtl provided Ps2Interface.vhd] [file join $root
 read_xdc [list [file join $root constraints Basys3_StrikeLine.xdc]]
 
 synth_design -top My_Top_Module -part $part \
-    -include_dirs [list [file join $root rtl top] [file join $root rtl d_game_ui]]
+    -include_dirs [list [file join $root rtl top] [file join $root rtl d_game_ui] [file join $root rtl c_pins]]
 report_utilization -file post_synth_utilization.rpt
 opt_design
 place_design

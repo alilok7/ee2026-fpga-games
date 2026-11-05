@@ -5,7 +5,10 @@
 //-----------------------------------------------------------------------------
 // Owners : all (integration). Each screen is one OLED frame captured exactly
 // as Oled_Display samples it (pixel_data at every sample_pixel), written to
-// sim/run/tb_screens/screen_<name>.txt as 6144 hex RGB565 values.
+// sim/run/tb_screens/screen_<name>.txt as 6144 hex RGB565 values, and
+// OLED 2 (Student C's screen2) at the same moment as screen2_<name>.txt.
+// Also checks that both OLED drivers ask for the same pixel index at every
+// sample (screen 2 relies on sharing screen 1's px_x / px_y).
 // tools/screens_to_png.py turns them into PNG files (x4 scale).
 //=============================================================================
 module tb_screens;
@@ -13,12 +16,12 @@ module tb_screens;
     always #5 clk = ~clk;
     reg [15:0] sw = 16'h0000;
     reg btnU = 0, btnD = 0, btnL = 0, btnR = 0, btnC = 0;
-    wire [15:0] led; wire [6:0] seg; wire dp; wire [3:0] an; wire [7:0] JC;
+    wire [15:0] led; wire [6:0] seg; wire dp; wire [3:0] an; wire [7:0] JC, JXADC;
     wire PS2Clk, PS2Data, QspiCSn;
     wire [3:0] QspiDB;
     pullup (PS2Clk); pullup (PS2Data);
     My_Top_Module u_top (.clk(clk), .sw(sw), .btnU(btnU), .btnD(btnD), .btnL(btnL), .btnR(btnR),
-        .btnC(btnC), .led(led), .seg(seg), .dp(dp), .an(an), .JC(JC), .PS2Clk(PS2Clk), .PS2Data(PS2Data),
+        .btnC(btnC), .led(led), .seg(seg), .dp(dp), .an(an), .JC(JC), .JXADC(JXADC), .PS2Clk(PS2Clk), .PS2Data(PS2Data),
         .QspiCSn(QspiCSn), .QspiDB(QspiDB));
     wire miso;
     flash_model #(.ERASE_CLKS(20000), .PROG_CLKS(2000)) u_flash (
@@ -63,6 +66,8 @@ module tb_screens;
     // through the time that index is held (well after the compositor captured it)
     integer fd, n;
     reg [15:0] fb [0:6143];
+    reg [15:0] fb2 [0:6143];
+    integer lock_errors = 0;
     task shot(input [8*16-1:0] name);
         reg [8*64-1:0] fname;
         begin
@@ -70,13 +75,22 @@ module tb_screens;
             @(posedge u_top.oled_sending);
             while (u_top.oled_sending) begin
                 @(posedge u_top.clk6p25m);
-                if (u_top.u_oled.frame_counter[3:0] == 4'd8) fb[u_top.pixel_index] = u_top.oled_data;
+                if (u_top.u_oled.frame_counter[3:0] == 4'd8) begin
+                    fb[u_top.pixel_index]  = u_top.oled_data;
+                    fb2[u_top.pixel_index] = u_top.oled2_data;
+                    if (u_top.pixel_index2_unused !== u_top.pixel_index) lock_errors = lock_errors + 1;
+                end
             end
             $sformat(fname, "screen_%0s.txt", name);
             fd = $fopen(fname, "w");
             for (n = 0; n < 6144; n = n + 1) $fwrite(fd, "%04h%c", fb[n], 8'd10);
             $fclose(fd);
-            $display("PASS screenshot %0s", name);
+            $sformat(fname, "screen2_%0s.txt", name);
+            fd = $fopen(fname, "w");
+            for (n = 0; n < 6144; n = n + 1) $fwrite(fd, "%04h%c", fb2[n], 8'd10);
+            $fclose(fd);
+            if (lock_errors != 0) $display("FAIL tb_screens: OLED 2 pixel index differs from OLED 1 (%0d)", lock_errors);
+            else $display("PASS screenshot %0s (both OLEDs)", name);
         end
     endtask
 
@@ -132,9 +146,10 @@ module tb_screens;
         wait_state(`GS_RESULT, 8000); repeat (2000) @(posedge clk);
         freeze(700); shot("result"); thaw;
         wait_state(`GS_AIM, 8000); repeat (2000) @(posedge clk);
-        force u_top.u_game.card_show = 1'b1;
+        // btnD in a game: screen 2 shows the switch page (sw14 up = green)
+        sw[14] = 1; btnD = 1; repeat (30000) @(posedge clk); btnD = 0; repeat (30000) @(posedge clk);
         freeze(-1000); shot("card"); thaw;
-        release u_top.u_game.card_show;
+        btnD = 1; repeat (30000) @(posedge clk); btnD = 0; sw[14] = 0;
         sw[1] = 1; sw[2] = 1; repeat (20000) @(posedge clk);
         mleft = 1; packet(0, 0); packet(0, -70); packet(0, -70); packet(0, -70); packet(0, -70); mleft = 0; packet(0, 0);
         wait_state(`GS_PINACTION, 6000); repeat (40 * 1500) @(posedge clk);
@@ -148,6 +163,11 @@ module tb_screens;
         mleft = 1; packet(0, 0); packet(0, -60); packet(-6, -60); packet(-14, -60); packet(-24, -55);
         packet(-34, -50); mleft = 0; packet(0, 0); repeat (20000) @(posedge clk);
         freeze(-1000); shot("lab"); thaw;
+        // Spare Challenge: screen 2 shows the leave and MADE / OF instead of the card
+        rclick; repeat (50000) @(posedge clk);
+        wait_state(`GS_PRACTICE_SPARE, 500); move_to(30, 28); click;
+        wait_state(`GS_AIM, 4000); repeat (100000) @(posedge clk);
+        freeze(-1000); shot("spare"); thaw;
         $display("PASS tb_screens: done");
         $finish;
     end

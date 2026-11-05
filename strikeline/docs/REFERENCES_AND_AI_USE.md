@@ -25,3 +25,8 @@ The design, RTL, testbenches, Python generators and these documents were drafted
 - Every module is self-checked in simulation (`sim/*/tb_*.v`), and the AI's mistakes found that way are recorded in the design docs (for example the spin bias in A, the hook tuning in B, the pin radius in C, the flash read-index bug in D).
 - **Each student must read, understand and be able to explain every line of their own part before the assessment** (course rule: never claim what you cannot explain). Each `docs/<X>_DESIGN.md` lists 15 likely questions with answers to study.
 - Students: record here any change you make yourself, and any later AI help (what was asked, what was used).
+
+## Change log (later AI help and student changes)
+| Date | Files | Who | What |
+|---|---|---|---|
+| 2026-11-05 | `d_game_ui/debounce.v`, `button_events.v`, `seg7_driver.v`, `seg7_ctrl.v`, `score_engine.v` | Claude (AI), asked by Student D | Rewritten in a simpler, lecture-style form so they are easier to study and explain: one always block per output in `button_events`; Lab 4-style digit select in `seg7_driver`; `/` and `%` instead of the double-dabble function in `seg7_ctrl`; `score_engine` as a Lecture 3/4 FSM (state register, next-state block, datapath) that first copies the 21 rolls into an array and then scores one frame per clock. Same ports and behaviour; checked with `tb_scoring` (all checks pass) and the full testbench suite and build. |

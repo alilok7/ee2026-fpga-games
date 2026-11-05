@@ -1,0 +1,22 @@
+// Screen 2 strings (Student C's second OLED). Same syntax as strings.txt,
+// built by tools/strings_to_mem.py into data/screen2_strings.mem and
+// rtl/c_pins/screen2_map.vh (`define S2_<NAME> address, L2_<NAME> width).
+// All text on screen 2 uses the 3x5 font: 4 x 6 px cells, 24 columns.
+
+// ---- switches + buttons page ----
+SWHDR   = "SWITCHES        UP = ON"
+LIST SWL 12   = "0 PAUSE", "1 MINIMAP", "2 DEBUG", "3 SLOW-MO", "4 TOP VIEW"
+LIST SWR 12   = "11 12 LB", "12 16 LB", "13 NEON", "14 LONG OIL", "15 LEFT HAND"
+LIST BTNM 24  = "MOUSE: POINT AND CLICK", "U/D MOVE  C OK  L BACK", "R 1P/2P   U+D 2S RESET"
+LIST BTNG 24  = "L/R MOVE ONE BOARD", "U REPLAY  D SCORECARD", "HOLD L 1S: LEAVE GAME"
+
+// ---- pin deck panel ----
+DOWNW   = "DOWN"
+STANDW  = "STANDING"
+SPLITW  = "SPLIT!"
+
+// ---- Spare Challenge (instead of the scorecard) ----
+SPCH    = "SPARE CHALLENGE"
+LIST LEAVE 7  = "10 PIN", "7-10", "4-6", "3-6-10", "BUCKET", "5-7", "6-7-10", "1-2-4-7"
+MADEW   = "MADE"
+OFW     = "OF"

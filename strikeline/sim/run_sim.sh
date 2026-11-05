@@ -35,7 +35,7 @@ run_one() {
         cp "$VIV/../data/verilog/src/glbl.v" "$run/" 2>/dev/null
     fi
     ( cd "$run" &&
-      "$VIV/xvlog.bat" -d SIM -i "$rel/rtl/top" -i "$rel/rtl/d_game_ui" \
+      "$VIV/xvlog.bat" -d SIM -i "$rel/rtl/top" -i "$rel/rtl/d_game_ui" -i "$rel/rtl/c_pins" \
           $(find "$rel/rtl" -name '*.v') $(find "$rel/sim" -name '*.v' ! -name 'tb_*') "$rel/$file" $( [ -f glbl.v ] && echo glbl.v ) > compile.txt 2>&1 &&
       "$VIV/xelab.bat" -debug off -relax $extra "$tb" -s "${tb}_sim" > elab.txt 2>&1 &&
       "$VIV/xsim.bat" "${tb}_sim" -R > sim.txt 2>&1 )

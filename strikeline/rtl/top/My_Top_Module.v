@@ -15,8 +15,9 @@
 //   B reads C's pin positions, C watches B's ball phase, D commands C's
 //   pin-setter, D's settings reach A (sensitivity, hand), B (oil, ball weight)
 //   and the renderers (theme, brightness).
-// Video: B lane < C pins < B ball < A trail/meters < D menus/HUD/scorecard
-//        < A cursor  ->  D compositor (+ text engine)  ->  OLED on JC
+// Video: B lane < C pins < B ball < A trail/meters < D menus/HUD
+//        < A cursor  ->  D compositor (+ text engine)  ->  OLED 1 on JC
+//        D scorecard + C deck/switch panels -> C screen2 -> OLED 2 on JXADC
 //=============================================================================
 module My_Top_Module (
     input  wire        clk,
@@ -26,7 +27,8 @@ module My_Top_Module (
     output wire [6:0]  seg,
     output wire        dp,
     output wire [3:0]  an,
-    output wire [7:0]  JC,           // Pmod OLED
+    output wire [7:0]  JC,           // Pmod OLED 1: the lane
+    output wire [7:0]  JXADC,           // Pmod OLED 2: scoreboard (Student C)
     inout  wire        PS2Clk,       // USB HID host (mouse) on the Basys3
     inout  wire        PS2Data,
     output wire        QspiCSn,      // configuration flash (saves)
@@ -78,6 +80,19 @@ module My_Top_Module (
         .cs(JC[0]), .sdin(JC[1]), .sclk(JC[3]), .d_cn(JC[4]), .resn(JC[5]),
         .vccen(JC[6]), .pmoden(JC[7]));
     assign JC[2] = 1'b0;
+
+    // OLED 2: same clock and reset as OLED 1, so it asks for the same pixel
+    // at the same time and shares px_x / px_y (see rtl/c_pins/screen2.v)
+    wire [15:0] oled2_data;
+    wire [12:0] pixel_index2_unused;
+    wire        frame_begin2_unused, sending2_unused, sample2_unused;
+    Oled_Display u_oled2 (
+        .clk(clk6p25m), .reset(por_rst), .frame_begin(frame_begin2_unused),
+        .sending_pixels(sending2_unused), .sample_pixel(sample2_unused),
+        .pixel_index(pixel_index2_unused), .pixel_data(oled2_data),
+        .cs(JXADC[0]), .sdin(JXADC[1]), .sclk(JXADC[3]), .d_cn(JXADC[4]), .resn(JXADC[5]),
+        .vccen(JXADC[6]), .pmoden(JXADC[7]));
+    assign JXADC[2] = 1'b0;
     pixel_xy u_xy (.clk(clk), .pixel_index(pixel_index), .px_x(px_x), .px_y(px_y));
 
     // =================== D: game FSM (owner of game_state and settings) ======
@@ -393,17 +408,27 @@ module My_Top_Module (
         .stance_x(stance_x), .color(hud_c), .en(hud_en), .txt(hud_t));
 
     scorecard_render u_card (
-        .px_x(px_x), .px_y(px_y), .show(in_play && !t_kind[`PK_SPARE] && (card_show || card_auto)),
+        .px_x(px_x), .px_y(px_y), .show(!t_kind[`PK_SPARE]),     // screen 2 decides when
         .player(player), .two(t_kind[`PK_TWO]), .card_addr(card_addr), .card_word(card_word),
         .game0(game0), .game1(game1), .color(sc_c), .en(sc_en), .txt(sc_t));
 
     compositor u_comp (
         .clk(clk), .rst(rst), .tick_frame(tick_frame), .px_x(px_x), .px_y(px_y), .game_state(game_state),
-        .settings(settings), .cur_en(cur_en), .cur_c(cur_c), .sc_en(sc_en), .sc_c(sc_c), .sc_t(sc_t),
+        .settings(settings), .cur_en(cur_en), .cur_c(cur_c),
         .hud_en(hud_en), .hud_c(hud_c), .hud_t(hud_t), .menu_en(menu_en), .menu_c(menu_c),
         .menu_t(menu_t), .a_en(a_en), .a_c(a_c), .a_t(a_t), .ball_en(ball_en), .ball_c(ball_c),
         .pin_en(pin_en && in_play), .pin_c(pin_c), .lane_en(lane_en && in_play), .lane_c(lane_c),
         .oled_data(oled_data));
+
+    // =================== C: OLED 2 (scoreboard / switches) ======================
+    // btnD / right-click in a game shows the switch page; when a frame ends
+    // (card_auto) the scorecard comes back by itself.
+    screen2 u_scr2 (
+        .clk(clk), .rst(rst), .tick_frame(tick_frame), .px_x(px_x), .px_y(px_y),
+        .game_state(game_state), .kind(t_kind), .settings(settings), .sw_level(sw_level),
+        .help_page(card_show && !card_auto), .standing(standing), .standing_before(standing_before),
+        .split_flag(split_flag), .leave_idx(leave_idx), .spare_made(spare_made),
+        .spare_tries(spare_tries), .sc_en(sc_en), .sc_c(sc_c), .sc_t(sc_t), .oled_data(oled2_data));
 
     // =================== LEDs, 7-seg ===========================================
     assign led[9:0]   = in_play ? standing : (load_done ? 10'd0 : {10{frame_cnt[4]}});

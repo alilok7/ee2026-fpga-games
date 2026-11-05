@@ -1,26 +1,25 @@
 `timescale 1ns / 1ps
 //=============================================================================
-// debounce.v : stable-count debouncer for ONE already-synchronised input
+// debounce.v - debouncer for one switch or button
 //-----------------------------------------------------------------------------
-// Owner   : Student D (shared input library)
-// Purpose : A mechanical contact "bounces" for a few ms when it moves. We
-//           only accept a new level after the input has disagreed with the
-//           current level for N_MS consecutive milliseconds. Any bounce back
-//           to the old level restarts the count.
-//           Compared with the project manual's "200 ms lock-out" debouncer:
-//           a lock-out would block a second strike for 200 ms, far too slow
-//           for a rhythm game, while a stable count only adds N_MS of fixed
-//           latency and allows strikes as fast as every 2*N_MS.
+// Owner   : Student D
+// How it works:
+//   A switch "bounces" for a few ms when it moves. We keep the last accepted
+//   value in `level`. When din is different from level we count milliseconds
+//   (tick_1ms comes from timebase.v, once every 100,000 clocks). If din stays
+//   different for N_MS ms in a row, we accept it. If din goes back to the old
+//   value before that, the count starts again from 0.
+//   This is a counter with an enable, like the Lab 4 counters.
 // Ports
-//   din      synchronised input (2-flop synchroniser is in the parent)
-//   level    debounced level
-//   toggled  1-cycle pulse whenever `level` changes, in EITHER direction
-// Reset   : `level` is loaded with the current input, so a switch that is
-//           already up at power-on does NOT produce a fake strike.
+//   din      input, already passed through 2 flip-flops (input_conditioner)
+//   level    the clean (debounced) value
+//   toggled  1 for one clock when level changes (not used at the moment)
+// Reset: level is loaded with din, so a switch that is already up at power-on
+//   is not seen as a change.
 //=============================================================================
 module debounce #(
-    parameter N_MS = 5,              // required stable time in ms
-    parameter W    = 4               // counter width, 2^W > N_MS
+    parameter N_MS = 5,              // how many ms din must stay stable
+    parameter W    = 4               // counter width (2^W must be > N_MS)
 ) (
     input  wire clk,
     input  wire rst,
@@ -29,22 +28,29 @@ module debounce #(
     output reg  level,
     output reg  toggled
 );
-    reg [W-1:0] cnt;
+    reg [W-1:0] count;
 
     always @(posedge clk) begin
-        toggled <= 1'b0;
-        if (rst) begin
-            level <= din;
-            cnt   <= {W{1'b0}};
-        end else if (din == level) begin
-            cnt <= {W{1'b0}};                    // agrees again: forget bounce
-        end else if (tick_1ms) begin
-            if (cnt == N_MS - 1) begin           // disagreed for N_MS ms
-                level   <= din;
-                toggled <= 1'b1;
-                cnt     <= {W{1'b0}};
-            end else begin
-                cnt <= cnt + 1'b1;
+        if (rst == 1) begin
+            level   <= din;
+            count   <= 0;
+            toggled <= 0;
+        end
+        else begin
+            toggled <= 0;                         // only high for one clock
+
+            if (din == level) begin
+                count <= 0;                       // same as before: nothing to do
+            end
+            else if (tick_1ms == 1) begin         // different: count 1 ms
+                if (count == N_MS - 1) begin      // different for N_MS ms
+                    level   <= din;
+                    toggled <= 1;
+                    count   <= 0;
+                end
+                else begin
+                    count <= count + 1;
+                end
             end
         end
     end

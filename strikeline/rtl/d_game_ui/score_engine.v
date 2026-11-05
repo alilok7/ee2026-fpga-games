@@ -1,177 +1,307 @@
 `timescale 1ns / 1ps
 `include "strike_defs.vh"
 //=============================================================================
-// score_engine.v : ten-pin scoring from the list of rolls
+// score_engine.v - ten-pin bowling scores from the list of rolls
 //-----------------------------------------------------------------------------
 // Owner   : Student D
 // Rules   : frames 1-9: strike = 10 + next two balls, spare = 10 + next ball,
-//           open = pins. Frame 10: up to 3 balls, its own pins only, a bonus
-//           ball after a strike or spare. Max 300.
-//           A frame's total is shown only once it is KNOWN (a strike waits
-//           for its two bonus balls), exactly like a real scorecard.
-// Method  : the rolls live in the save image (so a resumed game rescores
-//           itself). After every roll (start) this FSM walks both players'
-//           rolls, one read per clock, 4 clocks per frame (3 reads + 1
-//           compute), ~100 clocks in total. Quick games start at frame 8
-//           (start_frame = 7), frames before it stay blank.
-// Outputs : one 28-bit word per (player, frame) in a 32-entry LUTRAM:
-//           {known, running total (9 bits), 3 scorecard marks as glyph codes}
-//           (frames 1-9 use marks 0 and 1): ' ' X / - or a digit. Every
-//           frame word is rewritten once per rescore (blank before the start
-//           frame), so the RAM never needs clearing.
+//           open frame = the pins knocked down. Frame 10: up to 3 balls, a
+//           bonus ball after a strike or spare. Maximum 300.
+//           A frame's total is only shown when it is KNOWN (a strike must
+//           wait for its two bonus balls), like a real scorecard.
+// How     : The rolls are stored in the save image (21 per player, 15 = not
+//           thrown yet). After every ball the turn FSM pulses `start`, and
+//           for each player this module:
+//             1. reads how many rolls there are       (S_COUNT)
+//             2. copies the 21 rolls into roll[]      (S_LOAD, 1 per clock)
+//             3. writes blank words for the frames before start_frame
+//                (Quick game starts at frame 8)       (S_BLANK)
+//             4. scores one frame per clock           (S_FRAME)
+//           then does the same for player 2 and pulses `done`.
+//           FSM style as in Lecture 3/4: a state register, a next-state
+//           block, and a separate datapath (the registers below).
+// Output  : one 28-bit word per (player, frame), kept in fr_mem:
+//           {known, running total (9 bits), mark0, mark1, mark2}
+//           marks are seg/scorecard character codes: ' ' X / - or a digit.
 //=============================================================================
 module score_engine (
     input  wire        clk,
     input  wire        rst,
     input  wire        start,
     input  wire [3:0]  start_frame,
-    output reg  [6:0]  ra,
-    input  wire [7:0]  rd,
-    input  wire [4:0]  card_addr,        // {player, frame} read by the scorecard
-    output wire [27:0] card_word,        // {known, total[8:0], mark0, mark1, mark2}
-    output wire [9:0]  ok0, ok1,
-    output wire [8:0]  game0, game1,     // total of all known frames (official)
-    output wire [8:0]  prov0, prov1,     // provisional: strikes/spares count the bonus balls thrown so far
+    output reg  [6:0]  ra,               // read address into the save image
+    input  wire [7:0]  rd,               // data at ra (comes one clock later)
+    input  wire [4:0]  card_addr,        // {player, frame} wanted by the scorecard
+    output wire [27:0] card_word,
+    output wire [9:0]  ok0, ok1,         // which frames are known
+    output wire [8:0]  game0, game1,     // official totals (known frames only)
+    output wire [8:0]  prov0, prov1,     // provisional totals (bonus balls so far)
     output reg         done
 );
+    // ---- character codes for the marks ------------------------------------
     localparam [5:0] G_SP = 6'd0, G_X = 6'd56, G_SL = 6'd15, G_DASH = 6'd13;
-    function [5:0] gd;                     // single ball: '-' for 0, else digit (X for 10)
+
+    // one ball as a mark: '-' for 0, X for 10, otherwise the digit
+    function [5:0] ball_mark;
         input [3:0] v;
-        gd = (v == 4'd0) ? G_DASH : (v == 4'd10) ? G_X : 6'd16 + {2'b00, v};
+        begin
+            if (v == 0)
+                ball_mark = G_DASH;
+            else if (v == 10)
+                ball_mark = G_X;
+            else
+                ball_mark = 6'd16 + v;
+        end
     endfunction
 
-    reg [27:0] fr_mem [0:31];               // [{p, f}]
+    // ---- the frame words (small RAM) --------------------------------------
+    reg [27:0] fr_mem [0:31];            // address = {player, frame}
     reg        fr_we;
     reg [4:0]  fr_wa;
     reg [27:0] fr_wd;
-    always @(posedge clk) if (fr_we) fr_mem[fr_wa] <= fr_wd;
-    assign card_word = fr_mem[card_addr];
-    reg [9:0] okr [0:1];
-    reg [8:0] gt  [0:1];
-    // the word of the frame being scored (blocking temporaries in S_CALC)
-    reg [5:0] w_m0, w_m1, w_m2;
-    reg [8:0] w_tot;
-    reg       w_ok;
-    assign ok0 = okr[0]; assign ok1 = okr[1];
-    assign game0 = gt[0]; assign game1 = gt[1];
-    reg [8:0] pt [0:1];                     // provisional totals
-    reg [8:0] pv;                           // provisional running sum of this walk
-    reg [4:0] w_pv;                         // this frame's provisional points (blocking temp)
-    assign prov0 = pt[0]; assign prov1 = pt[1];
-
-    localparam S_IDLE = 3'd0, S_N = 3'd1, S_R1 = 3'd2, S_R2 = 3'd3, S_R3 = 3'd4, S_CALC = 3'd5, S_NEXTP = 3'd6, S_F = 3'd7;
-    reg [2:0] st;
-    reg       p;
-    reg [3:0] f;
-    reg [4:0] idx, n;
-    reg [3:0] r1, r2, r3;
-    reg [8:0] cum;
-    reg       known;                       // every frame so far is known
-    wire [6:0] base = p ? `IM_ROLLS1 : `IM_ROLLS0;
-    reg  a1, a2, a3;                        // rolls idx, idx+1, idx+2 exist (registered in S_R3, timing)
-    wire strike = a1 && (r1 == 4'd10);
-    wire [4:0] s12 = r1 + r2;
-    wire [4:0] s23 = r2 + r3;
-
-    integer k;
     always @(posedge clk) begin
-        done <= 1'b0; fr_we <= 1'b0;
-        if (rst) begin
-            st <= S_IDLE; p <= 0; f <= 0; idx <= 0; n <= 0; r1 <= 0; r2 <= 0; r3 <= 0;
-            cum <= 0; known <= 0; ra <= 0;
-            fr_we <= 0; fr_wa <= 0; fr_wd <= 0;
-            okr[0] <= 0; okr[1] <= 0; gt[0] <= 0; gt[1] <= 0; pt[0] <= 0; pt[1] <= 0; pv <= 0;
-        end else begin
-            case (st)
-                S_IDLE: if (start) begin p <= 1'b0; ra <= `IM_NROLL0; st <= S_N; end
-                S_N: begin                                     // roll count of player p
-                    n <= (rd[4:0] > 5'd21) ? 5'd21 : rd[4:0];
-                    idx <= 0; f <= 4'd0; cum <= 0; known <= 1'b1;
-                    okr[p] <= 10'd0; gt[p] <= 9'd0; pv <= 9'd0;
-                    st <= S_F;
+        if (fr_we == 1)
+            fr_mem[fr_wa] <= fr_wd;
+    end
+    assign card_word = fr_mem[card_addr];
+
+    // ---- results for each player ------------------------------------------
+    reg [9:0] ok_p0,   ok_p1;
+    reg [8:0] game_p0, game_p1;
+    reg [8:0] prov_p0, prov_p1;
+    assign ok0 = ok_p0;     assign ok1 = ok_p1;
+    assign game0 = game_p0; assign game1 = game_p1;
+    assign prov0 = prov_p0; assign prov1 = prov_p1;
+
+    // ---- FSM states ---------------------------------------------------------
+    localparam S_IDLE  = 3'd0,
+               S_COUNT = 3'd1,
+               S_LOAD  = 3'd2,
+               S_BLANK = 3'd3,
+               S_FRAME = 3'd4,
+               S_NEXT  = 3'd5;
+    reg [2:0] state, next_state;
+
+    // ---- datapath registers -------------------------------------------------
+    reg       p;                         // player being scored (0 or 1)
+    reg [4:0] n;                         // number of rolls this player has
+    reg [4:0] i;                         // load counter 0..20
+    reg [3:0] roll [0:20];               // this player's rolls
+    reg [3:0] f;                         // frame 0..9
+    reg [4:0] idx;                       // first roll of frame f
+    reg [8:0] cum;                       // running total
+    reg       known;                     // every frame so far is known
+    reg [8:0] pv;                        // running provisional total
+
+    wire [6:0] base = (p == 1) ? `IM_ROLLS1 : `IM_ROLLS0;
+
+    // =========================================================================
+    // 1. next state
+    // =========================================================================
+    always @(*) begin
+        next_state = state;
+        case (state)
+            S_IDLE:  if (start == 1) next_state = S_COUNT;
+            S_COUNT: next_state = S_LOAD;
+            S_LOAD:  if (i == 20) next_state = S_BLANK;
+            S_BLANK: if (f >= start_frame) next_state = S_FRAME;
+            S_FRAME: if (f == 9) next_state = S_NEXT;
+            S_NEXT:  if (p == 1) next_state = S_IDLE; else next_state = S_COUNT;
+            default: next_state = S_IDLE;
+        endcase
+    end
+
+    // =========================================================================
+    // 2. state register
+    // =========================================================================
+    always @(posedge clk) begin
+        if (rst == 1)
+            state <= S_IDLE;
+        else
+            state <= next_state;
+    end
+
+    // =========================================================================
+    // 3. score of frame f (combinational)
+    // =========================================================================
+    // the three balls that can count for this frame
+    wire [3:0] r1 = roll[idx];
+    wire [3:0] r2 = roll[idx + 1];
+    wire [3:0] r3 = roll[idx + 2];
+    // have they been thrown yet?
+    wire a1 = (idx     < n);
+    wire a2 = (idx + 1 < n);
+    wire a3 = (idx + 2 < n);
+    wire [4:0] r12 = r1 + r2;
+
+    reg [5:0] m0, m1, m2;                // the marks
+    reg       complete;                  // this frame's score is known
+    reg [4:0] pts;                       // this frame's points (with bonus)
+    reg [4:0] prov_pts;                  // this frame's provisional points
+    reg [4:0] next_idx;                  // first roll of the next frame
+
+    always @(*) begin
+        m0 = G_SP; m1 = G_SP; m2 = G_SP;
+        complete = 0;
+        pts      = 0;
+        prov_pts = 0;
+        next_idx = idx + 2;
+
+        if (f != 9) begin
+            // ---------------- frames 1 to 9 ----------------
+            if (a1 == 1 && r1 == 10) begin
+                // strike: X, points = 10 + next two balls
+                m1       = G_X;
+                next_idx = idx + 1;
+                if (a2 == 1 && a3 == 1) begin
+                    complete = 1;
+                    pts      = 10 + r2 + r3;
                 end
-                S_F: begin                                     // frames before the start: blank
+                prov_pts = 10;
+                if (a2 == 1) prov_pts = prov_pts + r2;
+                if (a3 == 1) prov_pts = prov_pts + r3;
+            end
+            else begin
+                if (a1 == 1) m0 = ball_mark(r1);
+                if (a2 == 1) begin
+                    if (r12 == 10) m1 = G_SL;
+                    else           m1 = ball_mark(r2);
+                end
+
+                if (a1 == 1 && a2 == 1 && r12 == 10) begin
+                    // spare: points = 10 + next ball
+                    if (a3 == 1) begin
+                        complete = 1;
+                        pts      = 10 + r3;
+                    end
+                end
+                else if (a1 == 1 && a2 == 1) begin
+                    // open frame
+                    complete = 1;
+                    pts      = r12;
+                end
+
+                if (a1 == 1) prov_pts = prov_pts + r1;
+                if (a2 == 1) prov_pts = prov_pts + r2;
+                if (a1 == 1 && a2 == 1 && r12 == 10 && a3 == 1) prov_pts = prov_pts + r3;
+            end
+        end
+        else begin
+            // ---------------- frame 10 ----------------
+            if (a1 == 1) m0 = ball_mark(r1);
+            if (a2 == 1) begin
+                if (r1 == 10)       m1 = ball_mark(r2);   // X then anything
+                else if (r12 == 10) m1 = G_SL;            // spare
+                else                m1 = ball_mark(r2);
+            end
+            if (a3 == 1) begin
+                if (r1 == 10 && r2 != 10 && r2 + r3 == 10) m2 = G_SL;  // X 7 /
+                else                                       m2 = ball_mark(r3);
+            end
+
+            // finished: open frame after 2 balls, or all 3 balls thrown
+            if ((a1 == 1 && a2 == 1 && r1 != 10 && r12 < 10) || a3 == 1) begin
+                complete = 1;
+                pts      = r12;
+                if (a3 == 1) pts = pts + r3;
+            end
+
+            if (a1 == 1) prov_pts = prov_pts + r1;
+            if (a2 == 1) prov_pts = prov_pts + r2;
+            if (a3 == 1) prov_pts = prov_pts + r3;
+        end
+    end
+
+    wire [8:0] frame_total = complete ? (cum + pts) : 9'd0;
+    wire       frame_ok    = complete && known;
+
+    // =========================================================================
+    // 4. datapath: what each state does
+    // =========================================================================
+    always @(posedge clk) begin
+        done  <= 0;
+        fr_we <= 0;
+        if (rst == 1) begin
+            p <= 0; n <= 0; i <= 0; f <= 0; idx <= 0;
+            cum <= 0; known <= 0; pv <= 0; ra <= 0;
+            fr_wa <= 0; fr_wd <= 0;
+            ok_p0 <= 0; ok_p1 <= 0; game_p0 <= 0; game_p1 <= 0; prov_p0 <= 0; prov_p1 <= 0;
+        end
+        else begin
+            case (state)
+                S_IDLE: begin
+                    if (start == 1) begin
+                        p  <= 0;
+                        ra <= `IM_NROLL0;               // number of rolls, player 1
+                    end
+                end
+
+                S_COUNT: begin                          // rd = number of rolls
+                    if (rd > 21) n <= 21;
+                    else         n <= rd[4:0];
+                    i     <= 0;
+                    f     <= 0;
+                    idx   <= 0;
+                    cum   <= 0;
+                    known <= 1;
+                    pv    <= 0;
+                    if (p == 0) begin ok_p0 <= 0; game_p0 <= 0; end
+                    else        begin ok_p1 <= 0; game_p1 <= 0; end
+                    ra <= base;                         // first roll
+                end
+
+                S_LOAD: begin                           // rd = roll i
+                    roll[i] <= rd[3:0];
+                    ra      <= base + i + 1;
+                    i       <= i + 1;
+                end
+
+                S_BLANK: begin                          // frames before the start
                     if (f < start_frame) begin
-                        fr_we <= 1'b1; fr_wa <= {p, f}; fr_wd <= 28'd0;
-                        f <= f + 4'd1;
-                    end else begin
-                        ra <= base;
-                        st <= S_R1;
+                        fr_we <= 1;
+                        fr_wa <= {p, f};
+                        fr_wd <= 28'd0;
+                        f     <= f + 1;
                     end
                 end
-                // the read address is set one clock before its data is used
-                S_R1: begin r1 <= rd[3:0]; ra <= base + {2'b00, idx} + 7'd1; st <= S_R2; end
-                S_R2: begin r2 <= rd[3:0]; ra <= base + {2'b00, idx} + 7'd2; st <= S_R3; end
-                S_R3: begin
-                    r3 <= rd[3:0];
-                    a1 <= (idx < n); a2 <= (idx + 5'd1 < n); a3 <= (idx + 5'd2 < n);
-                    st <= S_CALC;
-                end
-                S_CALC: begin
-                    w_m0 = G_SP; w_m1 = G_SP; w_m2 = G_SP; w_tot = 9'd0; w_ok = 1'b0;
-                    if (f != 4'd9) begin
-                        // ---------------- frames 1..9 ----------------
-                        if (strike) begin
-                            w_m1 = G_X;
-                            if (a2 && a3) begin
-                                cum <= cum + 9'd10 + r2 + r3;
-                                w_tot = cum + 9'd10 + r2 + r3;
-                                if (known) begin okr[p][f] <= 1'b1; w_ok = 1'b1; gt[p] <= cum + 9'd10 + r2 + r3; end
-                            end else known <= 1'b0;
-                            idx <= idx + 5'd1;
-                        end else begin
-                            if (a1) w_m0 = gd(r1);
-                            if (a2) w_m1 = (s12 == 5'd10) ? G_SL : gd(r2);
-                            if (a1 && a2 && s12 == 5'd10) begin
-                                if (a3) begin
-                                    cum <= cum + 9'd10 + r3;
-                                    w_tot = cum + 9'd10 + r3;
-                                    if (known) begin okr[p][f] <= 1'b1; w_ok = 1'b1; gt[p] <= cum + 9'd10 + r3; end
-                                end else known <= 1'b0;
-                            end else if (a1 && a2) begin
-                                cum <= cum + s12;
-                                w_tot = cum + s12;
-                                if (known) begin okr[p][f] <= 1'b1; w_ok = 1'b1; gt[p] <= cum + s12; end
-                            end else known <= 1'b0;
-                            idx <= idx + 5'd2;
-                        end
-                    end else begin
-                        // ---------------- frame 10 ----------------
-                        if (a1) w_m0 = gd(r1);
-                        if (a2) w_m1 = (r1 == 4'd10) ? gd(r2) : (s12 == 5'd10) ? G_SL : gd(r2);
-                        if (a3) w_m2 = (r1 == 4'd10 && r2 != 4'd10) ?
-                                              ((r2 + r3 == 5'd10) ? G_SL : gd(r3)) : gd(r3);
-                        if ((a1 && a2 && r1 != 4'd10 && s12 < 5'd10) || a3) begin
-                            cum <= cum + s12 + (a3 ? {5'd0, r3} : 9'd0);
-                            w_tot = cum + s12 + (a3 ? {5'd0, r3} : 9'd0);
-                            if (known) begin okr[p][f] <= 1'b1; w_ok = 1'b1; gt[p] <= cum + s12 + (a3 ? {5'd0, r3} : 9'd0); end
-                        end
+
+                S_FRAME: begin
+                    // write this frame's word
+                    fr_we <= 1;
+                    fr_wa <= {p, f};
+                    fr_wd <= {frame_ok, frame_total, m0, m1, m2};
+
+                    // running totals
+                    if (complete == 1)
+                        cum <= cum + pts;
+                    if (complete == 0)
+                        known <= 0;
+                    if (frame_ok == 1) begin
+                        if (p == 0) begin ok_p0[f] <= 1; game_p0 <= cum + pts; end
+                        else        begin ok_p1[f] <= 1; game_p1 <= cum + pts; end
                     end
-                    // provisional: the pins of this frame plus the bonus balls
-                    // thrown so far (a strike / spare is counted before its
-                    // bonus is complete, like a bowling-alley screen)
-                    if (f != 4'd9 && strike)
-                        w_pv = 5'd10 + (a2 ? {1'b0, r2} : 5'd0) + (a3 ? {1'b0, r3} : 5'd0);
-                    else if (f != 4'd9)
-                        w_pv = (a1 ? {1'b0, r1} : 5'd0) + (a2 ? {1'b0, r2} : 5'd0) +
-                               ((a1 && a2 && s12 == 5'd10 && a3) ? {1'b0, r3} : 5'd0);
-                    else
-                        w_pv = (a1 ? {1'b0, r1} : 5'd0) + (a2 ? {1'b0, r2} : 5'd0) + (a3 ? {1'b0, r3} : 5'd0);
-                    pv <= pv + {4'd0, w_pv};
-                    if (f == 4'd9) pt[p] <= pv + {4'd0, w_pv};
-                    fr_we <= 1'b1; fr_wa <= {p, f}; fr_wd <= {w_ok, w_tot, w_m0, w_m1, w_m2};
-                    if (f == 4'd9) st <= S_NEXTP;
+                    pv <= pv + prov_pts;
+                    if (f == 9) begin
+                        if (p == 0) prov_p0 <= pv + prov_pts;
+                        else        prov_p1 <= pv + prov_pts;
+                    end
+
+                    // next frame
+                    f   <= f + 1;
+                    idx <= next_idx;
+                end
+
+                S_NEXT: begin
+                    if (p == 1) begin
+                        done <= 1;
+                    end
                     else begin
-                        f <= f + 4'd1;
-                        ra <= base + {2'b00, idx} + ((strike) ? 7'd1 : 7'd2);
-                        st <= S_R1;
+                        p  <= 1;
+                        ra <= `IM_NROLL1;               // number of rolls, player 2
                     end
                 end
-                S_NEXTP: begin
-                    if (p) begin done <= 1'b1; st <= S_IDLE; end
-                    else begin p <= 1'b1; ra <= `IM_NROLL1; st <= S_N; end
-                end
-                default: st <= S_IDLE;
+
+                default: ;
             endcase
         end
     end

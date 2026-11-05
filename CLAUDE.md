@@ -2,6 +2,7 @@
 
 If someone gives you this repo and says **"StrikeLine"**, **"KeyLight"**, **"EE2026 FPGA games"** or **"the bowling / piano FPGA project"**, this is the project. Read in this order, then brief the user (what the game is, its state, the next steps):
 
+0. **`strikeline/docs/SESSION_CONTEXT.md`: latest state, how the team works now (code changes here, builds on the student's laptop), open review items, and rules agreed with the student. Read it first.**
 1. `README.md`: the two games, features, releases, team split.
 2. `docs/BUILD_HISTORY.md`: how it was prompted and built, every phase, every bug found, resource and timing numbers, open items.
 3. `docs/CONTROLS.md`: exact controls (StrikeLine v2, v1, KeyLight). Answer control questions from this file.

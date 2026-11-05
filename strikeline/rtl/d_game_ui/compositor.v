@@ -1,12 +1,13 @@
 `timescale 1ns / 1ps
 `include "strike_defs.vh"
 //=============================================================================
-// compositor.v : layers -> one pixel colour for the OLED
+// compositor.v : layers -> one pixel colour for OLED 1 (the lane screen)
 //-----------------------------------------------------------------------------
 // Owner   : Student D
 // Layers (front to back):
-//   A cursor > D scorecard > D HUD/popups > D menus > A trail/meters/labels
+//   A cursor > D HUD/popups > D menus > A trail/meters/labels
 //   > B ball > C pins > B lane > black
+//   (v3: the scorecard moved to OLED 2, Student C's screen2.v)
 //   Each layer says "I draw this pixel" (en) and its colour. Text layers also
 //   send a text request; the FIRST valid request in that order goes to the
 //   one shared text_engine, and the glyph pixel (fg), the cell background
@@ -30,7 +31,6 @@ module compositor (
     input  wire [`GS_W-1:0] game_state,
     input  wire [`SET_W-1:0] settings,
     input  wire        cur_en,   input wire [15:0] cur_c,
-    input  wire        sc_en,    input wire [15:0] sc_c,   input wire [`TX_W-1:0] sc_t,
     input  wire        hud_en,   input wire [15:0] hud_c,  input wire [`TX_W-1:0] hud_t,
     input  wire        menu_en,  input wire [15:0] menu_c, input wire [`TX_W-1:0] menu_t,
     input  wire        a_en,     input wire [15:0] a_c,    input wire [`TX_W-1:0] a_t,
@@ -40,10 +40,8 @@ module compositor (
     output reg  [15:0] oled_data
 );
     // ---------------- shared text engine ----------------------------------
-    wire [1:0] tsel = sc_t[`TX_VALID]   ? 2'd0 : hud_t[`TX_VALID] ? 2'd1 :
-                      menu_t[`TX_VALID] ? 2'd2 : 2'd3;
-    wire [`TX_W-1:0] treq = (tsel == 2'd0) ? sc_t : (tsel == 2'd1) ? hud_t :
-                            (tsel == 2'd2) ? menu_t : a_t;
+    wire [1:0] tsel = hud_t[`TX_VALID] ? 2'd1 : menu_t[`TX_VALID] ? 2'd2 : 2'd3;
+    wire [`TX_W-1:0] treq = (tsel == 2'd1) ? hud_t : (tsel == 2'd2) ? menu_t : a_t;
     wire t_on, t_cell, t_bgen;
     wire [15:0] t_fg, t_bg;
     text_engine u_text (.req(treq), .on(t_on), .in_cell(t_cell), .fg(t_fg), .bg(t_bg), .bg_en(t_bgen));
@@ -61,7 +59,6 @@ module compositor (
             else                          tl = {en, c};
         end
     endfunction
-    wire [16:0] l_sc   = tl(tsel == 2'd0 && sc_t[`TX_VALID],   sc_en,   sc_c,   t_on, t_cell, t_bgen, t_fg, t_bg);
     wire [16:0] l_hud  = tl(tsel == 2'd1 && hud_t[`TX_VALID],  hud_en,  hud_c,  t_on, t_cell, t_bgen, t_fg, t_bg);
     wire [16:0] l_menu = tl(tsel == 2'd2 && menu_t[`TX_VALID], menu_en, menu_c, t_on, t_cell, t_bgen, t_fg, t_bg);
     wire [16:0] l_a    = tl(tsel == 2'd3 && a_t[`TX_VALID],    a_en,    a_c,    t_on, t_cell, t_bgen, t_fg, t_bg);
@@ -69,7 +66,6 @@ module compositor (
     reg [15:0] mixed;
     always @(*) begin
         if (cur_en)            mixed = cur_c;
-        else if (l_sc[16])     mixed = l_sc[15:0];
         else if (l_hud[16])    mixed = l_hud[15:0];
         else if (l_menu[16])   mixed = l_menu[15:0];
         else if (l_a[16])      mixed = l_a[15:0];

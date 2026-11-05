@@ -1,20 +1,20 @@
 `timescale 1ns / 1ps
 `include "strike_defs.vh"
 //=============================================================================
-// seg7_driver.v : 4-digit multiplexed 7-segment display
+// seg7_driver.v - drives the 4-digit 7-segment display
 //-----------------------------------------------------------------------------
 // Owner   : Student D
-// Purpose : Same multiplexing as the labs: only ONE digit is lit at a time
-//           and we move to the next digit every 1 ms, so each digit is
-//           refreshed at 250 Hz (inside the manual's 200-500 Hz hint) and
-//           persistence of vision shows all four.
-//           Producers send 6-bit glyph codes; the glyph table lives only
-//           here. Segments and anodes are active LOW on the Basys3.
-// Ports
-//   glyphs   {digit3 (leftmost), digit2, digit1, digit0} x 6 bits
-//   dps      decimal point per digit (used as the sharp sign), 1 = on
-//   blink    per digit: 1 = blank this digit while blink_phase is 1
-//   seg      {g,f,e,d,c,b,a} active low, dp active low, an active low
+// Same idea as the Lab 4 7-segment task: only ONE digit is on at a time.
+// Every 1 ms we move to the next digit, so each digit is refreshed every
+// 4 ms (250 Hz) and our eyes see all four at once.
+// Inputs
+//   glyphs   4 digits x 6 bits, {digit3 (leftmost), digit2, digit1, digit0}.
+//            Each 6-bit code is a character: 0-9, 10.. letters, 37 '-'.
+//   dps      decimal point for each digit, 1 = on
+//   blink    1 = hide this digit while blink_phase is 1 (tied to 0 in the
+//            top module at the moment)
+// Outputs (Basys3: all active LOW)
+//   seg = {g,f,e,d,c,b,a}, dp, an
 //=============================================================================
 module seg7_driver (
     input  wire        clk,
@@ -28,60 +28,87 @@ module seg7_driver (
     output reg         dp,
     output reg  [3:0]  an
 );
-    reg  [1:0] digit;
-    wire [5:0] g = glyphs[6*digit +: 6];
+    // ---- 1. which digit is on (0 = rightmost) -----------------------------
+    reg [1:0] digit;
+    always @(posedge clk) begin
+        if (rst == 1)
+            digit <= 0;
+        else if (tick_1ms == 1)
+            digit <= digit + 1;
+    end
 
-    // Glyph table, segments active HIGH here as {g,f,e,d,c,b,a}.
-    reg [6:0] pat;
+    // ---- 2. pick the code, decimal point and anode for that digit ---------
+    reg [5:0] code;
+    reg       dot;
+    reg [3:0] an_next;
     always @(*) begin
-        case (g)
-            6'd0:  pat = 7'h3F;  6'd1:  pat = 7'h06;  6'd2:  pat = 7'h5B;
-            6'd3:  pat = 7'h4F;  6'd4:  pat = 7'h66;  6'd5:  pat = 7'h6D;
-            6'd6:  pat = 7'h7D;  6'd7:  pat = 7'h07;  6'd8:  pat = 7'h7F;
-            6'd9:  pat = 7'h6F;
-            6'd10: pat = 7'h77;  // A
-            6'd11: pat = 7'h7C;  // b
-            6'd12: pat = 7'h39;  // C
-            6'd13: pat = 7'h5E;  // d
-            6'd14: pat = 7'h79;  // E
-            6'd15: pat = 7'h71;  // F
-            6'd16: pat = 7'h3D;  // G
-            6'd17: pat = 7'h76;  // H
-            6'd18: pat = 7'h30;  // I
-            6'd19: pat = 7'h1E;  // J
-            6'd20: pat = 7'h75;  // K (approximation)
-            6'd21: pat = 7'h38;  // L
-            6'd22: pat = 7'h37;  // M (approximation)
-            6'd23: pat = 7'h54;  // n
-            6'd24: pat = 7'h3F;  // O
-            6'd25: pat = 7'h73;  // P
-            6'd26: pat = 7'h67;  // q
-            6'd27: pat = 7'h50;  // r
-            6'd28: pat = 7'h6D;  // S
-            6'd29: pat = 7'h78;  // t
-            6'd30: pat = 7'h3E;  // U
-            6'd31: pat = 7'h1C;  // v
-            6'd32: pat = 7'h2A;  // W (approximation)
-            6'd33: pat = 7'h76;  // X (as H)
-            6'd34: pat = 7'h6E;  // y
-            6'd35: pat = 7'h5B;  // Z
-            6'd37: pat = 7'h40;  // dash
-            6'd38: pat = 7'h08;  // underscore
-            default: pat = 7'h00;// blank
+        case (digit)
+            2'd0: begin code = glyphs[5:0];   dot = dps[0]; an_next = 4'b1110; end
+            2'd1: begin code = glyphs[11:6];  dot = dps[1]; an_next = 4'b1101; end
+            2'd2: begin code = glyphs[17:12]; dot = dps[2]; an_next = 4'b1011; end
+            default: begin code = glyphs[23:18]; dot = dps[3]; an_next = 4'b0111; end
+        endcase
+        if (blink[digit] == 1 && blink_phase == 1)
+            an_next = 4'b1111;                      // digit hidden
+    end
+
+    // ---- 3. character code -> segments (active HIGH here, {g,f,e,d,c,b,a})
+    reg [6:0] pattern;
+    always @(*) begin
+        case (code)
+            6'd0:  pattern = 7'b0111111;   // 0
+            6'd1:  pattern = 7'b0000110;   // 1
+            6'd2:  pattern = 7'b1011011;   // 2
+            6'd3:  pattern = 7'b1001111;   // 3
+            6'd4:  pattern = 7'b1100110;   // 4
+            6'd5:  pattern = 7'b1101101;   // 5
+            6'd6:  pattern = 7'b1111101;   // 6
+            6'd7:  pattern = 7'b0000111;   // 7
+            6'd8:  pattern = 7'b1111111;   // 8
+            6'd9:  pattern = 7'b1101111;   // 9
+            6'd10: pattern = 7'b1110111;   // A
+            6'd11: pattern = 7'b1111100;   // b
+            6'd12: pattern = 7'b0111001;   // C
+            6'd13: pattern = 7'b1011110;   // d
+            6'd14: pattern = 7'b1111001;   // E
+            6'd15: pattern = 7'b1110001;   // F
+            6'd16: pattern = 7'b0111101;   // G
+            6'd17: pattern = 7'b1110110;   // H
+            6'd18: pattern = 7'b0110000;   // I
+            6'd19: pattern = 7'b0011110;   // J
+            6'd20: pattern = 7'b1110101;   // K (close enough)
+            6'd21: pattern = 7'b0111000;   // L
+            6'd22: pattern = 7'b0110111;   // M (close enough)
+            6'd23: pattern = 7'b1010100;   // n
+            6'd24: pattern = 7'b0111111;   // O
+            6'd25: pattern = 7'b1110011;   // P
+            6'd26: pattern = 7'b1100111;   // q
+            6'd27: pattern = 7'b1010000;   // r
+            6'd28: pattern = 7'b1101101;   // S
+            6'd29: pattern = 7'b1111000;   // t
+            6'd30: pattern = 7'b0111110;   // U
+            6'd31: pattern = 7'b0011100;   // v
+            6'd32: pattern = 7'b0101010;   // W (close enough)
+            6'd33: pattern = 7'b1110110;   // X (same as H)
+            6'd34: pattern = 7'b1101110;   // y
+            6'd35: pattern = 7'b1011011;   // Z
+            6'd37: pattern = 7'b1000000;   // -
+            6'd38: pattern = 7'b0001000;   // _
+            default: pattern = 7'b0000000; // blank
         endcase
     end
 
+    // ---- 4. output registers (invert: the board is active low) -------------
     always @(posedge clk) begin
-        if (rst) begin
-            digit <= 2'd0;
-            seg   <= 7'h7F;
-            dp    <= 1'b1;
-            an    <= 4'hF;
-        end else begin
-            if (tick_1ms) digit <= digit + 2'd1;
-            seg <= ~pat;
-            dp  <= ~dps[digit];
-            an  <= (blink[digit] && blink_phase) ? 4'hF : ~(4'b0001 << digit);
+        if (rst == 1) begin
+            seg <= 7'b1111111;
+            dp  <= 1;
+            an  <= 4'b1111;
+        end
+        else begin
+            seg <= ~pattern;
+            dp  <= ~dot;
+            an  <= an_next;
         end
     end
 endmodule

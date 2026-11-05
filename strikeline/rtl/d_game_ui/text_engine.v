@@ -12,10 +12,15 @@
 //           design needs only one string ROM and one copy of each font:
 //              string ROM (2048 x 6)  ->  glyph code
 //              font ROM {glyph, row}  ->  row bits  ->  bit for column fx
+//           Parameters pick the string ROM, so screen 2 (Student C) can
+//           reuse this engine with its own strings (screen2_strings.mem).
 //           5x7 font: bit 4 is the left column, columns 5 and up are spacing.
 //           3x5 font: bit 2 is the left column, column 3 is spacing.
 //=============================================================================
-module text_engine (
+module text_engine #(
+    parameter STR_FILE = "strings.mem",
+    parameter STR_AW   = 11
+) (
     input  wire [`TX_W-1:0] req,
     output wire        on,               // request valid and the glyph bit is set
     output wire        in_cell,          // request valid (cell background shown?)
@@ -31,7 +36,7 @@ module text_engine (
     end
 
     wire [5:0] str_ch;
-    string_rom u_str (.addr(req[`TX_VAL]), .ch(str_ch));
+    string_rom #(.MEM_FILE(STR_FILE), .AW(STR_AW)) u_str (.addr(req[`TX_VAL]), .ch(str_ch));
     wire [5:0] glyph = req[`TX_LIT] ? req[7:2] : str_ch;     // VALUE[5:0]
     wire [2:0] fx = req[`TX_FX];
     wire [2:0] fy = req[`TX_FY];

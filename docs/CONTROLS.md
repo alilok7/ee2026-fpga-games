@@ -4,6 +4,24 @@ Hardware for both games: Digilent **Basys3** (XC7A35T), **Pmod OLED RGB 96×64 o
 
 ---
 
+## StrikeLine v3 (branch `v3-dual-oled`, in progress): two OLEDs
+
+Everything in v2 below still applies, plus:
+
+| | |
+|---|---|
+| **OLED 1 on JC** | The lane only (the scorecard no longer covers it) |
+| **OLED 2 on JXADC** | The scoreboard. JXADC is the Pmod header on the **left edge** of the board; JC is on the other side (course rule: two OLEDs must not be on the same side; JA/JB are on JC's side) |
+
+| OLED 2 page | When | Shows |
+|---|---|---|
+| SCORE | in a game, game over, initials | top: scorecard for 1 or 2 players (Spare Challenge: the leave and MADE nn OF nn); bottom: live pin diagram (white = standing, red = knocked down by this ball, grey = already down), DOWN n, STANDING n, SPLIT! |
+| SWITCHES | in the menus, or in a game after **btnD / right-click** (press again, or finish the frame, to go back) | every switch and what it does, **green when that switch is up**, plus the buttons for menus or for the game |
+
+Switch groups (unchanged from v2, now shown on OLED 2): **sw0-sw4 "while playing"** (pause, minimap, debug, slow motion, top view) on the right of the board; **sw11-sw15 "bowler set-up"** (12 lb, 16 lb, neon, long oil, left hand) on the left. sw5-sw10 are not used.
+
+---
+
 ## StrikeLine v2 (tag `strikeline-v2.0`, current `main`)
 
 Extra hardware: one **wired USB mouse** in the Basys3's full-size USB-A host port (top edge, upper right; labelled USB / J2). Not the micro-USB port.

@@ -1,4 +1,4 @@
-# Part C: pin physics, pin-setter and the ball result (Student C)
+# Part C: pin physics, pin-setter, the ball result and screen 2 (Student C)
 
 ## Files
 | File | What it does |
@@ -7,6 +7,10 @@
 | `rtl/c_pins/pin_settle.v` | When is the pin action over? Pins down this ball |
 | `rtl/c_pins/split_detect.v` | Flood fill over the adjacency ROM |
 | `rtl/c_pins/pin_render.v` | 10 parallel pin renderers, sprite symmetry, rake, debug tint |
+| `rtl/c_pins/screen2.v` | v3: the second OLED. Picks the page, mixes the layers, own text engine, brightness, output register |
+| `rtl/c_pins/deck_panel.v` | v3: screen 2 live pin diagram, DOWN / STANDING counts, SPLIT!, Spare Challenge header |
+| `rtl/c_pins/switch_panel.v` | v3: screen 2 help page: every switch, green when up, and the buttons |
+| `text/screen2_strings.txt` | v3: screen 2's words → `data/screen2_strings.mem`, `rtl/c_pins/screen2_map.vh` |
 | `tools/gen_tables.py` | `pin_spots.mem`, `pin_pairs.mem` (45 pairs), `pin_adj.mem` |
 | `tools/gen_sprites.py` | `pin_sprites.mem` (N and NE, 3 fall stages) and a text preview |
 
@@ -67,6 +71,23 @@ Commands are latched, so a `rack_go` that arrives during the pair iterator can't
 - Fallen pin: a 16×16 sprite. **Only N and NE are stored.** The other directions are mirrors and x↔y swaps of the pixel offset: E = N(oy, −ox), S = N(ox, −oy), W = N(oy, ox), SE = NE(ox, −oy), SW = NE(−ox, −oy), NW = NE(−ox, oy). The ROM is 4× smaller, so 10 parallel copies fit, and there are no overlap artefacts.
 - `led[9:0]` show `standing`.
 
+## Screen 2 (v3): the scoreboard OLED
+Before v3 the scorecard was drawn **over** the lane on the only OLED. In v3 a second Pmod OLED (on **JXADC**, the left-edge header; the manual forbids two OLEDs on the same side of the board) works like the monitor above a real bowling lane:
+
+| Page | When | Top (y 0-35) | Bottom (y 36-63) |
+|---|---|---|---|
+| SCORE | in a game, game over, initials | D's scorecard (`scorecard_render`, unchanged), or the Spare Challenge header | live pin diagram + counts (`deck_panel`) |
+| SWITCHES | menus; in a game while btnD / right-click is toggled on | whole screen: `switch_panel` | |
+
+How it works, step by step:
+1. **Same pixel on both screens.** Both `Oled_Display` instances use the same 6.25 MHz clock and the same reset. Their state machines are identical, so at every moment they ask for the same `pixel_index`. Screen 2 therefore reuses screen 1's `px_x`, `px_y` (no second `pixel_xy`). `tb_screens` checks this on every sampled pixel.
+2. **Layers.** Each panel answers "do I draw this pixel (en), in which colour, and do I want a character here (text request)". `screen2` picks the page, then the layer for the pixel's region.
+3. **Own text engine.** Screen 2 instantiates D's `text_engine` a second time with its own 512-entry string ROM (`STR_FILE`, `STR_AW` parameters), so the two screens never wait for each other. The scorecard's digits are literal glyphs, so they work with either ROM.
+4. **Brightness.** The same 4 levels as screen 1, from the Settings menu.
+5. **Output register.** Exactly like D's compositor: the colour is stored 6 clocks after `px_x/px_y` stop changing; the XDC gives `u_scr2/oled_data_reg` a 6-clock multicycle.
+
+Pin diagram colours: white = standing, red = knocked down by this ball (`standing_before & ~standing`), grey = already down before this ball. DOWN counts up live while pins are falling. Text grid (3x5 font): column = (x − x0) >> 2; row = (y − 2) / 6 computed as `(n * 43) >> 8` (exact for n < 128), no divider.
+
 ## How this relates to the lectures
 - FSMs and sequential scheduling (L3/L4): the pin FSM is an iterator walking a ROM schedule; settle is a small FSM with two timers; split detection is an iterative FSM.
 - Counters (L2): wobble and fall timers, quiet and timeout counters, the rake position.
@@ -87,3 +108,12 @@ Commands are latched, so a `rack_go` that arrives during the pair iterator can't
 13. **How do you draw 8 fall directions from 2 sprites?** Mirror and swap the pixel offset before the ROM lookup. It's just wiring, no extra logic.
 14. **Why are the pins drawn in parallel and not one after another?** The colour must be ready within 6 clocks of the pixel position, so all 10 tests run at once and a priority encoder picks one.
 15. **How do your LEDs work?** `led[9:0] = standing`, one per pin, updated live as pins fall.
+
+Screen 2 (v3):
+
+16. **How do two OLEDs show different pictures with one `pixel_xy`?** Both drivers get the same clock and reset, so they request the same pixel index at the same time. One x/y, two colour pipelines: D's compositor for JC, my `screen2` for JXADC.
+17. **Why JXADC and not JA or JB?** The manual says two OLEDs on the same side of the board physically interfere and lose marks. On the Basys3, JA and JB are on the same side as JC; JXADC is on the opposite edge. Its pins are normally the analog (XADC) inputs, but they are ordinary FPGA I/O pins too, so used as LVCMOS33 outputs they drive the OLED exactly like JC.
+18. **Why a second text engine instead of sharing D's?** Both screens need a character for the same pixel in the same clock. Sharing would mean time-multiplexing inside the 6-clock window. A second copy with a 512-entry ROM is small (about 150 LUTs) and simple.
+19. **How do you count pins down live?** `knocked = standing_before & ~standing`, then a 10-step adder loop (popcount). It is combinational, so it changes the moment a pin falls.
+20. **How do you divide by 6 for the text rows?** `n / 6 == (n * 43) >> 8` for every n < 128; 43 is a constant, so it is a few adders, not a divider.
+21. **How does the switch page know a switch is up?** It reads the debounced `sw_level` directly; row k of the left column is `sw_level[k]`, of the right column `sw_level[11 + k]`.

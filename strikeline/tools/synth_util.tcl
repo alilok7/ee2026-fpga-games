@@ -17,7 +17,7 @@ read_verilog $srcs
 read_vhdl [list [file join $root rtl provided Ps2Interface.vhd] [file join $root rtl provided Mouse_Control.vhd]]
 read_xdc [list [file join $root constraints Basys3_StrikeLine.xdc]]
 synth_design -top My_Top_Module -part xc7a35tcpg236-1 -flatten_hierarchy rebuilt \
-    -include_dirs [list [file join $root rtl top] [file join $root rtl d_game_ui]]
+    -include_dirs [list [file join $root rtl top] [file join $root rtl d_game_ui] [file join $root rtl c_pins]]
 report_utilization -hierarchical -hierarchical_depth 1 -file hier_utilization.rpt
 file copy -force hier_utilization.rpt $dest
 puts "SYNTH_UTIL DONE"

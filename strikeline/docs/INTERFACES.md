@@ -31,7 +31,10 @@ Internal formats are finer. B uses Q10.20 positions and 2^-20 velocities; C uses
 | `standing[9:0]`, `settle_done`, `pins_down_this_ball`, `split_flag`, `standing_before` | C → D | The result of a ball. |
 | `rack_go`, `rack_cmd` (FULL / SWEEP / LEAVE), `rack_mask`, `rack_busy` | D ↔ C | Pin-setter. Every command runs the rake first. |
 | `pin_vis[239:0]` | C → renderers (replay) | 10 × {x, y, state, dir, stage} |
-| text request `TX_*` (53 bit) | A, D layers → D text engine | One string ROM and one copy of each font for the whole design. |
+| text request `TX_*` (53 bit) | A, D layers → D text engine | One string ROM and one copy of each font for screen 1. Screen 2 (C) has its own engine instance and ROM. |
+| `sc_en`, `sc_c`, `sc_t`, `card_addr` | D scorecard → C `screen2` | v3: the scorecard is drawn on OLED 2 only |
+| `card_show && !card_auto` | D → C | v3: show the SWITCHES page on OLED 2 in a game (btnD / right-click); a finished frame brings the scorecard back |
+| `sw_level[15:0]`, `leave_idx`, `spare_made`, `spare_tries` | D → C `screen2` | v3: switch page and Spare Challenge header |
 
 ## One physics tick (fixed order)
 
@@ -46,7 +49,7 @@ Internal formats are finer. B uses Q10.20 positions and 2^-20 velocities; C uses
 2. All renderers are combinational.
 3. `compositor` captures the colour 6 clocks after x/y stopped changing.
 
-The XDC gives every path into `u_comp/oled_data_reg` 6 clocks. The OLED latches 16 clocks after the index changes. Renderers that read block RAM (the Swipe Lab bitmap) present the address from `px_x/px_y`, and the 1-clock read fits inside the window.
+The XDC gives every path into `u_comp/oled_data_reg` (and, in v3, `u_scr2/oled_data_reg` for OLED 2) 6 clocks. OLED 2's driver has the same clock and reset, so it requests the same pixel index at the same time and uses the same `px_x/px_y`. The OLED latches 16 clocks after the index changes. Renderers that read block RAM (the Swipe Lab bitmap) present the address from `px_x/px_y`, and the 1-clock read fits inside the window.
 
 ## Save image (128 bytes, `IM_*`)
 

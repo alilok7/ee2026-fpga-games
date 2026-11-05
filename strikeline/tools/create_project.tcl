@@ -16,14 +16,14 @@ foreach dir {top provided a_gesture b_ball c_pins d_game_ui} {
 }
 add_files -norecurse $srcs
 add_files -norecurse [glob [file join $root data *.mem]]
-set_property include_dirs [list [file join $root rtl top] [file join $root rtl d_game_ui]] [get_filesets sources_1]
+set_property include_dirs [list [file join $root rtl top] [file join $root rtl d_game_ui] [file join $root rtl c_pins]] [get_filesets sources_1]
 set_property top My_Top_Module [get_filesets sources_1]
 add_files -fileset constrs_1 -norecurse [list [file join $root constraints Basys3_StrikeLine.xdc]]
 
 set tbs [glob -nocomplain [file join $root sim * *.v]]
 add_files -fileset sim_1 -norecurse $tbs
 add_files -fileset sim_1 -norecurse [glob [file join $root data *.mem]]
-set_property include_dirs [list [file join $root rtl top] [file join $root rtl d_game_ui]] [get_filesets sim_1]
+set_property include_dirs [list [file join $root rtl top] [file join $root rtl d_game_ui] [file join $root rtl c_pins]] [get_filesets sim_1]
 set_property verilog_define {SIM} [get_filesets sim_1]
 set_property top tb_physics [get_filesets sim_1]
 set_property -name {xsim.simulate.runtime} -value {-all} -objects [get_filesets sim_1]

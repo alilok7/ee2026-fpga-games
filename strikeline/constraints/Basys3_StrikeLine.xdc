@@ -8,6 +8,9 @@ set_clock_groups -asynchronous -group [get_clocks sys_clk_pin] -group [get_clock
 ## after the pixel position has been stable for 6 clocks (see compositor.v).
 set_multicycle_path -setup 6 -to [get_cells {u_comp/oled_data_reg[*]}]
 set_multicycle_path -hold  5 -to [get_cells {u_comp/oled_data_reg[*]}]
+## Same for screen 2 (Student C, rtl/c_pins/screen2.v)
+set_multicycle_path -setup 6 -to [get_cells {u_scr2/oled_data_reg[*]}]
+set_multicycle_path -hold  5 -to [get_cells {u_scr2/oled_data_reg[*]}]
 set_property -dict { PACKAGE_PIN V17   IOSTANDARD LVCMOS33 } [get_ports {sw[0]}]
 set_property -dict { PACKAGE_PIN V16   IOSTANDARD LVCMOS33 } [get_ports {sw[1]}]
 set_property -dict { PACKAGE_PIN W16   IOSTANDARD LVCMOS33 } [get_ports {sw[2]}]
@@ -65,6 +68,17 @@ set_property -dict { PACKAGE_PIN L17   IOSTANDARD LVCMOS33 } [get_ports {JC[4]}]
 set_property -dict { PACKAGE_PIN M19   IOSTANDARD LVCMOS33 } [get_ports {JC[5]}]
 set_property -dict { PACKAGE_PIN P17   IOSTANDARD LVCMOS33 } [get_ports {JC[6]}]
 set_property -dict { PACKAGE_PIN R18   IOSTANDARD LVCMOS33 } [get_ports {JC[7]}]
+## OLED 2 (scoreboard) on JXADC, the header on the LEFT edge of the board.
+## Rule: two OLEDs must NOT be on the same side of the board; JA and JB are
+## on the same side as JC, so OLED 2 uses JXADC (here as plain digital pins).
+set_property -dict { PACKAGE_PIN J3    IOSTANDARD LVCMOS33 } [get_ports {JXADC[0]}]
+set_property -dict { PACKAGE_PIN L3    IOSTANDARD LVCMOS33 } [get_ports {JXADC[1]}]
+set_property -dict { PACKAGE_PIN M2    IOSTANDARD LVCMOS33 } [get_ports {JXADC[2]}]
+set_property -dict { PACKAGE_PIN N2    IOSTANDARD LVCMOS33 } [get_ports {JXADC[3]}]
+set_property -dict { PACKAGE_PIN K3    IOSTANDARD LVCMOS33 } [get_ports {JXADC[4]}]
+set_property -dict { PACKAGE_PIN M3    IOSTANDARD LVCMOS33 } [get_ports {JXADC[5]}]
+set_property -dict { PACKAGE_PIN M1    IOSTANDARD LVCMOS33 } [get_ports {JXADC[6]}]
+set_property -dict { PACKAGE_PIN N1    IOSTANDARD LVCMOS33 } [get_ports {JXADC[7]}]
 ## USB HID host (mouse, through the provided MouseCtl.vhd)
 set_property -dict { PACKAGE_PIN C17   IOSTANDARD LVCMOS33   PULLUP true } [get_ports PS2Clk]
 set_property -dict { PACKAGE_PIN B17   IOSTANDARD LVCMOS33   PULLUP true } [get_ports PS2Data]
@@ -76,7 +90,7 @@ set_property -dict { PACKAGE_PIN F18   IOSTANDARD LVCMOS33 } [get_ports {QspiDB[
 set_property -dict { PACKAGE_PIN K19   IOSTANDARD LVCMOS33 } [get_ports QspiCSn]
 ## Slow asynchronous I/O (buttons, switches, PS/2, 12.5 MHz SPI): no timing relationship
 set_false_path -from [get_ports {sw[*] btn* PS2Clk PS2Data QspiDB[*]}]
-set_false_path -to   [get_ports {led[*] seg[*] dp an[*] QspiCSn QspiDB[*] PS2Clk PS2Data JC[*]}]
+set_false_path -to   [get_ports {led[*] seg[*] dp an[*] QspiCSn QspiDB[*] PS2Clk PS2Data JC[*] JXADC[*]}]
 ## Configuration
 set_property CONFIG_VOLTAGE 3.3 [current_design]
 set_property CFGBVS VCCO [current_design]
