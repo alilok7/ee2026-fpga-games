@@ -1,0 +1,29 @@
+`timescale 1ns / 1ps
+// MouseCtl_stub.vsim - simulation-only stand-in for the provided MouseCtl (VHDL)
+//-----------------------------------------------------------------------------
+// Used by sim/run_sim.sh ONLY when the VHDL compiler cannot run on this PC
+// (Windows Device Guard blocked xvhdl.exe on the v3 build machine). The
+// full-design testbenches force MouseCtl's outputs at u_top (m_xpos, m_left,
+// m_new_event ...) anyway, so its insides are never used there. Never part of
+// the bitstream (the .vsim extension keeps it out of every source list).
+module MouseCtl (
+    input  wire        clk,
+    input  wire        rst,
+    output wire [11:0] xpos,
+    output wire [11:0] ypos,
+    output wire [3:0]  zpos,
+    output wire        left,
+    output wire        middle,
+    output wire        right,
+    output wire        new_event,
+    input  wire [11:0] value,
+    input  wire        setx,
+    input  wire        sety,
+    input  wire        setmax_x,
+    input  wire        setmax_y,
+    inout  wire        ps2_clk,
+    inout  wire        ps2_data
+);
+    assign xpos = 12'd2048; assign ypos = 12'd2048; assign zpos = 4'd0;
+    assign left = 1'b0; assign middle = 1'b0; assign right = 1'b0; assign new_event = 1'b0;
+endmodule

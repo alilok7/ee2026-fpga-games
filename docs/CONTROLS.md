@@ -4,6 +4,39 @@ Hardware for both games: Digilent **Basys3** (XC7A35T), **Pmod OLED RGB 96×64 o
 
 ---
 
+## StrikeLine v3 (working copy, not tagged yet) - differences from v2
+
+Extra hardware: a **VGA monitor** on the Basys3 VGA connector (main screen, 640 × 480). During a game the first-person view fills the whole screen (v3.3: no scorecard strip on top); the 3-D lane, ball and pins are drawn at 320 × 240 in 512 colours (v3.2), and a small info panel sits in the top-right corner. The Pmod OLED on JC is the **scoreboard** (v3.3): during a game the whole OLED shows the 10-frame scorecard; in menus it mirrors the menu.
+
+**After every ball (v3.2)** the throw is replayed once, **full-screen and top-down at real speed**, 0.6 s into the result, with a camera look (four corner brackets and a blinking red ● REPLAY). **A click (or btnC) during the replay skips it.** Middle click / btnU still gives the half-speed replay.
+
+### Mouse (v3 changes)
+| Action | Effect |
+|---|---|
+| Move (aiming) | The ball sits under the pointer in the 3-D view (stance board, "BD nn") |
+| **Hold right button** (aiming, throwing, rolling, pin action) | **ZOOM** (v3.1): the first-person view zooms in from where you stand, so the ball, the bright dotted aim guide and the pins all stay on screen (the pins grow about 5×). You can grab and flick while holding it; the zoom stays on during the roll. Let go to zoom back out. (Press right first, then grab: a right click *during* a grab still cancels the swipe.) |
+| **Wheel while aiming** | Moves the **target** mark (one board per step, "TG nn"); the dotted guide runs from your stance through the target to the pins. It is a guide only: the swipe still decides the throw |
+| Hold left + flick forward + release | Throws, as before. **Curving the flick** now gives spin −31..+31 from the shape of the whole curve (31 levels; was 7) |
+| **Move sideways right after release** | **Steer window**: for 0.5 s the ball is nudged a little (at most ~3.5 boards) in the direction you move |
+| Right click after the throw (result, sweep) | Scorecard on the OLED / in the classic view (btnD at any time) |
+
+### Settings menu (v3)
+Row 1 is now **SPIN** sensitivity: **NORM**, **HIGH** (2×), **MAX** (4×), **SOFT** (½). Mouse sensitivity, brightness and erase saves as before; oil length stays on sw14 only.
+
+### Switches (v3)
+| Switch | Effect |
+|---|---|
+| sw4 | Classic top-down view **on the VGA too** (shown in the framed window); the OLED is always top-down |
+| others | as v2 |
+
+### Outputs (v3)
+| Output | Shows |
+|---|---|
+| VGA | Menus: framed window with the STRIKELINE title. Game: full-screen first-person 3-D lane and pins, a half-size panel top right (frame, ball, score, live mph, power, spin, revs, entry board / POCKET, pins). Replay: full-screen top-down with the camera overlay |
+| OLED | v3.3: the 10-frame scorecard on the whole screen during a game; menus. (v3: top-down live view) |
+
+---
+
 ## StrikeLine v2 (tag `strikeline-v2.0`, current `main`)
 
 Extra hardware: one **wired USB mouse** in the Basys3's full-size USB-A host port (top edge, upper right; labelled USB / J2). Not the micro-USB port.

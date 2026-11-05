@@ -16,6 +16,8 @@
 //           registers; while `active` the top-level muxes feed these
 //           registers to B's and C's renderers instead of the live state.
 //           The physics itself is not touched: it is only a picture.
+//           (v3.2) `fast` plays every frame (real speed: the automatic replay
+//           after each ball); `stop` ends a replay early (a click skips it).
 //=============================================================================
 module replay_buffer (
     input  wire        clk,
@@ -23,6 +25,8 @@ module replay_buffer (
     input  wire        tick_frame,
     input  wire [`GS_W-1:0] game_state,
     input  wire        start,
+    input  wire        fast,             // v3.2: real speed instead of half speed
+    input  wire        stop,             // v3.2: end the replay now
     input  wire        ball_vis_in,
     input  wire [15:0] ball_x_in,
     input  wire [15:0] ball_y_in,
@@ -97,9 +101,11 @@ module replay_buffer (
                     active <= 1; rslot <= wslot - count[7:0]; left <= count; half <= 0;
                     ps <= P_WAIT;
                 end else if (start) done <= 1'b1;
-                P_WAIT: if (tick_frame) begin
+                P_WAIT: if (stop) begin
+                    active <= 0; done <= 1'b1; ps <= P_IDLE;
+                end else if (tick_frame) begin
                     half <= ~half;
-                    if (!half) begin
+                    if (!half || fast) begin
                         if (left == 0) begin active <= 0; done <= 1'b1; ps <= P_IDLE; end
                         else begin ri <= 0; ra <= {rslot, 3'd0}; ps <= P_READ; end
                     end

@@ -27,6 +27,7 @@ module game_fsm (
     input  wire        mouse_move,       // a mouse packet arrived
     input  wire        l_press,
     input  wire        r_press,
+    input  wire        r_level,          // v3.1: right button held (zoom)
     input  wire        m_press,
     input  wire signed [3:0] wheel,
     input  wire [4:0]  btn_press,
@@ -77,6 +78,7 @@ module game_fsm (
     output reg         name_player,
     output reg  [1:0]  newhi,            // which players made the top 5
     output reg         card_show,
+    output reg         aim_zoom,         // v3.1: zoom the first-person view (right button held)
     output reg         want_replay,
     output reg         skip
 );
@@ -148,7 +150,7 @@ module game_fsm (
         if (rst) begin
             mode <= M_BOOT; set_r <= `SET_DEFAULT; set_dirty <= 0; hover <= 3'd2; chip_two <= 0;
             has_save <= 0; leave_idx <= 3'd1; tab_quick <= 0; erase_step <= 0; name <= 0; name_pos <= 0;
-            name_player <= 0; newhi <= 0; card_show <= 0; kind_out <= 0; leave_mask <= 0; ra <= `IM_GVALID;
+            name_player <= 0; newhi <= 0; card_show <= 0; aim_zoom <= 0; kind_out <= 0; leave_mask <= 0; ra <= `IM_GVALID;
             q <= 0; tmp <= 0; qual_score <= 0; qual_p <= 0; ins_quick <= 0; ins_score <= 0; ins_name <= 0;
             gend_full <= 0; gend_score <= 0;
         end else begin
@@ -157,6 +159,7 @@ module game_fsm (
                 ra <= `IM_GVALID;
                 if (ra == `IM_GVALID) has_save <= rd[0];
             end
+            if (mode != M_PLAY) aim_zoom <= 1'b0;
             // hover follows the pointer when it moves, buttons step it
             if (moved && row_at != 0) hover <= row_at;
             if (b_up   && hover > 3'd1) hover <= hover - 3'd1;
@@ -191,7 +194,14 @@ module game_fsm (
                 M_PLAY: begin
                     // v2 buttons: L/R move the stance one board, U replay,
                     // D scorecard, C skip the result, hold L quit
-                    if (r_press || btn_press[`BTN_D]) card_show <= ~card_show;
+                    // v3.1: hold the right button to zoom the first-person view, from
+                    // aiming through the roll to the pin action (let go = zoom out).
+                    // After the throw (result, sweep) a right-click still toggles
+                    // the scorecard (btnD at any time).
+                    if (btn_press[`BTN_D] || (r_press && (tstate == `GS_RESULT || tstate == `GS_SWEEP)))
+                        card_show <= ~card_show;
+                    aim_zoom <= r_level && !t_kind[`PK_SPARE] && (tstate == `GS_AIM || tstate == `GS_THROW ||
+                                tstate == `GS_ROLL || tstate == `GS_PINACTION || tstate == `GS_SETTLE);
                     if (tstate == `GS_AIM) begin
                         nudge_l <= btn_press[`BTN_L] | btn_repeat[`BTN_L];
                         nudge_r <= btn_press[`BTN_R] | btn_repeat[`BTN_R];
@@ -200,6 +210,8 @@ module game_fsm (
                         if (m_press || btn_press[`BTN_U]) want_replay <= 1;
                         if (click || b_sel) skip <= 1;
                     end
+                    // v3.2: a click also ends a replay early
+                    if (tstate == `GS_REPLAY && (click || b_sel)) skip <= 1;
                     if (t_kind[`PK_SPARE] && (btn_long[`BTN_L] || (r_press && tstate == `GS_AIM))) begin
                         abort <= 1; mode <= M_PRACT;
                     end else if (!t_kind[`PK_SPARE] && btn_long[`BTN_L]) begin
@@ -271,9 +283,10 @@ module game_fsm (
                         if (set_dirty) begin c_settings <= 1; save_req <= 1; set_dirty <= 0; end
                         mode <= M_MENU; hover <= 3'd6;
                     end else if (act) begin
-                        set_dirty <= (hover == 3'd4) || (hover == 3'd6);
-                        // rows 1, 2, 3, 5 (oil, ball, hand, theme) are on switches now
+                        set_dirty <= (hover == 3'd1) || (hover == 3'd4) || (hover == 3'd6);
+                        // rows 2, 3, 5 (ball, hand, theme) are on switches; row 1 = spin sensitivity (v3)
                         case (hover)
+                            3'd1: set_r[`SET_SPIN_HI:`SET_SPIN_LO] <= set_r[`SET_SPIN_HI:`SET_SPIN_LO] + 2'd1;
                             3'd4: set_r[`SET_SENS_HI:`SET_SENS_LO] <= set_r[`SET_SENS_HI:`SET_SENS_LO] + 2'd1;
                             3'd6: set_r[`SET_BRI_HI:`SET_BRI_LO] <= set_r[`SET_BRI_HI:`SET_BRI_LO] + 2'd1;
                             3'd7: begin

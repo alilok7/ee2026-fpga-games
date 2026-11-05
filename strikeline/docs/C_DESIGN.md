@@ -87,3 +87,18 @@ Commands are latched, so a `rack_go` that arrives during the pair iterator can't
 13. **How do you draw 8 fall directions from 2 sprites?** Mirror and swap the pixel offset before the ROM lookup. It's just wiring, no extra logic.
 14. **Why are the pins drawn in parallel and not one after another?** The colour must be ready within 6 clocks of the pixel position, so all 10 tests run at once and a priority encoder picks one.
 15. **How do your LEDs work?** `led[9:0] = standing`, one per pin, updated live as pins fall.
+
+## v3: pin action
+- **Collision shape of a lying pin.** A fallen pin is 15 in long but collided as a 3.5 in circle at its *base*, so the ball and other pins hit it in the wrong place. `ccx/ccy` now place its collision circle 5 in along its fall direction (2.5 in while it is still falling) - for B's read port and for the pair iterator (one extra pipeline state).
+- **Fall time from the push.** `fall_time = 150 − min((|dv| − TOPPLE) >> 8, 90)` ticks: a pin hit hard goes down fast, a nudged one topples slowly.
+- **Gutter pins.** A slow pin (< 0.01 in/tick sideways) that slides off the lane edge drops into the gutter channel and stays there; a fast one reaches the kickback, which now returns it with e = 0.75 (was 0.5): livelier "messenger" pins.
+- **No left/right bias.** The 45 pairs are walked 0→44 and 44→0 on alternate ticks (B does the same with its pin scan).
+- **Spin.** B adds a small tangential kick along the contact tangent, signed by the ball's spin.
+- **3-D renderer.** `pin_render` draws the pins for the VGA view: 16 silhouette sizes (`pin_fp.mem`, 512 × 4 bit) for standing pins, rounded bars with a red neck for falling and lying ones, nearest pin in front; the top-down sprites are unchanged for the OLED.
+
+Carry map after v3 (`tb_carry`): pocket 6/8 strikes, nose 0/7, Brooklyn 1/9, light 2/4 (see B_DESIGN.md).
+
+### v3 questions
+16. **Where does a lying pin collide now, and why?** 5 in along its body, close to its centre of mass, because that is where the ball and the other pins actually meet it.
+17. **Why alternate the pair order?** Each pair is resolved with the velocities left by the previous pairs; a fixed order always favours the same side of the rack.
+18. **What happens to a pin in the gutter?** Slow: it drops into the channel (x = gutter centre, no sideways speed) and can no longer reach the deck. Fast: it bounces off the kickback.

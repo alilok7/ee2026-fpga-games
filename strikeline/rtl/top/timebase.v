@@ -18,8 +18,8 @@
 //                sw[3] slow motion passes only every 4th tick; sw[0] pause
 //                blocks it completely (and blocks tick_sample, tick_game).
 //   tick_game    tick_1ms gated by pause, for game timers (popups, settle)
-//   tick_frame   one pulse per OLED frame (60 Hz) at the END of the pixel
-//                stream, so state updated on it never tears a frame.
+//   tick_frame   one pulse per frame (60 Hz), v3: when render_scan has drawn
+//                both pictures, so state updated on it never tears a frame.
 //   clk6p25m     100 MHz / 16, ONLY for Oled_Display.
 //=============================================================================
 module timebase #(
@@ -31,7 +31,7 @@ module timebase #(
     input  wire rst,
     input  wire paused,               // sw[0]
     input  wire slowmo,               // sw[3] (or replay)
-    input  wire oled_sending,
+    input  wire frame_done,           // v3: render_scan finished both pictures
     output reg  tick_1ms,
     output reg  tick_game,
     output reg  tick_sample,
@@ -71,16 +71,10 @@ module timebase #(
         end
     end
 
-    // --- frame tick: falling edge of oled_sending (6.25 MHz domain), after
-    //     a 2-flop synchroniser (same idea as the button synchroniser, L1).
-    reg [2:0] send_sync;
+    // --- frame tick (v3): the render engine is in this clock domain, so its
+    //     done pulse is registered once and used directly.
     always @(posedge clk) begin
-        if (rst) begin
-            send_sync  <= 3'b000;
-            tick_frame <= 1'b0;
-        end else begin
-            send_sync  <= {send_sync[1:0], oled_sending};
-            tick_frame <= send_sync[2] & ~send_sync[1];
-        end
+        if (rst) tick_frame <= 1'b0;
+        else     tick_frame <= frame_done;
     end
 endmodule

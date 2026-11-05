@@ -13,11 +13,15 @@
 //           are turned into digits here (combinational double dabble).
 // Shown   : automatically for 2 s after each frame, or toggled with
 //           right-click / btnR.
+// Tall    : (v3.3, the OLED during a game) the card fills all 64 rows: header
+//           0..9, frame rows 10..36 and 37..63 (27-row boxes, marks on top,
+//           the running total lower down).
 //=============================================================================
 module scorecard_render (
     input  wire [6:0]  px_x,
     input  wire [5:0]  px_y,
     input  wire        show,
+    input  wire        tall,             // v3.3: full-screen layout (OLED)
     input  wire        player,
     input  wire        two,
     output wire [4:0]  card_addr,        // {player, frame} -> score_engine
@@ -35,11 +39,18 @@ module scorecard_render (
     wire [2:0] kx = (px_x < 7'd19) ? 3'd0 : (px_x < 7'd38) ? 3'd1 : (px_x < 7'd57) ? 3'd2 :
                     (px_x < 7'd76) ? 3'd3 : 3'd4;
     wire [6:0] bx = px_x - {kx, 4'b0000} - {2'b00, kx, 1'b0} - {4'b0000, kx};   // x - 19 kx
-    wire       r2 = (px_y >= 6'd22);
-    wire [5:0] by = px_y - (r2 ? 6'd22 : 6'd7);                                 // 0..13
+    // row layout: normal (header 0..6, boxes 7..20 / 22..35) or tall (OLED)
+    wire [5:0] y_r1  = tall ? 6'd10 : 6'd7;         // first box row
+    wire [5:0] y_r2  = tall ? 6'd37 : 6'd22;        // second box row
+    wire [5:0] y_end = tall ? 6'd63 : 6'd35;        // last row of the card
+    wire [5:0] b_h   = tall ? 6'd26 : 6'd13;        // last row inside a box
+    wire [5:0] t_y0  = tall ? 6'd15 : 6'd8;         // running total, 5 rows from here
+    wire [2:0] h_y0  = tall ? 3'd3 : 3'd1;          // header text row
+    wire       r2 = (px_y >= y_r2);
+    wire [5:0] by = px_y - (r2 ? y_r2 : y_r1);                                  // 0..b_h
     wire [3:0] f  = (r2 ? 4'd5 : 4'd0) + {1'b0, kx};
-    wire       in_card = (px_y >= 6'd7) && (px_y <= 6'd35) && !(px_y == 6'd21) && (px_x <= 7'd94);
-    wire       box_line = (bx == 0) || (bx == 7'd18) || (by == 0) || (by == 6'd13);
+    wire       in_card = (px_y >= y_r1) && (px_y <= y_end) && !(!tall && px_y == 6'd21) && (px_x <= 7'd94);
+    wire       box_line = (bx == 0) || (bx == 7'd18) || (by == 0) || (by == b_h);
     wire       tenth = (f == 4'd9);
     // mark boxes: frames 1-9 at bx 10..13, 14..17; 10th at 6..9, 10..13, 14..17
     wire       mark_row = (by >= 6'd1) && (by <= 6'd6);
@@ -54,7 +65,8 @@ module scorecard_render (
     wire [11:0] g0b = bcd9(game0), g1b = bcd9(game1);
     wire [4:0]  hc  = px_x[6:2];                                   // header 3x5 column
     wire [2:0]  hfx = {1'b0, px_x[1:0]};
-    wire [2:0]  hfy = px_y[2:0] - 3'd1;
+    wire [2:0]  hfy = px_y[2:0] - h_y0;
+    wire [5:0]  tby = by - t_y0;                                   // total digit row
     wire [6:0]  tdx = bx - 7'd5;                                   // total digits
     wire [1:0]  tdi = tdx[3:2];
     wire [2:0]  tfx = {1'b0, tdx[1:0]};
@@ -69,12 +81,12 @@ module scorecard_render (
 
     always @(*) begin
         en = 1'b0; color = 16'h0841; txt = {`TX_W{1'b0}};
-        if (show && px_y <= 6'd35) begin
+        if (show && px_y <= y_end) begin
             en = 1'b1;
-            if (px_y < 6'd7) begin
+            if (px_y < y_r1) begin
                 // header: P1 total   P2 total (current player highlighted)
                 color = 16'h0109;
-                if (px_y >= 6'd1 && px_y <= 6'd5) begin
+                if (px_y >= {3'd0, h_y0} && px_y <= {3'd0, h_y0} + 6'd4) begin
                     case (hc)
                         5'd0:  txt = tx_l(6'd48, 1'b1, hfx, hfy, player ? 16'h8410 : `C_YELLOW, 0, 1'b0);
                         5'd1:  txt = tx_l(6'd17, 1'b1, hfx, hfy, player ? 16'h8410 : `C_YELLOW, 0, 1'b0);
@@ -101,9 +113,9 @@ module scorecard_render (
                 end else if (in_mark && bx != mx0 && by >= 6'd1 && by <= 6'd5)
                     txt = tx_l(mglyph, 1'b1, mfx, by[2:0] - 3'd1,
                                (mglyph == 6'd56) ? `C_RED : (mglyph == 6'd15) ? 16'h001F : `C_BLACK, 0, 1'b0);
-                else if (by >= 6'd8 && by <= 6'd12 && bx >= 7'd5 && bx <= 7'd16 && f_ok)
+                else if (by >= t_y0 && by <= t_y0 + 6'd4 && bx >= 7'd5 && bx <= 7'd16 && f_ok)
                     // running total: 3 digits of 4 px at bx 5..16
-                    txt = tx_l(dg3(tb, tdi), 1'b1, tfx, by[2:0] - 3'd0, `C_BLACK, 0, 1'b0);
+                    txt = tx_l(dg3(tb, tdi), 1'b1, tfx, tby[2:0], `C_BLACK, 0, 1'b0);
             end
         end
     end

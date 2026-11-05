@@ -26,7 +26,9 @@ module tb_physics;
     reg [`SET_W-1:0] settings = `SET_DEFAULT;
     reg        tv = 0;
     reg signed [15:0] tvy = 0, tvx = 0;
-    reg signed [3:0]  tspin = 0;
+    reg signed [`SPIN_W-1:0] tspin = 0;
+    reg        stv = 0;                  // steer packets (v3)
+    reg signed [11:0] sdx = 0;
     reg [15:0] tx0 = `W_LANE_CX;
     reg        rack_go = 0;
     reg [1:0]  rack_cmd = `RK_FULL;
@@ -40,14 +42,15 @@ module tb_physics;
     wire signed [15:0] ivx, ivy, bvx, bvy;
     wire [15:0] bx, by;
     wire [2:0]  bph;
-    wire signed [3:0] bspin;
+    wire signed [`SPIN_W-1:0] bspin;
+    wire [7:0]  brev;
     wire [15:0] bang, cpx, cpy;
     wire        cpulse;
 
     ball_physics u_ball (
         .clk(clk), .rst(rst), .tick_phys(tick_phys), .game_state(gs), .settings(settings),
         .stance_x(tx0), .throw_valid(tv), .throw_vy(tvy), .throw_vx(tvx), .throw_spin(tspin),
-        .throw_x0(tx0), .pin_rd_idx(ridx), .pin_rd_x(rx), .pin_rd_y(ry), .pin_rd_vx(rvx),
+        .throw_x0(tx0), .steer_valid(stv), .steer_dx(sdx), .ball_rev(brev), .pin_rd_idx(ridx), .pin_rd_x(rx), .pin_rd_y(ry), .pin_rd_vx(rvx),
         .pin_rd_vy(rvy), .pin_rd_solid(rsolid), .pin_rd_upright(rup), .impulse_valid(iv), .impulse_pin(ipin),
         .impulse_vx(ivx), .impulse_vy(ivy), .scan_done(sdone), .ball_x(bx), .ball_y(by),
         .ball_vx(bvx), .ball_vy(bvy), .ball_phase(bph), .ball_spin(bspin), .ball_angle(bang),
@@ -115,14 +118,15 @@ module tb_physics;
     reg        mom_done;
     reg signed [15:0] bvx0, bvy0, pre_vx, pre_vy;
     real mom_err, mom_ref;
+    // v3: contact_pulse comes before the ball is deflected, the impulse to C
+    // after it (the tangential part is computed in between)
     always @(posedge clk) begin
-        if (!iv) begin bvx0 <= bvx; bvy0 <= bvy; end
+        if (cpulse) begin bvx0 <= bvx; bvy0 <= bvy; end
     end
     always @(posedge clk) begin
         if (iv && !mom_done) begin
             mom_done <= 1;
             pre_vx = bvx0; pre_vy = bvy0;               // ball velocity before the hit
-            repeat (4) @(posedge clk);                  // ball deflection lands 2 clocks later
             mom_err = 16.0 * (bvy - pre_vy) + 3.5 * ivy;
             mom_ref = 3.5 * ivy;
             $display("      impulse pin %0d dvp=(%0d,%0d)  ball dv=(%0d,%0d)", ipin, ivx, ivy,
@@ -223,22 +227,65 @@ module tb_physics;
         throw(15.0, 0.3, 460, 0);
         check(seen_gutter && res_down == 0, "right gutter ball, 0 pins");
 
-        // 5. hook: start right of centre, spin +4 (hook left)
-        throw(16.0, 0.0, 420, 4);
+        // 5. hook: start right of centre, spin +16 of 31 (a medium curve, hooks left)
+        throw(16.0, 0.0, 420, 16);
         check(seen_hook && seen_roll, "spin ball goes SKID -> HOOK -> ROLL");
         $display("      hook moved %0d boards after the oil line", ($signed({1'b0,x_at_oil}) - $signed({1'b0,x_at_deck})) / 64);
         check(($signed({1'b0,x_at_oil}) - $signed({1'b0,x_at_deck})) >= 8*64 &&
               ($signed({1'b0,x_at_oil}) - $signed({1'b0,x_at_deck})) <= 14*64,
-              "medium hook (spin 4) moves 8-14 boards on the dry lane");
+              "medium hook (spin 16) moves 8-14 boards on the dry lane");
         check(($signed({1'b0,x_at_oil}) - 2688) < 2*64 && ($signed({1'b0,x_at_oil}) - 2688) > -2*64,
               "in the oil the ball barely hooks (< 2 boards)");
 
-        // 6. long oil hooks less
-        rack(`RK_FULL, 10'h3FF);
-        settings[`SET_OIL] = 1'b1;
-        throw(16.0, 0.0, 420, 4);
-        check(($signed({1'b0,x_at_oil}) - $signed({1'b0,x_at_deck})) < 8*64, "long oil: the same throw hooks less");
-        settings[`SET_OIL] = 1'b0;
+        // 6. long oil hooks less (v3: at least 2 boards less than the short pattern)
+        begin : longoil
+            integer h_short;
+            h_short = $signed({1'b0,x_at_oil}) - $signed({1'b0,x_at_deck});
+            rack(`RK_FULL, 10'h3FF);
+            settings[`SET_OIL] = 1'b1;
+            throw(16.0, 0.0, 420, 16);
+            $display("      long oil hook %0d, short oil %0d (in/64)", $signed({1'b0,x_at_oil}) - $signed({1'b0,x_at_deck}), h_short);
+            check(($signed({1'b0,x_at_oil}) - $signed({1'b0,x_at_deck})) < h_short - 2*64, "long oil: the same throw hooks less");
+            settings[`SET_OIL] = 1'b0;
+        end
+
+        // ---- v3 checks (empty deck, so only the lane acts on the ball) ----
+        rack(`RK_LEAVE, 10'h000);
+        begin : v3
+            integer xa, xb, s1, s2, s3, x0d;
+            // 6a. +spin and -spin are exact mirror images about the lane centre
+            throw(16.0, 0.0, 420, 16);  xa = x_at_deck;
+            throw(16.0, 0.0, 180, -16); xb = x_at_deck;
+            $display("      mirror: +16 from 42 in -> %0d, -16 from 18 in -> %0d (sum %0d, want 3840)", xa, xb, xa + xb);
+            check(xa + xb >= 3839 && xa + xb <= 3841, "left and right hooks are mirror images");
+            // 6b. more spin -> more hook, all the way up the 31 levels
+            throw(16.0, 0.0, 420, 4);   s1 = 2688 - x_at_deck;
+            throw(16.0, 0.0, 420, 16);  s2 = 2688 - x_at_deck;
+            throw(16.0, 0.0, 420, 31);  s3 = 2688 - x_at_deck;
+            $display("      hook (in/64) for spin 4 / 16 / 31: %0d %0d %0d", s1, s2, s3);
+            check(s1 > 64 && s1 < s2 && s2 < s3, "hook grows with every spin level");
+            // 6c. a faster ball hooks later, so less by the pins
+            throw(20.0, 0.0, 420, 16);
+            $display("      20 mph hook %0d (16 mph %0d)", 2688 - x_at_deck, s2);
+            check(2688 - x_at_deck < s2, "a faster ball hooks less (it reaches the dry wood later)");
+            // 6d. steer window: sideways mouse motion right after release
+            throw(16.0, 0.0, 300, 0);   x0d = x_at_deck;
+            fork
+                throw(16.0, 0.0, 300, 0);
+                begin : steer
+                    integer k;
+                    repeat (40) @(posedge clk);
+                    for (k = 0; k < 30; k = k + 1) begin     // 30 packets of +40 counts
+                        repeat (8000) @(posedge clk);
+                        @(posedge clk) begin stv <= 1; sdx <= 12'sd40; end
+                        @(posedge clk) stv <= 0;
+                    end
+                end
+            join
+            $display("      steer: straight %0d -> steered %0d (in/64)", x0d, x_at_deck);
+            check(x_at_deck - x0d >= 64 && x_at_deck - x0d <= 5*64,
+                  "steer window nudges the ball 1-5 boards, never more");
+        end
 
         // 7. ball that touches no pins (leave = 10 pin, ball down the middle-left)
         rack(`RK_LEAVE, 10'b10_0000_0000);
@@ -262,7 +309,7 @@ module tb_physics;
 
         // 10. full rack, slightly off-centre pocket ball with hook, then pins never lock
         rack(`RK_FULL, 10'h3FF);
-        throw(17.0, 0.0, 360, 3);
+        throw(17.0, 0.0, 360, 12);
         check(res_down >= 6, "pocket hook ball carries >= 6 pins");
         check(forced == 0, "every throw settled when the pins stopped (no 4 s timeout)");
         $display("      pin-pin collisions checked: %0d, momentum errors: %0d", pp_hits, pp_bad);

@@ -27,16 +27,25 @@ run_one() {
     rm -rf "$run" && mkdir -p "$run" && cp "$WORK"/src/data/*.mem "$run"/
     local rel="../../src"
     local extra=""
+    local stub=""
     if grep -q "My_Top_Module" "$WORK/src/$file"; then        # needs the VHDL mouse files
-        ( cd "$run" && "$VIV/xvhdl.bat" "$rel/rtl/provided/Ps2Interface.vhd" \
-              "$rel/rtl/provided/Mouse_Control.vhd" > vhdl.txt 2>&1 ) || {
-            echo "[$tb] VHDL compile error"; grep ERROR "$run/vhdl.txt" | head; return 1; }
+        if ! ( cd "$run" && "$VIV/xvhdl.bat" "$rel/rtl/provided/Ps2Interface.vhd" \
+              "$rel/rtl/provided/Mouse_Control.vhd" > vhdl.txt 2>&1 ); then
+            if grep -q "Device Guard\|blocked" "$run/vhdl.txt"; then
+                # the PC does not allow xvhdl.exe: the testbenches force the
+                # mouse controller's outputs anyway, so use a Verilog stand-in
+                echo "[$tb] note: xvhdl blocked on this PC, using sim/stub/MouseCtl_stub.vsim"
+                cp "$WORK/src/sim/stub/MouseCtl_stub.vsim" "$run/MouseCtl_stub.v"; stub="MouseCtl_stub.v"
+            else
+                echo "[$tb] VHDL compile error"; grep ERROR "$run/vhdl.txt" | head; return 1
+            fi
+        fi
         extra="-L unisims_ver glbl"
         cp "$VIV/../data/verilog/src/glbl.v" "$run/" 2>/dev/null
     fi
     ( cd "$run" &&
       "$VIV/xvlog.bat" -d SIM -i "$rel/rtl/top" -i "$rel/rtl/d_game_ui" \
-          $(find "$rel/rtl" -name '*.v') $(find "$rel/sim" -name '*.v' ! -name 'tb_*') "$rel/$file" $( [ -f glbl.v ] && echo glbl.v ) > compile.txt 2>&1 &&
+          $(find "$rel/rtl" -name '*.v') $(find "$rel/sim" -name '*.v' ! -name 'tb_*') "$rel/$file" $( [ -f glbl.v ] && echo glbl.v ) $stub > compile.txt 2>&1 &&
       "$VIV/xelab.bat" -debug off -relax $extra "$tb" -s "${tb}_sim" > elab.txt 2>&1 &&
       "$VIV/xsim.bat" "${tb}_sim" -R > sim.txt 2>&1 )
     local rc=$?

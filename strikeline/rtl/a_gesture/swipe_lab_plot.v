@@ -20,9 +20,9 @@ module swipe_lab_plot (
     input  wire        clk,
     input  wire        rst,
     input  wire        start,
-    input  wire [5:0]  wp,
-    input  wire [6:0]  n_samples,
-    output reg  [5:0]  rd_addr,
+    input  wire [6:0]  wp,
+    input  wire [7:0]  n_samples,
+    output reg  [6:0]  rd_addr,
     input  wire [63:0] rd_data,
     output wire        busy,
     input  wire [11:0] px_addr,          // {y[5:0], x[5:0]} from the renderer
@@ -47,8 +47,8 @@ module swipe_lab_plot (
     localparam S_IDLE = 3'd0, S_CLR = 3'd1, S_ORG = 3'd2, S_EXT = 3'd3, S_SH = 3'd4, S_RAW = 3'd5, S_FIL = 3'd6, S_ORGW = 3'd7;
     reg [2:0]  st;
     reg [12:0] i;
-    reg [5:0]  base;
-    reg [6:0]  n;
+    reg [6:0]  base;
+    reg [7:0]  n;
     reg signed [15:0] x0, f0;
     reg [16:0] ext;
     reg [2:0]  sh;
@@ -82,7 +82,7 @@ module swipe_lab_plot (
             rd_addr <= 0; ba <= 0; bd <= 0;
         end else case (st)
             S_IDLE: if (start) begin
-                base <= wp - n_samples[5:0]; n <= n_samples; i <= 0; st <= S_CLR;
+                base <= wp - n_samples[6:0]; n <= n_samples; i <= 0; st <= S_CLR;
             end
             S_CLR: begin
                 bw <= 1'b1; ba <= i[11:0]; bd <= 2'd0;
@@ -100,15 +100,15 @@ module swipe_lab_plot (
                 // 3 stages: clock i issues address i; rq = point i-1;
                 // stage 1 registers its 4 absolute offsets; stage 2 (point i-2)
                 // takes max(2|dx|, |df|) of raw and filtered and updates ext
-                v1 <= (i != 0) && (i[6:0] <= n);
+                v1 <= (i != 0) && (i[7:0] <= n);
                 ar <= ab(ddx_r); af <= ab(ddf_r); br <= ab(ddx_f); bf <= ab(ddf_f);
                 if (v1) begin
                     if (e2r > ext && e2r >= e2f) ext <= e2r;
                     else if (e2f > ext)          ext <= e2f;
                 end
                 i <= i + 13'd1;
-                rd_addr <= base + i[5:0] + 6'd1;
-                if (i[6:0] == n + 7'd1) begin v1 <= 1'b0; st <= S_SH; end
+                rd_addr <= base + i[6:0] + 7'd1;
+                if (i[7:0] == n + 8'd1) begin v1 <= 1'b0; st <= S_SH; end
             end
             S_SH: begin                          // smallest shift that fits
                 sh <= (ext <= 17'd56)   ? 3'd0 : (ext <= 17'd112)  ? 3'd1 : (ext <= 17'd224)  ? 3'd2 :
@@ -117,12 +117,12 @@ module swipe_lab_plot (
                 i <= 0; rd_addr <= base; st <= S_RAW;
             end
             S_RAW, S_FIL: begin
-                v1 <= (i != 0) && (i[6:0] <= n);
+                v1 <= (i != 0) && (i[7:0] <= n);
                 ddx1 <= ddx; ddf1 <= ddf;
                 if (v1 && inside) begin bw <= 1'b1; ba <= {pys[5:0], pxs[5:0]}; bd <= (st == S_RAW) ? 2'd1 : 2'd2; end
                 i <= i + 13'd1;
-                rd_addr <= base + i[5:0] + 6'd1;
-                if (i[6:0] == n + 7'd1) begin
+                rd_addr <= base + i[6:0] + 7'd1;
+                if (i[7:0] == n + 8'd1) begin
                     i <= 0; rd_addr <= base; v1 <= 1'b0;
                     st <= (st == S_RAW) ? S_FIL : S_IDLE;
                 end

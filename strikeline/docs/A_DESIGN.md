@@ -62,3 +62,29 @@ One DSP48 (shared multiplier), the ring buffer (64 × 64-bit LUTRAM), and the Sw
 13. **What happens on a sideways swipe?** If `|dx| > forward` the throw is rejected with "SWIPE FORWARD" and D returns to AIM.
 14. **How is the trail drawn without a frame buffer?** 32 stored positions are compared with the pixel position in parallel. The newest match sets the brightness.
 15. **What does Swipe Lab show?** The raw (grey) and filtered (yellow) path, auto-zoomed by a power of two (no divider), plus the measured speed, aim, spin and sample count. It shows the whole algorithm at work.
+
+## v3: accurate swipes, 31 spin levels, steer window, VGA pointer
+**What was wrong in v2 (found by reading the RTL and by new tests):**
+- *The release packet was lost.* MouseCtl updates the buttons at PS/2 byte 1 but the motion of that packet arrives with `new_event` after byte 3, so the release edge ended the swipe before its last motion was added, and the 4-tap filter's lag cut the end of the curve off. Now `mouse_setup` samples the buttons together with the motion and emits the edges one clock after that packet's `delta_valid`, and `swipe_capture` **flushes** 4 more samples after the release so the filter catches up.
+- *Tremor and pauses changed the result.* Spin was normalised by the number of moving steps and the speed window looked at the last ~200 ms. `gesture_features` now **trims** the swipe to the first and last filtered step with |dx|+|df| >= 3 counts (about 6 cm/s) before measuring anything. The ring is 128 samples (640 ms) instead of 64, so a hold before the flick no longer pushes the start of the swipe out.
+- *Spin came from the two ends of the stroke.* The sum of cross products of successive velocities telescopes to "heading at the end minus heading at the start", decided by the noisiest steps, then saturated at 0.5 rad with 7 levels.
+- *Sensitivity shifts were biased* (an arithmetic >>> rounds toward −∞: small moves drifted left / forward). Halves now round toward zero.
+- A `wp` / `n_samples` race when a sample and the release came in the same clock.
+
+**New spin measure.** `S = Σ cross(p(j−1), p(j))` with `p = f − f(start)` is twice the signed area between the path and its chord. For an arc turning by t radians the area is `L² t / 12`, so `t = 6 S / L²`: one divider, `turn256 = 1536 |S| / L²`. The whole curve counts, so the same curve always gives the same spin, and the measure is exact for circular arcs (a 0.36 rad test curve reads 0.39 rad). Spin = `(turn256 − 8)` scaled by the Settings item **SPIN** (NORM /4, HIGH /2, MAX /1, SOFT /8), clamped to ±31. The dead zone is 1.8° (was 7.2°).
+
+**Steer window.** While the ball rolls, `swipe_capture` forwards every packet's sideways motion to B (`steer_valid`, `steer_dx`); B applies it for 0.5 s with a fixed budget.
+
+**Aim target.** The wheel moves a target mark (one board per step, ±15 boards from the stance) that B draws as a dotted guide; it is only a guide, the throw still comes from the swipe.
+
+**VGA pointer.** The cursor covers the 160 × 120 VGA picture (quarter pixels 0..639 × 0..479). `ucur_x/y` is the same point in the 96 × 64 UI window (for D's menus and the OLED). In the 3-D view the stance is the lane inch under the pointer at the foul line, `30 + (x − 56)·3/4`.
+
+### v3 tests (`tb_gesture`, 20 checks)
+spin grows steadily with the curve (10/20/40/60 mrad per packet → 4/10/23/31); mirrored swipes give exactly opposite spin; 8 packets of tremor before and after the swipe change nothing; HIGH gives more spin than NORMAL; a straight swipe after curves is exactly 0.
+
+### v3 questions
+16. **Why the area, not the heading change?** Area integrates the whole path; heading change depends only on the first and last steps, which are slow and quantised.
+17. **Why flush 4 samples after the release?** The filter averages 4 samples; after 4 samples of the final position the filtered path has reached the true end of the swipe.
+18. **Why 128 samples?** 640 ms covers a slow approach plus a pause before the flick; the swipe itself is ~250 ms.
+19. **What is the steer window for?** Real bowlers cannot steer, but players expect the ball to answer the mouse; a small, time-limited, bounded nudge gives that feel without breaking the physics.
+20. **How is spin sensitivity stored?** `settings[10:9]`, saved in the flash image with the other settings (0 = NORMAL so old saves keep the default).

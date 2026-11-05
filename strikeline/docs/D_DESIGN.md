@@ -89,3 +89,29 @@ A cursor > D scorecard > D HUD > D menus > A world > B ball > C pins > B lane > 
 
 ## Instant replay (stretch, built)
 `replay_buffer.v`: every frame during ROLL / PINACTION / SETTLE it stores a 274-bit snapshot (ball x/y/angle/visible, camera, the 10 pins' `pin_vis`) as 8 × 36-bit words in a 2048 × 36 block RAM (2 BRAM36, 256 snapshots = 4.3 s). In RESULT, a middle click or btnD plays it back from the oldest snapshot at half speed, reading 8 words into registers every second frame. The top-level muxes feed those registers to B's and C's renderers. The physics is not touched; the replay is only a picture.
+
+## v3: two screens (VGA + OLED) from one render engine
+**Why.** The v2 renderers were pure functions of the pixel the OLED driver asked for. A 640 × 480 VGA monitor needs pixels 25 million times a second, far too fast to race the beam with this much logic, and the OLED still wants its own picture.
+
+**How.**
+- `render_scan.v` walks every pixel of both pictures once per frame, at its own pace: first the VGA picture (160 × 120 logical pixels, `scr = 0`), then the OLED picture (96 × 64, `scr = 1`). Each position is held 8 clocks; the compositor captures the colour on clock 8 (`cap`) and it is written to a frame buffer. 25 344 pixels × 8 = 2 ms of each 16.7 ms frame. `done` is the new `tick_frame`.
+- `vga_out.v` holds the buffers (two 160 × 120 × 16 VGA buffers, double buffered, and the 96 × 64 OLED buffer) and makes standard 640 × 480 @ 60 Hz timing from a 25 MHz clock *enable*. Each logical pixel is shown 4 × 4; the RGB565 values are dithered (2 × 2 Bayer) down to the Basys3's 4-bit DAC. The buffers swap at the start of the vertical blank, which also starts the next render: no tearing.
+- `view_map.v` says which picture a pixel is in. The OLED pass is the v2 "UI picture" 1:1. The VGA pass shows the new 3-D game layout during play (unless sw4 asks for the classic view, or a replay is showing), and otherwise the UI picture in a framed window at (32, 28). So every v2 screen (menus, Swipe Lab, top-down game) still works unchanged, on both screens.
+- `vga_hud.v` (new) draws what only the VGA has room for: the 10-frame scorecard strip, the side panel (frame, ball, score of both players, live mph, power, spin value and bar, revs left, entry board + POCKET, pin diagram), double-size popups, the FRAME banner, ZOOM labels, the board / target readout, the hint row, and the decorated backdrop with the STRIKELINE title and a little animated lane around the menus.
+- `compositor.v` picks the layer order per picture and, in 3-D, puts a pin in front of the ball when its screen row is larger (it is nearer). Text from every layer still goes through the one text engine.
+- The OLED became the **second screen**: during a game it always shows the top-down view (the camera follows the ball, then the whole deck while the pins fly), the panel and the scorecard; in menus it mirrors the menu.
+
+**v3.2 / v3.3 screens.** `render_scan` walks the VGA picture at 320 × 240 into one 9-bit buffer in `vga_out` (RGB 3:3:3 with a 2 × 2 dither on write; no tearing because the drawing, started in the vertical blank, is faster than the beam). The top module gives the 3-D lane, ball and pins the full position (`hx`, `hy`) and every other layer the halved one (`sx`, `sy`, the v3 160 × 120 grid). The scorecard strip is gone from the 3-D view; `vga_hud` draws the panel in the 320 × 240 grid (half size, top right) and moves the centred overlays right by 24 for the full-width view. During a game the OLED shows only the scorecard, in `scorecard_render`'s tall layout (27-row frame boxes). After every ball `turn_fsm` starts the replay 0.6 s into the result at real speed (`replay_fast`); a click ends it (`skip` in REPLAY → `replay_buffer.stop`). During a replay `view_map` stretches the top-down picture over the whole VGA (`rp_full`), and `vga_hud` adds corner brackets and a blinking ● REPLAY.
+
+Q: *Why can one frame buffer be tear-free here?* The monitor shows a 320-pixel row in 2 lines = 6 400 clocks; we draw it in 320 × 8 = 2 560 clocks, starting in the vertical blank. Every row is rewritten after the monitor showed the old frame and before it reaches that row again, so no frame is ever shown half old, half new.
+
+**Zoom (v3.1; was PIN VIEW in v3).** `game_fsm` drives `aim_zoom` = right button held (`r_level`) in AIM, THROW, ROLL, PINACTION and SETTLE (not in Spare Challenge, where a right-click while aiming leaves). B's camera then zooms the first-person view (see B_DESIGN), the lane draws the dotted aim guide brightly, and `vga_hud` shows "ZOOM" and the hint "FLICK: THROW  LET GO: BACK" while aiming; the wheel still moves the target. Right-click toggles the scorecard only after the throw (RESULT, SWEEP); btnD at any time.
+
+**Settings.** Row 1 is now **SPIN** (NORM / HIGH / MAX / SOFT, `settings[10:9]`, saved); the oil length stays on sw14.
+
+### v3 questions
+16. **Why frame buffers now?** Two screens of different sizes and a 25 MHz pixel rate: drawing each frame ahead of time lets the same combinational renderers serve both, with 8 clocks per pixel.
+17. **Why double-buffer the VGA but not the OLED?** The VGA is swapped in its vertical blank, so a half-drawn frame is never shown; the small OLED buffer is rewritten in 0.5 ms and a 1-frame tear there is invisible.
+18. **How is 640 × 480 timing made without a 25 MHz clock?** A 2-bit counter gives a 1-in-4 clock enable, exactly like the other ticks; the syncs and colours are registers, delayed by one pixel to line up with the RAM read.
+19. **Why dither?** The buffers keep RGB565, the VGA DAC has 4 bits per colour; a 2 × 2 ordered dither on the real screen pixels turns the lost bits into fine patterns instead of colour bands.
+20. **How do the menus work on both screens?** They are drawn in "UI space" (96 × 64); on the VGA that space is a window at (32, 28), and the mouse pointer is converted into the same space for the hit tests.

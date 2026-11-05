@@ -56,14 +56,22 @@ module tb_top;
             repeat (PKT - 22) @(posedge clk);
         end
     endtask
-    // move the pointer to pixel (x, y): deltas in quarter pixels (sensitivity x1)
-    task move_to(input integer x, input integer y);
+    // move the pointer to UI-space pixel (x, y) (v3: the menus sit in the VGA
+    // window at (32, 28)); deltas in quarter pixels (sensitivity x1)
+    task move_vga(input integer x, input integer y);
         integer cx, cy, ddx, ddy;
         begin
             cx = u_top.cursor_x; cy = u_top.cursor_y;
             ddx = (x - cx) * 4 + 2; ddy = (y - cy) * 4 + 2;
             packet(ddx, ddy);
         end
+    endtask
+    task move_to(input integer x, input integer y);
+        move_vga(x + 32, y + 28);
+    endtask
+    // v3: point at lane inch inch in the 3-D view (x = 30 + (cx - 56) * 3/4)
+    task aim_at(input integer inch);
+        move_vga(80 + ((inch - 30) * 4 + ((inch >= 30) ? 2 : -2)) / 3, 80);      // v3.3: centre column 80
     endtask
     task click;
         begin
@@ -105,21 +113,32 @@ module tb_top;
         end
     endtask
 
-    // OLED picture check: distinct colours over one frame of pixel data
-    integer ncol, k;
+    // picture check (v3): distinct colours in the frame just drawn, in the
+    // VGA back buffer and in the OLED buffer
+    integer ncol, ncol_o, k;
     reg [15:0] seen [0:15];
+    reg [15:0] pv;
     reg found;
-    task picture(output integer n);
-        integer i;
+    task picture(output integer n, output integer no);
+        integer i, a;
         begin
+            @(posedge u_top.render_done); @(posedge clk); @(posedge clk);
             n = 0;
-            @(posedge u_top.oled_sending);
-            while (u_top.oled_sending) begin
-                @(posedge clk);
+            for (a = 0; a < 76800; a = a + 29) begin            // v3.2: one 320 x 240 buffer
+                pv = {7'd0, u_top.u_vga.fb[a]};
                 if (n < 16) begin
                     found = 0;
-                    for (i = 0; i < 16; i = i + 1) if (i < n && seen[i] == u_top.oled_data) found = 1;
-                    if (!found) begin seen[n] = u_top.oled_data; n = n + 1; end
+                    for (i = 0; i < 16; i = i + 1) if (i < n && seen[i] == pv) found = 1;
+                    if (!found) begin seen[n] = pv; n = n + 1; end
+                end
+            end
+            no = 0;
+            for (a = 0; a < 6144; a = a + 3) begin
+                pv = u_top.u_vga.fbo[a];
+                if (no < 16) begin
+                    found = 0;
+                    for (i = 0; i < 16; i = i + 1) if (i < no && seen[i] == pv) found = 1;
+                    if (!found) begin seen[no] = pv; no = no + 1; end
                 end
             end
         end
@@ -133,8 +152,10 @@ module tb_top;
         $display("      flash loaded at %0d ms (flash_ok=%0d)", $time / 1000000, u_top.flash_ok);
         wait_state(`GS_TITLE, 100);
         check(u_top.game_state == `GS_TITLE, "boot: blank flash -> defaults -> title screen");
-        picture(ncol);
-        check(ncol >= 4, "title screen draws a picture (>= 4 colours)");
+        picture(ncol, ncol_o);
+        $display("      colours: VGA %0d, OLED %0d", ncol, ncol_o);
+        check(ncol >= 4, "title screen draws a VGA picture (>= 4 colours)");
+        check(ncol_o >= 4, "title screen draws an OLED picture (>= 4 colours)");
 
         // ---------------- menu -> Quick Game (2 clicks from the title) ----------
         click;
@@ -147,7 +168,7 @@ module tb_top;
         check(led[9:0] == 10'h3FF, "pin LEDs: all 10 standing");
 
         // ---------------- first ball: straight down the middle --------------------
-        move_to(30, 40);                                // stance board 21
+        aim_at(30);                                     // stance: lane centre (3-D view)
         throw_ball(70, 0);
         wait_state(`GS_ROLL, 200);
         check(u_top.game_state == `GS_ROLL || u_top.game_state == `GS_PINACTION, "release -> ball rolling");
@@ -175,7 +196,7 @@ module tb_top;
         // ---------------- finish frame 8 (second ball unless strike) ---------------
         wait_state(`GS_AIM, 6000);
         if (u_top.frame == 4'd7) begin
-            move_to(24, 40);
+            aim_at(24);
             throw_ball(60, 0);
             wait_state(`GS_RESULT, 8000);
             wait_state(`GS_AIM, 8000);
@@ -188,7 +209,7 @@ module tb_top;
         check(total_rolls >= 1 && total_rolls <= 2, "the saved image holds frame 8's rolls");
 
         // ---------------- a gutter ball in frame 9 ----------------------------------
-        move_to(46, 40);
+        aim_at(46);
         throw_ball(60, -40);                           // drifts right... and the stance is far right
         wait_state(`GS_RESULT, 8000);
         $display("      frame 9 ball 1: %0d pins, popup %0d", u_top.pins_down, u_top.popup_id);

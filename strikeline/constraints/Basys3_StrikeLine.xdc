@@ -4,10 +4,26 @@ set_property -dict { PACKAGE_PIN W5   IOSTANDARD LVCMOS33 } [get_ports clk]
 create_clock -add -name sys_clk_pin -period 10.00 -waveform {0 5} [get_ports clk]
 create_generated_clock -name clk6p25m -source [get_ports clk] -divide_by 16 [get_pins u_time/div16_reg[3]/Q]
 set_clock_groups -asynchronous -group [get_clocks sys_clk_pin] -group [get_clocks clk6p25m]
-## The renderers are combinational; the compositor captures the colour only
-## after the pixel position has been stable for 6 clocks (see compositor.v).
-set_multicycle_path -setup 6 -to [get_cells {u_comp/oled_data_reg[*]}]
-set_multicycle_path -hold  5 -to [get_cells {u_comp/oled_data_reg[*]}]
+## v3: the renderers are combinational; render_scan holds each pixel position
+## for 8 clocks and the compositor captures the colour on the 8th (cap), so
+## every path into the captured colour gets 7 clocks (see render_scan.v).
+set_multicycle_path -setup 7 -to [get_cells {u_comp/pix_reg[*]}]
+set_multicycle_path -hold  6 -to [get_cells {u_comp/pix_reg[*]}]
+## The Swipe Lab bitmap is a block RAM read from the pixel position: the
+## address gets 3 clocks; the RAM reads it on the 3rd edge, so its output has
+## the remaining 5 clocks to the captured colour (8 in all).
+set_multicycle_path -setup 3 -from [get_cells {u_scan/px_*_reg[*]}] -to [get_cells -hier -filter {NAME =~ *u_plot/bmp_reg*}]
+set_multicycle_path -hold  2 -from [get_cells {u_scan/px_*_reg[*]}] -to [get_cells -hier -filter {NAME =~ *u_plot/bmp_reg*}]
+set_multicycle_path -setup 5 -from [get_cells -hier -filter {NAME =~ *u_plot/bmp_reg*}] -to [get_cells {u_comp/pix_reg[*]}]
+set_multicycle_path -hold  4 -from [get_cells -hier -filter {NAME =~ *u_plot/bmp_reg*}] -to [get_cells {u_comp/pix_reg[*]}]
+## v3: B latches C's pin read port 2 clocks after it sets the index (state S_PW)
+set_multicycle_path -setup 2 -from [get_cells {u_ball/pin_rd_idx_reg[*]}] -to [get_cells -hier -filter {NAME =~ u_ball/pr*_reg*}]
+set_multicycle_path -hold  1 -from [get_cells {u_ball/pin_rd_idx_reg[*]}] -to [get_cells -hier -filter {NAME =~ u_ball/pr*_reg*}]
+## v3: the same for C's pin ROMs in block RAM (rom2p, read from the pixel position)
+set_multicycle_path -setup 3 -from [get_cells {u_scan/px_*_reg[*]}] -to [get_cells -hier -filter {NAME =~ *u_pinr/g_rom*}]
+set_multicycle_path -hold  2 -from [get_cells {u_scan/px_*_reg[*]}] -to [get_cells -hier -filter {NAME =~ *u_pinr/g_rom*}]
+set_multicycle_path -setup 5 -from [get_cells -hier -filter {NAME =~ *u_pinr/g_rom*}] -to [get_cells {u_comp/pix_reg[*]}]
+set_multicycle_path -hold  4 -from [get_cells -hier -filter {NAME =~ *u_pinr/g_rom*}] -to [get_cells {u_comp/pix_reg[*]}]
 set_property -dict { PACKAGE_PIN V17   IOSTANDARD LVCMOS33 } [get_ports {sw[0]}]
 set_property -dict { PACKAGE_PIN V16   IOSTANDARD LVCMOS33 } [get_ports {sw[1]}]
 set_property -dict { PACKAGE_PIN W16   IOSTANDARD LVCMOS33 } [get_ports {sw[2]}]
@@ -65,6 +81,21 @@ set_property -dict { PACKAGE_PIN L17   IOSTANDARD LVCMOS33 } [get_ports {JC[4]}]
 set_property -dict { PACKAGE_PIN M19   IOSTANDARD LVCMOS33 } [get_ports {JC[5]}]
 set_property -dict { PACKAGE_PIN P17   IOSTANDARD LVCMOS33 } [get_ports {JC[6]}]
 set_property -dict { PACKAGE_PIN R18   IOSTANDARD LVCMOS33 } [get_ports {JC[7]}]
+## VGA connector (v3: the main screen, 4 bits per colour)
+set_property -dict { PACKAGE_PIN G19   IOSTANDARD LVCMOS33 } [get_ports {vgaRed[0]}]
+set_property -dict { PACKAGE_PIN H19   IOSTANDARD LVCMOS33 } [get_ports {vgaRed[1]}]
+set_property -dict { PACKAGE_PIN J19   IOSTANDARD LVCMOS33 } [get_ports {vgaRed[2]}]
+set_property -dict { PACKAGE_PIN N19   IOSTANDARD LVCMOS33 } [get_ports {vgaRed[3]}]
+set_property -dict { PACKAGE_PIN N18   IOSTANDARD LVCMOS33 } [get_ports {vgaBlue[0]}]
+set_property -dict { PACKAGE_PIN L18   IOSTANDARD LVCMOS33 } [get_ports {vgaBlue[1]}]
+set_property -dict { PACKAGE_PIN K18   IOSTANDARD LVCMOS33 } [get_ports {vgaBlue[2]}]
+set_property -dict { PACKAGE_PIN J18   IOSTANDARD LVCMOS33 } [get_ports {vgaBlue[3]}]
+set_property -dict { PACKAGE_PIN J17   IOSTANDARD LVCMOS33 } [get_ports {vgaGreen[0]}]
+set_property -dict { PACKAGE_PIN H17   IOSTANDARD LVCMOS33 } [get_ports {vgaGreen[1]}]
+set_property -dict { PACKAGE_PIN G17   IOSTANDARD LVCMOS33 } [get_ports {vgaGreen[2]}]
+set_property -dict { PACKAGE_PIN D17   IOSTANDARD LVCMOS33 } [get_ports {vgaGreen[3]}]
+set_property -dict { PACKAGE_PIN P19   IOSTANDARD LVCMOS33 } [get_ports Hsync]
+set_property -dict { PACKAGE_PIN R19   IOSTANDARD LVCMOS33 } [get_ports Vsync]
 ## USB HID host (mouse, through the provided MouseCtl.vhd)
 set_property -dict { PACKAGE_PIN C17   IOSTANDARD LVCMOS33   PULLUP true } [get_ports PS2Clk]
 set_property -dict { PACKAGE_PIN B17   IOSTANDARD LVCMOS33   PULLUP true } [get_ports PS2Data]
@@ -77,6 +108,8 @@ set_property -dict { PACKAGE_PIN K19   IOSTANDARD LVCMOS33 } [get_ports QspiCSn]
 ## Slow asynchronous I/O (buttons, switches, PS/2, 12.5 MHz SPI): no timing relationship
 set_false_path -from [get_ports {sw[*] btn* PS2Clk PS2Data QspiDB[*]}]
 set_false_path -to   [get_ports {led[*] seg[*] dp an[*] QspiCSn QspiDB[*] PS2Clk PS2Data JC[*]}]
+## VGA outputs come straight from registers; a monitor samples them at 25 MHz
+set_false_path -to   [get_ports {vgaRed[*] vgaGreen[*] vgaBlue[*] Hsync Vsync}]
 ## Configuration
 set_property CONFIG_VOLTAGE 3.3 [current_design]
 set_property CFGBVS VCCO [current_design]

@@ -24,28 +24,33 @@ module gesture_render (
     input  wire        clk,
     input  wire        rst,
     input  wire        tick_frame,
-    input  wire [6:0]  px_x,
+    input  wire [7:0]  vx,               // v3: VGA pixel
+    input  wire [6:0]  vy,
+    input  wire [6:0]  px_x,             // UI-space pixel (96 x 64)
     input  wire [5:0]  px_y,
+    input  wire        scr,              // v3: 0 = VGA pass, 1 = OLED pass
     input  wire [`GS_W-1:0] game_state,
-    input  wire        fp,               // first-person view: no top-down aim guides
+    input  wire        fp,               // the VGA 3-D view: no top-down aim guides / meters
     input  wire        lefty,
-    input  wire [6:0]  cursor_x,
-    input  wire [5:0]  cursor_y,
+    input  wire [7:0]  cursor_x,         // VGA pointer
+    input  wire [6:0]  cursor_y,
+    input  wire [6:0]  ucur_x,           // UI-space pointer
+    input  wire [5:0]  ucur_y,
     input  wire        grabbing,
-    input  wire [415:0] trail_bus,
+    input  wire [479:0] trail_bus,
     input  wire [31:0] trail_valid,
     input  wire [15:0] stance_x,
     input  wire signed [10:0] cam_y,
     input  wire [2:0]  live_power,
     input  wire        throw_valid,
-    input  wire signed [3:0] throw_spin,
+    input  wire signed [`SPIN_W-1:0] throw_spin,
     input  wire [7:0]  throw_mph10,
     input  wire [2:0]  aim_level,
     input  wire        aim_right,
     input  wire        reject,
     input  wire [1:0]  reject_msg,
     input  wire        cancel,
-    input  wire [6:0]  n_samples,
+    input  wire [7:0]  n_samples,
     output wire [11:0] lab_addr,
     input  wire [1:0]  lab_px,
     output reg  [15:0] color,
@@ -59,6 +64,13 @@ module gesture_render (
 `include "strings_map.vh"
 
     // ---------------- remembered results of the last swipe ------------------
+    // v3: the throw spin is -31..+31; the labels, bar and LEDs show it as a
+    // level 0..7 = (|spin| + 3) / 4 (same look as before)
+    wire [`SPIN_W-2:0] tsp_abs = throw_spin[`SPIN_W-1] ? -throw_spin[`SPIN_W-2:0] : throw_spin[`SPIN_W-2:0];
+    wire [`SPIN_W-1:0] tsp_q   = ({1'b0, tsp_abs} + 6'd3) >> 2;
+    wire [`SPIN_W-1:0] tsp_l   = (tsp_q > 6'd7) ? 6'd7 : tsp_q;
+    wire signed [3:0] spin_lvl = (tsp_abs == 0) ? 4'sd0 :
+                                 throw_spin[`SPIN_W-1] ? -$signed({1'b0, tsp_l[2:0]}) : $signed({1'b0, tsp_l[2:0]});
     reg [7:0] l_mph;  reg signed [3:0] l_spin;  reg [2:0] l_aim;  reg l_right;  reg [6:0] l_n;
     reg [7:0] lbl_frames, msg_frames;
     reg [1:0] msg;
@@ -67,8 +79,8 @@ module gesture_render (
             l_mph <= 0; l_spin <= 0; l_aim <= 0; l_right <= 0; l_n <= 0; lbl_frames <= 0; msg_frames <= 0; msg <= 0;
         end else begin
             if (throw_valid) begin
-                l_mph <= throw_mph10; l_spin <= throw_spin; l_aim <= aim_level; l_right <= aim_right;
-                l_n <= n_samples; lbl_frames <= 8'd150; msg_frames <= 0;
+                l_mph <= throw_mph10; l_spin <= spin_lvl; l_aim <= aim_level; l_right <= aim_right;
+                l_n <= (n_samples > 8'd99) ? 7'd99 : n_samples[6:0]; lbl_frames <= 8'd150; msg_frames <= 0;
             end else if (reject || cancel) begin
                 msg <= cancel ? `GM_CANCEL : reject_msg; msg_frames <= 8'd90; lbl_frames <= 0;
             end else if (tick_frame) begin
@@ -86,7 +98,8 @@ module gesture_render (
     wire [3:0] m_o = m_o8[3:0];
     wire [3:0] spin_mag = l_spin[3] ? -l_spin : l_spin;
     // number of samples (0..64) -> two digits
-    wire [3:0] n_t = (l_n >= 7'd60) ? 4'd6 : (l_n >= 7'd50) ? 4'd5 : (l_n >= 7'd40) ? 4'd4 :
+    wire [3:0] n_t = (l_n >= 7'd90) ? 4'd9 : (l_n >= 7'd80) ? 4'd8 : (l_n >= 7'd70) ? 4'd7 :
+                     (l_n >= 7'd60) ? 4'd6 : (l_n >= 7'd50) ? 4'd5 : (l_n >= 7'd40) ? 4'd4 :
                      (l_n >= 7'd30) ? 4'd3 : (l_n >= 7'd20) ? 4'd2 : (l_n >= 7'd10) ? 4'd1 : 4'd0;
     wire [6:0] n_o7 = l_n - {n_t, 3'b000} - {2'b00, n_t, 1'b0};
     wire [3:0] n_o = n_o7[3:0];
@@ -110,7 +123,7 @@ module gesture_render (
     always @(*) begin
         tr_hit = 1'b0; tr_age = 5'd0;
         for (k = 31; k >= 0; k = k - 1)
-            if (trail_valid[k] && trail_bus[13*k + 6 +: 7] == px_x && trail_bus[13*k +: 6] == px_y) begin
+            if (trail_valid[k] && trail_bus[15*k + 7 +: 8] == vx && trail_bus[15*k +: 7] == vy) begin
                 tr_hit = 1'b1; tr_age = k[4:0];
             end
     end
@@ -131,7 +144,7 @@ module gesture_render (
     wire [3:0] bd_o = bd_o7[3:0];
 
     // meters in the panel
-    wire in_pnl = (px_x >= `SCR_HUD_X0) && (px_y >= `SCR_MTR_Y0) && in_game;
+    wire in_pnl = (px_x >= `SCR_HUD_X0) && (px_y >= `SCR_MTR_Y0) && in_game && !fp;
     wire [2:0] pow = grabbing ? live_power :
                      (lbl_frames != 0) ? ((l_mph >= 8'd210) ? 3'd7 : (l_mph >= 8'd190) ? 3'd6 :
                      (l_mph >= 8'd175) ? 3'd5 : (l_mph >= 8'd160) ? 3'd4 : (l_mph >= 8'd145) ? 3'd3 :
@@ -182,7 +195,7 @@ module gesture_render (
                 txt = tx_s(`S_AMSG + {msg, 3'b000} + {msg, 2'b00} + msg + mcol, 1'b1, {1'b0, mfx}, mfy, `C_RED, `C_BLACK, 1'b1);
         end else if (in_game) begin
             // ---- lane graphics ----
-            if (in_lane && tr_hit && (grabbing || aiming || trail_valid != 0)) begin
+            if (!scr && tr_hit && (grabbing || aiming || trail_valid != 0)) begin
                 en = 1'b1; color = tr_col;
             end else if (in_lane && aiming && !fp && !grabbing && px_x == bx && py_s < ball_row - 12'sd6 && px_y[1:0] == 2'b00) begin
                 en = 1'b1; color = 16'hC618;                                   // target line
@@ -207,7 +220,7 @@ module gesture_render (
                     txt = tx_s(`S_LABW + 8 + (mcol - 5'd18), 1'b1, {1'b0, mfx}, mfy, 16'hAD55, 0, 1'b0);
             end
             // ---- lane text: label / message / board ----
-            if (in_lane && mrow == 4'd0) begin
+            if (in_lane && mrow == 4'd0 && !fp) begin
                 if (msg_frames != 0 && mcol < 5'd13)
                     txt = tx_s(`S_AMSG + {msg, 3'b000} + {msg, 2'b00} + msg + mcol, 1'b1, {1'b0, mfx}, mfy, `C_RED, `C_BLACK, 1'b1);
                 else if (lbl_frames != 0 && mcol < 5'd14) begin
@@ -239,9 +252,14 @@ module gesture_render (
     end
 
     // ---------------- cursor layer -------------------------------------------
-    wire signed [7:0] cdx = $signed({1'b0, px_x}) - $signed({1'b0, cursor_x});
-    wire signed [7:0] cdy = $signed({2'b00, px_y}) - $signed({2'b00, cursor_y});
-    wire show_cur = !(game_state >= `GS_ROLL && game_state <= `GS_SWEEP) && game_state != `GS_REPLAY;
+    // v3: the VGA pass draws the real pointer; the OLED pass draws it in UI
+    // space, and only outside a game (on the OLED the game is top-down only)
+    wire signed [8:0] cdx = scr ? $signed({2'b00, px_x}) - $signed({2'b00, ucur_x})
+                                : $signed({1'b0, vx})    - $signed({1'b0, cursor_x});
+    wire signed [8:0] cdy = scr ? $signed({3'b000, px_y}) - $signed({3'b000, ucur_y})
+                                : $signed({2'b00, vy})    - $signed({2'b00, cursor_y});
+    wire show_cur = !(game_state >= `GS_ROLL && game_state <= `GS_SWEEP) && game_state != `GS_REPLAY &&
+                    !(scr && in_game);
     always @(*) begin
         cur_en = 1'b0; cur_color = `C_WHITE;
         if (show_cur) begin

@@ -78,7 +78,7 @@ module menu_render (
 
     wire neon = settings[`SET_THEME];
     // settings rows set by switches in v2 (shown dimmed, read-only)
-    wire sw_row = (game_state == `GS_SETTINGS) && (row == 3'd1 || row == 3'd2 || row == 3'd3 || row == 3'd5);
+    wire sw_row = (game_state == `GS_SETTINGS) && (row == 3'd2 || row == 3'd3 || row == 3'd5);
     wire [15:0] c_bg    = neon ? 16'h0806 : 16'h0109;
     wire [15:0] c_title = neon ? 16'h780F : 16'h8A22;
     wire [15:0] c_hov   = neon ? 16'h300C : 16'h2967;
@@ -193,7 +193,7 @@ module menu_render (
                     txt = tx_l(6'd51, 1'b0, fx, fy, c_dim, 0, 1'b0);
                 else if (col >= 4'd9 && col < 4'd14) begin
                     case (row)
-                        3'd1: txt = tx_s(`S_SETV + (settings[`SET_OIL] ? 11'd5 : 11'd0) + col - 4'd9, 1'b0, fx, fy, sw_row ? c_dim : C, 0, 1'b0);
+                        3'd1: txt = tx_s(`S_SETV + 11'd60 + {settings[`SET_SPIN_HI:`SET_SPIN_LO], 2'b00} + settings[`SET_SPIN_HI:`SET_SPIN_LO] + col - 4'd9, 1'b0, fx, fy, C, 0, 1'b0);   // v3: spin sensitivity
                         3'd2: txt = tx_s(`S_SETV + 11'd10 + {settings[`SET_LB_HI:`SET_LB_LO], 2'b00} +
                                          settings[`SET_LB_HI:`SET_LB_LO] + col - 4'd9, 1'b0, fx, fy, sw_row ? c_dim : C, 0, 1'b0);
                         3'd3: txt = tx_s(`S_SETV + (settings[`SET_LEFTY] ? 11'd30 : 11'd25) + col - 4'd9, 1'b0, fx, fy, sw_row ? c_dim : C, 0, 1'b0);

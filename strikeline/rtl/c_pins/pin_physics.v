@@ -26,6 +26,16 @@
 //        1/64 in per tick, so pins can never lock together.
 //   Ball impulses (from B) arrive while this FSM is idle and are applied
 //   at once with the same topple rule.
+// v3 (advanced pin action):
+//   - a lying pin collides where its body is: its collision circle sits 5 in
+//     along its fall direction (2.5 in while still falling), for B's ball
+//     scan (read port) and for the pairs
+//   - a harder push makes a pin fall faster (fall time 150 -> 60 ticks)
+//   - a slow pin that slides off the lane edge drops into the gutter and
+//     stays there; a fast one reaches the kickback, which now returns it
+//     livelier (e = 0.75 instead of 0.5)
+//   - the 45 pairs are walked forward and backward on alternate ticks, so
+//     the left and right sides of the rack are treated alike
 // Structure: the 10 pin records are written through exactly TWO write ports
 //   (A, B: at most two pins change per clock) plus whole-rack operations
 //   (rake, placement, settle timeout), so each record bit has a 4-input mux.
@@ -85,6 +95,9 @@ module pin_physics #(
     localparam [21:0] KICK_L = {`W_KICK_L, 6'd0}, KICK_R = {`W_KICK_R, 6'd0};
     localparam [21:0] BACK_Y = 22'd2867200;           // 700 in: pins cannot slide back further
     localparam [21:0] PIT_Y  = {`W_PIN_PIT, 6'd0};
+    localparam [21:0] LANE_L = {`W_LANE_L, 6'd0}, LANE_R = {`W_LANE_R, 6'd0};
+    localparam [21:0] GUT_LX = {`W_GUT_LX, 6'd0}, GUT_RX = {`W_GUT_RX, 6'd0};
+    localparam [19:0] GUT_V  = 20'd655;               // 0.01 in/tick: slower than this drops in
 
 
     // ---------------- ROMs --------------------------------------------------
@@ -138,32 +151,65 @@ module pin_physics #(
         input [2:0] s;
         upright = (s == `PS_STANDING) || (s == `PS_WOBBLING);
     endfunction
+    // v3: where a pin COLLIDES. A standing pin is its base circle; a lying
+    // pin is 15 in long, so its collision circle sits 5 in along its body
+    // (2.5 in while it is still falling), in its fall direction dir:
+    // 0 = +y (toward the pit), clockwise in steps of 45 degrees.
+    function [15:0] coff;                             // signed offset, 1/64 in
+        input [2:0] d; input axis_y; input half;
+        reg signed [15:0] o;
+        begin
+            case ({axis_y, d})
+                4'b0_000: o = 16'sd0;    4'b1_000: o = 16'sd320;
+                4'b0_001: o = 16'sd226;  4'b1_001: o = 16'sd226;
+                4'b0_010: o = 16'sd320;  4'b1_010: o = 16'sd0;
+                4'b0_011: o = 16'sd226;  4'b1_011: o = -16'sd226;
+                4'b0_100: o = 16'sd0;    4'b1_100: o = -16'sd320;
+                4'b0_101: o = -16'sd226; 4'b1_101: o = -16'sd226;
+                4'b0_110: o = -16'sd320; 4'b1_110: o = 16'sd0;
+                default:  o = axis_y ? 16'sd226 : -16'sd226;   // 7: -x, +y
+            endcase
+            coff = half ? (o >>> 1) : o;
+        end
+    endfunction
+    function [15:0] ccx;                              // collision centre x, POS
+        input [98:0] r;
+        ccx = upright(fs(r)) ? r[98:83] : r[98:83] + coff(fd(r), 1'b0, fs(r) == `PS_FALLING);
+    endfunction
+    function [15:0] ccy;
+        input [98:0] r;
+        ccy = upright(fs(r)) ? r[76:61] : r[76:61] + coff(fd(r), 1'b1, fs(r) == `PS_FALLING);
+    endfunction
     // a velocity change (Q3.16) hits a pin: topple, wobble, or add to its slide
-    // (the topple decision and the fall direction are worked out one clock
-    //  earlier and passed in: timing)
+    // (the topple decision, the fall direction and the fall time are worked
+    //  out one clock earlier and passed in: timing). v3: a harder hit makes
+    // the pin fall faster (fall_t 150 ticks down to 60).
     function [98:0] hit;
-        input [98:0] r; input signed [19:0] hx, hy; input topple; input [2:0] dir;
+        input [98:0] r; input signed [19:0] hx, hy; input topple; input [2:0] dir; input [8:0] fall_t;
         begin
             hit = r;
             if (upright(fs(r))) begin
-                if (topple) hit = mk(fx(r), fy(r), hx, hy, `PS_FALLING, dir, FALL_T);
+                if (topple) hit = mk(fx(r), fy(r), hx, hy, `PS_FALLING, dir, fall_t);
                 else        hit = mk(fx(r), fy(r), 20'sd0, 20'sd0, `PS_WOBBLING, fd(r), WOB_T);
             end else if (fs(r) != `PS_OFF)
                 hit = mk(fx(r), fy(r), fvx(r) + hx, fvy(r) + hy, fs(r), fd(r), ft(r));
         end
     endfunction
-    // one tick of a pin on its own: timers, slide, friction, walls, pit
-    function [98:0] upd;
+    // one tick of a pin on its own: timers, slide, friction, walls, pit.
+    // v3 (timing): in two clocked halves. upd1 = timers, move, friction;
+    // upd2 = gutter, kickback walls, back of the deck, pit. Between them:
+    //   {moving, mx[22:0], my[22:0], wx[19:0], wy[19:0], s, d, t}  (102 bit)
+    // or, for a pin that does not slide, {0, 2'b00, its new record}.
+    function [101:0] upd1;
         input [98:0] r;
         reg signed [22:0] mx, my;
         reg signed [19:0] wx, wy;
         reg [19:0] ax, ay;
-        reg [21:0] nx_, ny_;
         reg [2:0] s; reg [8:0] t;
         begin
-            upd = r; s = fs(r); t = ft(r);
+            upd1 = {3'b000, r}; s = fs(r); t = ft(r);
             if (s == `PS_WOBBLING) begin
-                upd = mk(fx(r), fy(r), fvx(r), fvy(r), (t == 0) ? `PS_STANDING : s, fd(r), t - 9'd1);
+                upd1 = {3'b000, mk(fx(r), fy(r), fvx(r), fvy(r), (t == 0) ? `PS_STANDING : s, fd(r), t - 9'd1)};
             end else if (s == `PS_FALLING || s == `PS_DOWN) begin
                 if (s == `PS_FALLING) begin
                     if (t == 0) s = `PS_DOWN;
@@ -177,20 +223,44 @@ module pin_physics #(
                 ay = wy[19] ? -wy : wy;
                 if (ax < STOP_V) wx = 0;
                 if (ay < STOP_V) wy = 0;
+                upd1 = {1'b1, mx, my, wx, wy, s, fd(r), t};
+            end
+        end
+    endfunction
+    function [98:0] upd2;
+        input [101:0] p;
+        reg signed [22:0] mx, my;
+        reg signed [19:0] wx, wy;
+        reg [19:0] ax;
+        reg [21:0] nx_, ny_;
+        reg [2:0] s, d; reg [8:0] t;
+        begin
+            if (!p[101]) upd2 = p[98:0];
+            else begin
+                mx = p[100:78]; my = p[77:55]; wx = p[54:35]; wy = p[34:15];
+                s = p[14:12]; d = p[11:9]; t = p[8:0];
+                ax = wx[19] ? -wx : wx;
                 nx_ = mx[21:0]; ny_ = my[21:0];
-                if (mx < $signed({1'b0, KICK_L}))      begin nx_ = KICK_L; wx = -(wx >>> 1); end
-                else if (mx > $signed({1'b0, KICK_R})) begin nx_ = KICK_R; wx = -(wx >>> 1); end
+                // v3: a slow pin that slides off the lane edge drops into the
+                // gutter channel and stays in it; a fast one flies on to the
+                // kickback, which now throws it back livelier (e = 0.75)
+                if ((mx < $signed({1'b0, LANE_L}) || mx > $signed({1'b0, LANE_R})) &&
+                    ax < GUT_V && s != `PS_FALLING) begin
+                    nx_ = (mx < $signed({1'b0, LANE_L})) ? GUT_LX : GUT_RX; wx = 0;
+                end
+                else if (mx < $signed({1'b0, KICK_L})) begin nx_ = KICK_L; wx = -(wx - (wx >>> 2)); end
+                else if (mx > $signed({1'b0, KICK_R})) begin nx_ = KICK_R; wx = -(wx - (wx >>> 2)); end
                 if (my < $signed({1'b0, BACK_Y}))      begin ny_ = BACK_Y; wy = -(wy >>> 1); end
                 if (my > $signed({1'b0, PIT_Y}))       begin s = `PS_OFF; wx = 0; wy = 0; end
-                upd = mk(nx_, ny_, wx, wy, s, fd(r), t);
+                upd2 = mk(nx_, ny_, wx, wy, s, d, t);
             end
         end
     endfunction
 
     // ---------------- read port, status buses ------------------------------
     wire [98:0] rr = rec[pin_rd_idx];
-    assign pin_rd_x     = rr[98:83];
-    assign pin_rd_y     = rr[76:61];
+    assign pin_rd_x     = ccx(rr);                // collision centre (v3)
+    assign pin_rd_y     = ccy(rr);
     assign pin_rd_vx    = rr[54:39];
     assign pin_rd_vy    = rr[34:19];
     assign pin_rd_solid = (rr[14:12] != `PS_OFF);
@@ -221,7 +291,7 @@ module pin_physics #(
                S_PI = 5'd10, S_PJ = 5'd11, S_PK = 5'd12, S_PL = 5'd13, S_PM = 5'd14,
                S_PNEXT = 5'd15, S_RAKE = 5'd16, S_PLACE = 5'd17, S_IMP1 = 5'd18, S_IMP2 = 5'd19,
                S_PA2 = 5'd20, S_PA3 = 5'd21, S_PN = 5'd22, S_PW = 5'd23, S_PQ = 5'd24, S_PQ2 = 5'd25,
-               S_IMP1B = 5'd26;
+               S_IMP1B = 5'd26, S_PA4 = 5'd27, S_PD2 = 5'd28, S_PJ0 = 5'd29;
     reg [4:0] st;
     reg       rack_run;
     reg [3:0] ui;
@@ -254,16 +324,38 @@ module pin_physics #(
     wire [3:0] ri = pair_rom[pk][7:4];
     wire [3:0] rj = pair_rom[pk][3:0];
 
-    wire signed [16:0] pdx = $signed({1'b0, rB[98:83]}) - $signed({1'b0, rA[98:83]});
-    wire signed [16:0] pdy = $signed({1'b0, rB[76:61]}) - $signed({1'b0, rA[76:61]});
+    // collision centres of the pair, registered one clock after rA / rB (timing)
+    reg  [15:0] cAx, cAy, cBx, cBy;
+    always @(posedge clk) begin
+        cAx <= ccx(rA); cAy <= ccy(rA); cBx <= ccx(rB); cBy <= ccy(rB);
+    end
+    wire signed [16:0] pdx = $signed({1'b0, cBx}) - $signed({1'b0, cAx});
+    wire signed [16:0] pdy = $signed({1'b0, cBy}) - $signed({1'b0, cAy});
     wire [16:0] adx = pdx[16] ? -pdx : pdx;
     wire [16:0] ady = pdy[16] ? -pdy : pdy;
     wire skip_pair = (fs(rA) == `PS_OFF) || (fs(rB) == `PS_OFF) ||
                      (upright(fs(rA)) && upright(fs(rB))) || adx > NEAR || ady > NEAR;
+    // v3: fall time from the size of the push (registered with topple_q)
+    function [8:0] fall_time;
+        input [20:0] nrm;
+        reg [20:0] ex;
+        begin
+            ex = (nrm > {1'b0, TOPPLE}) ? (nrm - {1'b0, TOPPLE}) >> 8 : 21'd0;
+            fall_time = (ex > 21'd90) ? FALL_T - 9'd90 : FALL_T - ex[8:0];
+        end
+    endfunction
+    wire [20:0] hnorm = (hax > hay) ? hax + (hay >> 1) : hay + (hax >> 1);
+    reg  [8:0]  fall_q;
+    reg         pair_rev;                    // this tick walks the pairs 44 -> 0
     wire [35:0] d2_full  = d2 + mp[35:0];
     wire [35:0] r2_pair  = mixed ? R2_MIX  : R2_DD;
     wire signed [42:0] vrn = (t + mp) >>> 14;          // (v_i - v_j) . n, Q3.16
-    wire signed [24:0] vrn25 = vrn[24:0];
+    reg  signed [24:0] vrn_q;                          // v_rel_n, registered (timing)
+    reg         vgt;
+    reg  [35:0] d2s;
+    reg  [101:0] u1;                                   // first half of a pin update
+    reg  [3:0]  u1_i;
+    wire signed [24:0] vrn25 = vrn_q;
     wire signed [24:0] dl_calc = vrn25 - (vrn25 >>> DL_S1) - (vrn25 >>> DL_S2);
 
     // separation steps: n (Q1.14) >> 8 = 1/64 in, >> 7 = 1/32 in
@@ -343,7 +435,7 @@ module pin_physics #(
             st <= S_IDLE; ui <= 0; pk <= 0; cmd <= `RK_FULL; mask <= 10'h3FF;
             rack_run <= 1'b0; rake_y <= 10'd0; ia_q <= 0; ib_q <= 0; waA <= 0; waB <= 0; nA <= 0; nB <= 0;
             ma <= 0; mb <= 0; dx <= 0; dy <= 0; d2 <= 0; nx <= 0; ny <= 0; t <= 0; dl <= 0; dvx <= 0; dvy <= 0;
-            ndvx <= 0; ndvy <= 0; topple_q <= 0; dir_p <= 0; dir_n <= 0;
+            ndvx <= 0; ndvy <= 0; topple_q <= 0; dir_p <= 0; dir_n <= 0; fall_q <= FALL_T; pair_rev <= 1'b0;
             mixed <= 0; imp_pend <= 0; scan_pend <= 0; imp_pin <= 0; imp_vx <= 0; imp_vy <= 0;
         end else begin
             if (impulse_valid) begin
@@ -368,26 +460,29 @@ module pin_physics #(
                     hay <= imp_vy[19] ? -imp_vy : imp_vy;
                     st <= S_IMP1B;
                 end
-                S_IMP1B: begin                                     // topple? which way?
-                    topple_q <= ((hax > hay) ? hax + (hay >> 1) : hay + (hax >> 1)) > TOPPLE;
+                S_IMP1B: begin                                     // topple? which way? how fast?
+                    topple_q <= hnorm > TOPPLE;
+                    fall_q   <= fall_time(hnorm);
                     dir_p    <= dir8(imp_vx, imp_vy);
                     st <= S_IMP2;
                 end
                 S_IMP2: begin
-                    weA <= 1'b1; waA <= ia_d; nA <= hit(rA, imp_vx, imp_vy, topple_q, dir_p);
+                    weA <= 1'b1; waA <= ia_d; nA <= hit(rA, imp_vx, imp_vy, topple_q, dir_p, fall_q);
                     imp_pend <= impulse_valid;                     // (a new one cannot come this soon)
                     st <= S_IDLE;
                 end
-                // ---- 1. per-pin update, pipelined: issue j, read j+1, write j+2 --
+                // ---- 1. per-pin update, pipelined: issue j, read j+1, half j+2, write j+3 --
                 S_UPD: begin
                     if (ui <= 4'd9) ia_q <= ui;
-                    if (ui >= 4'd2) begin weA <= 1'b1; waA <= ia_d; nA <= upd(rA); end
-                    if (ui == 4'd11) begin pk <= 6'd0; st <= S_PA; end
+                    if (ui >= 4'd2 && ui <= 4'd11) begin u1 <= upd1(rA); u1_i <= ia_d; end
+                    if (ui >= 4'd3) begin weA <= 1'b1; waA <= u1_i; nA <= upd2(u1); end
+                    if (ui == 4'd12) begin pk <= pair_rev ? 6'd44 : 6'd0; st <= S_PA; end
                     else ui <= ui + 4'd1;
                 end
-                // ---- 2. pair iterator --------------------------------------
+                // ---- 2. pair iterator (v3: forward / backward on alternate ticks) --
                 S_PA:  begin ia_q <= ri; ib_q <= rj; st <= S_PA2; end
-                S_PA2: st <= S_PA3;                                // rA, rB load
+                S_PA2: st <= S_PA4;                                // rA, rB load
+                S_PA4: st <= S_PA3;                                // collision centres load
                 S_PA3: begin
                     dx <= pdx; dy <= pdy;
                     mixed <= upright(fs(rA)) || upright(fs(rB));
@@ -396,18 +491,20 @@ module pin_physics #(
                 end
                 S_PB: begin ma <= dy; mb <= dy; st <= S_PC; end
                 S_PC: begin d2 <= mp[35:0]; st <= S_PD; end
-                S_PD: if (d2_full < r2_pair) begin                 // unit normal: d / |d| (ROM)
-                          inv_q <= {9'd0, inv_rom[d2_full[18:12]]};
-                          ma <= dx; mb <= {9'd0, inv_rom[d2_full[18:12]]}; st <= S_PE;
+                S_PD: begin d2s <= d2_full; st <= S_PD2; end      // |d|^2 registered (timing)
+                S_PD2: if (d2s < r2_pair) begin                   // unit normal: d / |d| (ROM)
+                          inv_q <= {9'd0, inv_rom[d2s[18:12]]};
+                          ma <= dx; mb <= {9'd0, inv_rom[d2s[18:12]]}; st <= S_PE;
                       end
                       else st <= S_PNEXT;
                 S_PE: begin ma <= dy; mb <= inv_q; st <= S_PF; end
                 S_PF: begin nx <= mp[17:0]; st <= S_PG; end
                 S_PG: begin ny <= mp[17:0]; ma <= fvx(rA) - fvx(rB); mb <= nx; st <= S_PH; end
                 S_PH: begin ma <= fvy(rA) - fvy(rB); mb <= ny; st <= S_PI; end
-                S_PI: begin t <= mp; st <= S_PJ; end
+                S_PI: begin t <= mp; st <= S_PJ0; end
+                S_PJ0: begin vrn_q <= vrn[24:0]; vgt <= (vrn > 0); st <= S_PJ; end   // (timing)
                 S_PJ: begin
-                    if (vrn > 0) begin dl <= dl_calc; ma <= dl_calc; mb <= nx; st <= S_PK; end
+                    if (vgt) begin dl <= dl_calc; ma <= dl_calc; mb <= nx; st <= S_PK; end
                     else begin
                         // touching but not approaching: separate (written next clock)
                         weA <= !upright(fs(rA)); waA <= ia_q;
@@ -427,17 +524,22 @@ module pin_physics #(
                     st <= S_PQ2;
                 end
                 S_PQ2: begin                                       // decide: topple? which way?
-                    topple_q <= ((hax > hay) ? hax + (hay >> 1) : hay + (hax >> 1)) > TOPPLE;
+                    topple_q <= hnorm > TOPPLE;
+                    fall_q   <= fall_time(hnorm);
                     dir_p <= dir8(dvx, dvy); dir_n <= dir8(ndvx, ndvy);
                     st <= S_PN;
                 end
                 S_PN: begin                                        // pin i loses dv along n, pin j gains it
-                    weA <= 1'b1; waA <= ia_q; nA <= hit(rA, ndvx, ndvy, topple_q, dir_n);
-                    weB <= 1'b1; waB <= ib_q; nB <= hit(rB, dvx,  dvy,  topple_q, dir_p);
+                    weA <= 1'b1; waA <= ia_q; nA <= hit(rA, ndvx, ndvy, topple_q, dir_n, fall_q);
+                    weB <= 1'b1; waB <= ib_q; nB <= hit(rB, dvx,  dvy,  topple_q, dir_p, fall_q);
                     st <= S_PW;
                 end
                 S_PW: st <= S_PNEXT;                               // the write lands now
-                S_PNEXT: if (pk == 6'd44) st <= S_IDLE; else begin pk <= pk + 6'd1; st <= S_PA; end
+                S_PNEXT: if (pk == (pair_rev ? 6'd0 : 6'd44)) begin
+                             pair_rev <= ~pair_rev; st <= S_IDLE;
+                         end else begin
+                             pk <= pair_rev ? pk - 6'd1 : pk + 6'd1; st <= S_PA;
+                         end
                 S_RAKE: if (tick_phys) begin
                     // the rake moves 1/8 in per tick (0.55 s for 70 in)
                     if (ui[2:0] == 3'd7) rake_y <= rake_y + 10'd1;

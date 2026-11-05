@@ -69,6 +69,7 @@ module turn_fsm (
     output reg         score_start,
     output reg         save_req,
     output reg         replay_start,
+    output reg         replay_fast,      // v3.2: this replay is the automatic one (real speed)
     output reg         player,
     output reg  [3:0]  frame,            // 0..9
     output reg  [1:0]  ball_no,          // 0..2
@@ -99,6 +100,7 @@ module turn_fsm (
     reg        sc_pend;                 // rescore once persist_ctrl wrote the roll
     reg [2:0]  rs;                      // resume read step
     reg [1:0]  fail_ms;
+    reg        auto_done;               // v3.2: this ball's automatic replay has been shown
 
     assign start_frame = kind[`PK_FULL] ? 4'd0 : 4'd7;
     wire spare_mode = kind[`PK_SPARE];
@@ -126,6 +128,7 @@ module turn_fsm (
         c_spare <= 0; score_start <= 0; save_req <= 0; replay_start <= 0;
         if (rst) begin
             st <= T_IDLE; active <= 0; kind <= 0; ms <= 0; card_ms <= 0; banner_ms <= 0;
+            auto_done <= 0; replay_fast <= 0;
             n0 <= 0; n1 <= 0; b1 <= 0; action <= 0; gutter_seen <= 0; streak0 <= 0; streak1 <= 0;
             sc_pend <= 0; rs <= 0; fail_ms <= 0; ra <= 0;
             rack_cmd <= `RK_FULL; rack_mask <= 10'h3FF; roll_p <= 0; roll_idx <= 0; roll_val <= 0;
@@ -199,7 +202,7 @@ module turn_fsm (
                 end
                 T_PIN: if (ball_phase == `BP_PIT) st <= T_SETTLE;
                 T_SETTLE: if (settle_done) begin
-                    ms <= 0; popup_n <= pins_down;
+                    ms <= 0; popup_n <= pins_down; auto_done <= 0;
                     st <= T_RESULT;
                     if (spare_mode) begin
                         spare_tries <= spare_tries + 8'd1;
@@ -239,13 +242,20 @@ module turn_fsm (
                     end
                 end
                 T_RESULT: begin
-                    if (want_replay) begin replay_start <= 1; st <= T_REPLAY; end
-                    else if (ms >= 12'd1500 || (skip && ms >= 12'd300)) begin
+                    // v3.2: 0.6 s into every result the throw is replayed once,
+                    // top-down and at real speed (a click skips it); middle
+                    // click / btnU still asks for the half-speed replay
+                    if (want_replay) begin replay_start <= 1; replay_fast <= 0; st <= T_REPLAY; end
+                    else if (!auto_done && ms >= 12'd600) begin
+                        replay_start <= 1; replay_fast <= 1; auto_done <= 1; st <= T_REPLAY;
+                    end else if (ms >= 12'd1500 || (skip && ms >= 12'd300)) begin
                         popup_id <= P_NONE; st <= T_NEXT;
                     end
                 end
-                T_REPLAY: if (replay_done) begin ms <= 0; st <= T_RESULT; end
+                // after the automatic replay ~0.8 s of the result remain
+                T_REPLAY: if (replay_done) begin ms <= replay_fast ? 12'd700 : 12'd0; st <= T_RESULT; end
                 T_NEXT: begin
+                    auto_done <= 0;
                     if (spare_mode) begin
                         rack_cmd <= `RK_LEAVE; st <= T_RACK;
                     end else if (action != A_FRAME) begin

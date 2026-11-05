@@ -17,12 +17,18 @@ Internal formats are finer. B uses Q10.20 positions and 2^-20 velocities; C uses
 | Signal | From → to | Meaning |
 |---|---|---|
 | `game_state[4:0]` | D → all | `GS_*`: TITLE, MENU, AIM, THROW, ROLL, PINACTION, SETTLE, RESULT, SWEEP, GAMEOVER, NAME, PRACTICE_SWIPE, PRACTICE_SPARE, SCORES, SETTINGS, REPLAY, HELP |
-| `settings[15:0]` | D → A, B, C, renderers | [0] long oil, [2:1] ball 12/14/16 lb, [3] left-handed (OR `sw[15]`), [5:4] sensitivity, [6] neon theme, [8:7] brightness |
-| `throw_valid`, `throw_vy`, `throw_vx`, `throw_spin`, `throw_x0`, `throw_mph10` | A → B, D | Release event. Spin −7..+7; +ve hooks left. `x0` is the stance (POS). |
+| `settings[15:0]` | D → A, B, C, renderers | [0] long oil, [2:1] ball 12/14/16 lb, [3] left-handed (= `sw[15]`), [5:4] sensitivity, [6] neon theme, [8:7] brightness, [10:9] spin sensitivity (v3: normal / high / max / soft) |
+| `throw_valid`, `throw_vy`, `throw_vx`, `throw_spin`, `throw_x0`, `throw_mph10` | A → B, D | Release event. Spin −31..+31 (v3, `SPIN_W` = 6; v2 −7..+7); +ve hooks left. `x0` is the stance (POS). |
+| `steer_valid`, `steer_dx` (v3) | A → B | A mouse packet while the ball rolls and its sideways motion; B uses it for `STEER_TICKS` (0.5 s) after release, bounded |
+| `target_in` (v3) | A → B, D | Aim-guide target (inches at the arrows), moved by the wheel while aiming |
+| `aim_zoom` (v3, v3.1) | D → B, D | Zoom held: right button down from aiming to the pin action (v3: PIN VIEW toggle) |
+| `replay_fast` (v3.2) | D turn → D replay | The replay just started is the automatic one (real speed); a click in REPLAY stops it |
+| `k_fp[15:0]`, `zoom_lvl[7:0]` (v3.1) | B camera → B projector, lane | First-person lens constant K = 3060 + 84·zl and the zoom level 0..255; `cam_fp` already includes the zl-inch back-off |
+| `ball_rev` (v3) | B → D | Side slip left in the ball, 0..255 (REVS bar) |
 | `reject` + `reject_msg`, `swipe_cancel`, `too_short` | A → D | A refused swipe (SWIPE FASTER / FORWARD / CANCELLED); D returns to AIM. |
 | `grabbing` | A → D | The ball is held (AIM → THROW). |
 | `stance_x` | A → B | Where the ball waits while aiming (POS). |
-| `cursor_x/y`, `l_press`, `r_press`, `m_press`, `wheel`, `delta_valid` | A → D | Pointer and buttons for the menus. |
+| `cursor_x/y`, `ucur_x/y`, `l_press`, `r_press`, `m_press`, `wheel`, `delta_valid` | A → D | Pointer (v3: VGA pixels 160 × 120; `ucur` = the same point in the 96 × 64 UI window, for the menus) and buttons. |
 | `ball_x`, `ball_y`, `ball_vx`, `ball_vy`, `ball_phase` | B → C, D, renderers | Phase: IDLE, SKID, HOOK, ROLL, GUTTER, PIT. |
 | `cam_y` (signed, inches) | B → all world renderers | World y of the bottom screen row. A pixel row is at `cam_y + 63 − py`. |
 | `pin_rd_idx` → `pin_rd_x/y/vx/vy`, `pin_rd_solid` | B ↔ C | Combinational read port into C's pin register file. |
@@ -40,13 +46,19 @@ Internal formats are finer. B uses Q10.20 positions and 2^-20 velocities; C uses
 3. `scan_done` → C updates the 10 pins (10 clocks), then the 45-pair iterator (4–17 clocks per pair).
 4. Worst case is about 1000 clocks out of 97 656 per tick. Everything finishes long before the next tick, so the order never changes.
 
-## Pixel timing (unchanged from KeyLight, proved by its tb_top)
+## Pixel timing (v3: render engine + frame buffers)
 
-1. `pixel_xy` captures `pixel_index` and computes x/y (2 registers).
+1. `render_scan` walks the VGA picture (160 × 120, `scr` = 0) and then the OLED picture (96 × 64, `scr` = 1) once per frame, holding each pixel 8 clocks. `view_map` turns the pixel into the coordinates each renderer uses (VGA pixel for the 3-D layout, UI-space `ux/uy` for the 96 × 64 picture).
 2. All renderers are combinational.
-3. `compositor` captures the colour 6 clocks after x/y stopped changing.
+3. `compositor` captures the colour on clock 8 (`cap`); it is written into `vga_out`'s buffers (VGA double buffer, OLED buffer). `done` is `tick_frame`.
+4. `vga_out` shows the front VGA buffer at 640 × 480 @ 60 Hz (4 × 4 per logical pixel, dithered to 4 bits per colour) and swaps at the vertical blank; `Oled_Display` reads the OLED buffer through `pixel_index`.
 
-The XDC gives every path into `u_comp/oled_data_reg` 6 clocks. The OLED latches 16 clocks after the index changes. Renderers that read block RAM (the Swipe Lab bitmap) present the address from `px_x/px_y`, and the 1-clock read fits inside the window.
+The XDC gives every path into `u_comp/pix_reg` 7 clocks. The Swipe Lab bitmap (block RAM) gets 3 clocks for its address and 3 from its output.
+
+v3.2 / v3.3: the VGA pass is 320 × 240 into one 9-bit buffer (RGB 3:3:3, dithered by `wpar`); the 3-D lane, ball and pins get that position (`hx`, `hy`), every other layer gets it halved (`sx`, `sy` = 160 × 120). `view_map` also outputs `rp_full` (full-screen top-down replay).
+
+### 3-D projection bus (v3.2, B → C's renderer, 320 × 240 units)
+`pins_fp[359:0]` = 10 × {vis, bar, x[9:0], row[7:0], class or half-width[4:0], half-height[4:0], neck[4:0], 1'b0}; ball {vis, x[9:0], floor row[7:0], radius[3:0]}. Ball and pin renderers also output `depth` (screen row) for the compositor's occlusion test.
 
 ## Save image (128 bytes, `IM_*`)
 
@@ -76,8 +88,16 @@ Flash slots: A = 0x3E0000, B = 0x3F0000 (each in its own 64 KB sector). The newe
 | 7 (v2 first try) | 16 689 (80.2 %) | 8 312 | 3 | 10 | −0.35 ns, 59 paths | first-person view + physics changes: over budget |
 | 8 | 15 735 (75.7 %) | — | 3 | 87 | −2.50 ns, 145 paths | `use_dsp` on all renderers: too many DSPs, registers pulled into DSPs |
 | **9 (v2 release)** | **15 785 (75.9 %)** | — | **3** | **51 (57 %)** | **+0.251 ns setup, +0.032 ns hold, 0 failing** | debug arrow without multipliers; `use_dsp` only for the lane perspective and projector; projector, pin impulse and scoring paths registered |
+| 10 (v3 first try) | 19 778 (95.1 %) | 9 150 | 39.5 | 85 | −3.99 ns, 519 paths | VGA + OLED render engine, frame buffers, 3-D pins, vga_hud, slip physics: congested |
+| 11 | 18 972 (91.2 %) | — | 45 | 85 | −6.65 ns, 179 paths | C's pin tables in block RAM (rom2p, −800 LUT); missing ROM→pixel multicycle |
+| 12 | 18 753 (90.2 %) | 9 486 | 45 | 82 | +0.288 ns, 0 failing | projector, ball, pin update, gesture trim, camera and HUD paths registered; ROM data gets 5 of the 8 pixel clocks |
+| 13 | 18 786 (90.3 %) | 9 499 | 45 | 82 | −0.199 ns, 12 paths | closer PIN VIEW camera: the extra clamp lengthened the camera target path |
+| **14 (v3)** | **18 749 (90.1 %)** | **9 536 (22.9 %)** | **45 (90 %)** | **82 (91 %)** | **+0.435 ns setup, +0.022 ns hold, 0 failing** | camera lead and rolling targets registered; projector far-limit bug fixed (`tb_screens`) |
+| **15 (v3.1)** | **18 933 (91.0 %)** | **9 577 (23.0 %)** | **45 (90 %)** | **88 (98 %)** | **+0.344 ns setup, +0.033 ns hold, 0 failing** | first-person zoom: lens K into the projector, zoomed row distance in `lane_render` (+6 DSP). DSPs are now nearly full: new multiplies must share |
+| 16 (v3.2) | 19 313 (92.9 %) | 9 609 | 40.5 | 87 | +0.313 ns, 0 failing | 320 × 240 VGA in ONE 9-bit buffer (−4.5 tiles vs two 160 × 120 × 16), 3-D renderers at full resolution, auto replay |
+| **17 (v3.3)** | **19 390 (93.2 %)** | **9 639 (23.2 %)** | **40.5 (81 %)** | **87 (97 %)** | **+0.399 ns setup, +0.017 ns hold, 0 failing** | full-width 3-D view, half-size panel, full-screen replay with camera overlay, tall OLED scorecard. LUTs at 93 %: the next feature must free logic first |
 
-The 3 BRAM tiles are the replay buffer (2 × RAMB36), plus one tile holding two RAMB18s: the Swipe Lab bitmap and A's speed-curve ROM. The 10 DSP48 slices are the three shared multipliers (A, B, C) and constant/small multiplies that synthesis chose to map to DSPs. The per-module numbers come from `tools/synth_util.tcl` → `build/hier_utilization.rpt`.
+The 3 BRAM tiles of v2 are the replay buffer (2 × RAMB36), plus one tile holding two RAMB18s: the Swipe Lab bitmap and A's speed-curve ROM. v3 adds the frame buffers (2 × 160 × 120 × 16 VGA + 96 × 64 × 16 OLED, about 33 tiles), B's oil-pattern ROM and C's 10 pin-table ROMs (rom2p) for 45 tiles in all. The 10 DSP48 slices are the three shared multipliers (A, B, C) and constant/small multiplies that synthesis chose to map to DSPs. The per-module numbers come from `tools/synth_util.tcl` → `build/hier_utilization.rpt`.
 
 ## How the timing was met (for the Q&A)
 - **Reset fan-out:** one synchronous `rst` register drove about 7 000 flip-flops. `(* max_fanout = 40 *)` makes synthesis copy it.
