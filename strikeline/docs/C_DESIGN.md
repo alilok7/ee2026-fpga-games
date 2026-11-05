@@ -102,3 +102,14 @@ Carry map after v3 (`tb_carry`): pocket 6/8 strikes, nose 0/7, Brooklyn 1/9, lig
 16. **Where does a lying pin collide now, and why?** 5 in along its body, close to its centre of mass, because that is where the ball and the other pins actually meet it.
 17. **Why alternate the pair order?** Each pair is resolved with the velocities left by the previous pairs; a fixed order always favours the same side of the rack.
 18. **What happens to a pin in the gutter?** Slow: it drops into the channel (x = gutter centre, no sideways speed) and can no longer reach the deck. Fast: it bounces off the kickback.
+
+## v3.4: footprint and no overlap
+- **Two circles per lying pin (pin vs pin).** Belly: 3.5 in radius, 5 in from the base (v3's tuned messenger circle). Head: 2.4 in, 11.5 in from the base. Both at half the offset while the pin is still falling. A standing pin: one 2.4 in circle. `pcc(r, axis, sub)` gives circle `sub` of a record, as a **signed** 17-bit position. The pair iterator walks the circle pairs that exist (sp = {circle of i, circle of j}): 1 for standing + standing (skipped), 2 for standing + lying, 4 for lying + lying. Pins whose bases are more than 30 in apart are rejected after one look.
+- **Push-out.** For an overlapping circle pair: |d| = d² · (2^14 / |d|) >> 14 (the normal's reciprocal ROM, one multiply), overlap p = (rA + rB) − |d|, then each lying pin moves p/2 + 1/64 in along the normal (p + 1/64 when the other one stands; a standing pin never slides). This is written together with the impulse, so pins can no longer sit inside each other.
+- **Head hits.** A standing pin hit by a lying pin's head circle is struck high up; it topples at a quarter of TOPPLE.
+- **One position for the views.** `pin_vis` reports a lying pin at the centre of its body (7.5 in from the base, half while falling), so the top-down sprite and the 3-D bar are drawn where the physics has it.
+- **Measured.** `tb_physics` now checks every circle against every other: deepest overlap 3/64 in, never more than 1/4 in (outside the rake sweep, where the pin-setter drags pins together on purpose). `tb_carry`: pocket 4/8, nose 0/7, Brooklyn 3/9, light 0/4.
+
+### v3.4 questions
+19. **Why not make the lying pin true size (2.4 in all along)?** Measured: `tb_carry` dropped to 0 strikes from 8 pocket hits. In a flat 2-D model a lying pin cannot bounce or roll over its neighbours, so its belly circle stays at v3's 3.5 in to carry the action; the head circle is true size.
+20. **How do you know pins never overlap?** The testbench recomputes every pin's circles each 4 ticks and records the deepest overlap and how long one lasts. It also found the unsigned-centre bug: a pin lying toward the gutter had a circle at x < 0 that wrapped to x = 1023 in.

@@ -247,6 +247,7 @@ module vga_hud (
     wire [4:0] fno   = {1'b0, frame} + 5'd1;
     // single-size 5x7 rows inside the view
     wire       vc_ok = (vxc < 8'd112);              // inside the centred 112-wide area
+    wire [7:0] pq    = (vxc - 8'd24) >> 2;          // pause hint column
     wire [3:0] vc6 = vc_ok ? c6(vxc[6:0]) : 4'd15;
     wire [2:0] vf6 = f6(vxc[6:0]);
     wire in_ban_box = (vxc >= 8'd20) && (vxc <= 8'd91) && (vy >= 7'd38) && (vy <= 7'd51);
@@ -315,7 +316,9 @@ module vga_hud (
                 end else if (ly >= 7'd75 && ly <= 7'd77 && lx >= 7'd2 && lx <= 7'd45 && !e_ok)
                     color = (lx - 7'd2 < {1'b0, rvw}) ? 16'hFC60 : 16'h2104;
                 // text
-                if (in_band(ly, 7'd2, 7'd5)) begin
+                // (v3.4: Spare Challenge has no frames: FRAME / BALL are not shown)
+                if (spare && ly < 7'd16) ;
+                else if (in_band(ly, 7'd2, 7'd5)) begin
                     if (pc < 4'd5) txt = tx_s(vpn(4'd0, pc), 1'b1, pfx, bfy(ly, 7'd2), LBL, 0, 1'b0);
                     else if (kind[`PK_TWO] && pc == 4'd10) txt = tx_l(6'd48, 1'b1, pfx, bfy(ly, 7'd2), player ? `C_CYAN : Y, 0, 1'b0);
                     else if (kind[`PK_TWO] && pc == 4'd11) txt = tx_l(player ? 6'd18 : 6'd17, 1'b1, pfx, bfy(ly, 7'd2), player ? `C_CYAN : Y, 0, 1'b0);
@@ -373,8 +376,11 @@ module vga_hud (
             else begin
                 if (paused && in_pop_box) begin
                     en = 1'b1; color = pop_edge ? W : 16'h0010;
-                    if (vy >= 7'd60 && vy < 7'd68 && vc6 >= 4'd6 && vc6 < 4'd12)
-                        txt = tx_s(`S_HINT + 11'd60 + vc6 - 4'd6, 1'b0, vf6, pfy[2:0], W, 0, 1'b0);
+                    if (vy >= 7'd58 && vy < 7'd66 && vc6 >= 4'd6 && vc6 < 4'd12)
+                        txt = tx_s(`S_HINT + 11'd60 + vc6 - 4'd6, 1'b0, vf6, vy[2:0] - 3'd2, W, 0, 1'b0);
+                    // v3.4: "CLICK: QUIT GAME" (3x5) under PAUSED
+                    else if (vy >= 7'd68 && vy <= 7'd72 && vxc >= 8'd24 && vxc < 8'd88)
+                        txt = tx_s(`S_PAUSEH + {5'd0, pq[5:0]}, 1'b1, {1'b0, vxc[1:0]}, vy[2:0] - 3'd4, Y, 0, 1'b0);
                 end else if (show_pop && in_pop_box) begin
                     en = 1'b1; color = pop_edge ? W : pop_col;
                     if (in_pop_txt && bcol < 4'd7) begin
@@ -442,8 +448,7 @@ module vga_hud (
             if (in_title && tcol < 4'd10)
                 txt = tx_s(`S_VTITLE + tcol, 1'b0, tcx[3:1], tly[3:1],
                            neon ? (tly[3] ? `C_MAGENTA : `C_CYAN) : (tly[3] ? 16'hFC00 : 16'hFEA0), 0, 1'b0);
-            else if (vy >= 7'd98 && vy <= 7'd102 && vx >= 8'd56 && vx < 8'd104)
-                txt = tx_s(`S_VSUB + vx[6:2] - 5'd14, 1'b1, vf4, vy[2:0] - 3'd2, 16'hAD55, 0, 1'b0);
+            // (v3.4: the "FPGA BOWLING" subtitle under the window was removed)
         end
     end
 endmodule

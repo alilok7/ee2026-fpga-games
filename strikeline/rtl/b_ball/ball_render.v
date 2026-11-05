@@ -156,6 +156,13 @@ module ball_render (
     wire [10:0] asx = sdx[10] ? -sdx : sdx;
     wire in_shadow = fb_vis && (sdy >= -11'sd2) && (sdy <= 11'sd0) &&
                      (asx <= {7'd0, fb_rad} - ((sdy == -11'sd2) ? 11'd2 : 11'd0));
+    // v3.4: the oiled lane is glossy: a faint mirror image of the ball's
+    // lower half just below its contact row, narrowing with distance
+    wire [10:0] afd = fdx[10] ? -fdx : fdx;
+    wire in_refl = fb_vis && (fb_rad >= 4'd3) && (sdy >= 11'sd1) && (sdy <= $signed({8'd0, fb_rad[3:1]})) &&
+                   (afd + sdy[10:0] <= {7'd0, fb_rad});
+    // half ball colour, half lane wood (a blend with a constant, no read-back)
+    wire [15:0] refl = {1'b0, base[15:12], 1'b0, base[10:6], 1'b0, base[4:1]} + 16'h6B28;
 
     always @(*) begin
         en = 1'b0; color = base;
@@ -167,6 +174,8 @@ module ball_render (
                             (f_dark || f_rim) ? dark : f_shd ? shade : base;
                 end else if (in_shadow) begin
                     en = 1'b1; color = 16'h2104;
+                end else if (in_refl) begin
+                    en = 1'b1; color = refl;
                 end
             end
         end else if (ux < `SCR_LANE_W) begin

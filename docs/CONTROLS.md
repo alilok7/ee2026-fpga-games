@@ -20,6 +20,15 @@ Extra hardware: a **VGA monitor** on the Basys3 VGA connector (main screen, 640 
 | **Move sideways right after release** | **Steer window**: for 0.5 s the ball is nudged a little (at most ~3.5 boards) in the direction you move |
 | Right click after the throw (result, sweep) | Scorecard on the OLED / in the classic view (btnD at any time) |
 
+### Pause, initials, high scores (v3.4)
+| Where | Input | Effect |
+|---|---|---|
+| Paused (sw0 up) | Click or btnC | **Leave the game** (it is saved at the last frame; RESUME GAME continues it). From Spare Challenge: back to PRACTICE |
+| Entering initials | Wheel or btnU / btnD | Change the letter (A..Z) |
+| Entering initials | Click or btnC | Confirm the letter, next one; after the 3rd the score is saved |
+| Entering initials | **Right click or btnL** | Back to the previous letter |
+| HIGH SCORES | — | Top 5 (FULL / QUICK tabs), then lifetime STRIKES and SPARES, GAMES finished and BEST game |
+
 ### Settings menu (v3)
 Row 1 is now **SPIN** sensitivity: **NORM**, **HIGH** (2×), **MAX** (4×), **SOFT** (½). Mouse sensitivity, brightness and erase saves as before; oil length stays on sw14 only.
 

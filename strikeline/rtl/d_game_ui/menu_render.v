@@ -225,17 +225,15 @@ module menu_render (
                     default: ;
                 endcase
             end else if (mrow == 4'd8 || mrow == 4'd9) begin
-                // X strikes / spares,  GAMES n  BEST n
+                // lifetime totals: STRIKES n  SPARES n   /   GAMES n  BEST n
+                // (v3.4: words instead of the bare X and / symbols)
                 if (mrow == 4'd8) begin
-                    if (mcol < 5'd8) begin ra_lo = `IM_STRK; ra_hi = `IM_STRK + 7'd1; end
-                    else             begin ra_lo = `IM_SPAR; ra_hi = `IM_SPAR + 7'd1; end
-                    case (mcol)
-                        5'd0: txt = tx_l(6'd56, 1'b1, mfx, mfy, Y, 0, 1'b0);
-                        5'd2, 5'd3, 5'd4, 5'd5, 5'd6: txt = tx_l(dg5(b16, mcol - 5'd2), 1'b1, mfx, mfy, W, 0, 1'b0);
-                        5'd9: txt = tx_l(6'd15, 1'b1, mfx, mfy, Y, 0, 1'b0);
-                        5'd11, 5'd12, 5'd13, 5'd14, 5'd15: txt = tx_l(dg5(b16, mcol - 5'd11), 1'b1, mfx, mfy, W, 0, 1'b0);
-                        default: ;
-                    endcase
+                    if (mcol < 5'd13) begin ra_lo = `IM_STRK; ra_hi = `IM_STRK + 7'd1; end
+                    else              begin ra_lo = `IM_SPAR; ra_hi = `IM_SPAR + 7'd1; end
+                    if (mcol < 5'd7)                         txt = tx_s(`S_STRK + mcol, 1'b1, mfx, mfy, c_dim, 0, 1'b0);
+                    else if (mcol >= 5'd8 && mcol < 5'd12)   txt = tx_l(dg5(b16, mcol - 5'd7), 1'b1, mfx, mfy, W, 0, 1'b0);
+                    else if (mcol >= 5'd13 && mcol < 5'd19)  txt = tx_s(`S_SPRS + mcol - 5'd13, 1'b1, mfx, mfy, c_dim, 0, 1'b0);
+                    else if (mcol >= 5'd20)                  txt = tx_l(dg5(b16, mcol - 5'd19), 1'b1, mfx, mfy, W, 0, 1'b0);
                 end else begin
                     if (mcol < 5'd12) begin ra_lo = `IM_GAMES; ra_hi = `IM_GAMES + 7'd1; end
                     if (mcol < 5'd5)       txt = tx_s(`S_GAMES + mcol, 1'b1, mfx, mfy, c_dim, 0, 1'b0);
@@ -299,8 +297,8 @@ module menu_render (
             else if (row == 3'd6) begin
                 if (col >= 4'd6 && col <= 4'd8)
                     txt = tx_l(dg3(name_player ? g1b : g0b, col - 4'd6), 1'b0, fx, fy, C, 0, 1'b0);
-            end else if (mrow == 4'd9 && mcol >= 5'd1 && mcol < 5'd22)
-                txt = tx_s(`S_NAMEH + mcol - 5'd1, 1'b1, mfx, mfy, c_dim, 0, 1'b0);
+            end else if (mrow == 4'd9 && mcol < 5'd23)                  // v3.4: 23 characters
+                txt = tx_s(`S_NAMEH + mcol, 1'b1, mfx, mfy, c_dim, 0, 1'b0);
         end
         default: en = 1'b0;                                // in a game: other layers draw
         endcase

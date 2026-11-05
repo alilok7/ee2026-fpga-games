@@ -52,7 +52,8 @@ module lane_render (
     input  wire [6:0]  stance_in,        // stance board (inches)
     input  wire [6:0]  target_in,        // target (inches) at the arrows, 16 ft
     output reg  [15:0] color,
-    output reg         en
+    output reg         en,
+    output reg  [1:0]  tint              // v3.4: darken by 0, 1/8, 1/4 (color_dim, outside)
 );
     wire neon = settings[`SET_THEME];
     // ---------------- 3-D: screen pixel -> lane point ------------------------
@@ -205,9 +206,19 @@ module lane_render (
         endcase
     end
 
+    // v3.4 (3-D only): wood grain - thin darker streaks along the boards, and
+    // depth haze - the far lane darkens (1/8 at rows 22..33 below the
+    // horizon, 1/4 above that), so distance reads at a glance. This module
+    // only says how much (tint, 0..2); color_dim does the subtraction outside
+    // (in here it would be mapped to DSP slices: the build needed 91 of 90).
+    wire grain = fp && fine && (((wy[6:3] ^ {lx[2:0], lx[0]}) == 4'd5) || (lx[2:0] == 3'd3 && wy[4]));
+    wire haze1 = fp && (vr < 8'd34), haze2 = fp && (vr < 8'd22);
+    reg  zboard;                             // this lane point is plain board
+
     // the zone colour of lane point (lx, wy)
     reg [15:0] zone;
     always @(*) begin
+        zboard = 1'b0;
         if (wall)                         zone = c_wall;
         else if (wy >= 13'sd756)          zone = (wy >= 13'sd770) ? 16'h18E3 : `C_BLACK;  // pit
         else if (gutter_l || gutter_r)    zone = gut_mid ? c_gut_mid : c_gutter;
@@ -217,12 +228,14 @@ module lane_render (
         else if (wy >= 13'sd708)          zone = spot_hit(lx, wy, fp) ? c_spot : (fp ? c_deck_lit : c_deck);
         else if (arrow_hit(lx, wy) || dots || range_f) zone = c_arrow;
         else if (wy < $signed({3'b000, oil_in}) && sheen) zone = c_oil;
-        else                              zone = (fine && lx[0]) ? c_board_a : c_board_b;
+        else begin                        zone = (fine && lx[0]) ? c_board_a : c_board_b; zboard = 1'b1; end
     end
+    wire [1:0] zt = (haze2 || (haze1 && zboard && grain)) ? 2'd2 : (haze1 || (zboard && grain)) ? 2'd1 : 2'd0;
 
     always @(*) begin
         en    = 1'b1;
         color = `C_BLACK;
+        tint  = 2'd0;
         if (fp) begin
             // ------------------------- 3-D view (VGA) ---------------------
             if (vx >= `H_VIEW_W || vy < `H_TOP_H) en = 1'b0;
@@ -230,7 +243,7 @@ module lane_render (
             else if (off_lane)                color = c_side;
             else if (on_target)               color = `C_YELLOW;
             else if (on_guide)                color = c_guide;
-            else                              color = zone;
+            else begin                        color = zone; tint = zt; end
         end else if (ux < `SCR_LANE_W) begin
             // ------------------------- top-down lane ----------------------
             color = zone;

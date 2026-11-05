@@ -327,7 +327,7 @@ module My_Top_Module (
         .clk(clk), .rst(rst), .tick_game(tick_game), .load_done(load_done), .cursor_x(ucur_x),
         .cursor_y(ucur_y), .mouse_move(delta_valid), .l_press(l_press), .r_press(r_press),
         .r_level(r_level), .m_press(m_press), .wheel(wheel), .btn_press(btn_press), .btn_repeat(btn_repeat),
-        .btn_long(btn_long), .sw_lefty(lefty_sw), .sw_play(sw_level[14:11]),
+        .btn_long(btn_long), .sw_lefty(lefty_sw), .paused(paused), .sw_play(sw_level[14:11]),
         .nudge_l(nudge_l), .nudge_r(nudge_r), .tstate(tstate), .t_active(t_active),
         .t_game_over(t_game_over), .t_kind(t_kind), .go_new(go_new), .go_resume(go_resume),
         .kind_out(kind_out), .leave_mask(leave_mask), .abort(abort), .game0(game0), .game1(game1),
@@ -405,6 +405,8 @@ module My_Top_Module (
         .b_rad(fb_rad), .pins_fp(pins_fp));
 
     wire [15:0] lane_c, ball_c, pin_c, a_c, cur_c, menu_c, hud_c, sc_c, vh_c;
+    wire [15:0] lane_c0;                          // lane colour before the haze
+    wire [1:0]  lane_tint;
     wire        lane_en, ball_en, pin_en, a_en, cur_en, menu_en, hud_en, sc_en, vh_en;
     wire [7:0]  ball_depth, pin_depth;
     wire [`TX_W-1:0] a_t, menu_t, hud_t, sc_t, vh_t;
@@ -422,7 +424,9 @@ module My_Top_Module (
         .trace_row(trace_row), .trace_data(trace_data),
         .pins_standing(standing), .blink(frame_cnt[3]), .frame_cnt(frame_cnt),
         .aim_guide(aiming_now), .aim_zoom(aim_zoom), .zoom_lvl(zoom_lvl), .stance_in(stance_x[12:6]), .target_in(target_in),
-        .color(lane_c), .en(lane_en));
+        .color(lane_c0), .en(lane_en), .tint(lane_tint));
+    // v3.4: depth haze / wood grain, outside lane_render (no DSP slices)
+    color_dim u_ldim (.c(lane_c0), .lvl(lane_tint), .o(lane_c));
 
     ball_render u_ballr (
         .clk(clk), .rst(rst), .tick_frame(tick_frame), .vx(hx), .vy(hy), .ux(ux), .uy(uy), .cam_y(v_cam),

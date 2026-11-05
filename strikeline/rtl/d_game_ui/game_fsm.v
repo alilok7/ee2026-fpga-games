@@ -34,6 +34,7 @@ module game_fsm (
     input  wire [4:0]  btn_repeat,
     input  wire [4:0]  btn_long,
     input  wire        sw_lefty,          // sw15
+    input  wire        paused,            // v3.4: sw0 - a click in the pause screen leaves the game
     input  wire [3:0]  sw_play,           // {sw14 long oil, sw13 neon, sw12 16 lb, sw11 12 lb}
     output reg         nudge_l,           // btnL / btnR while aiming: move one board
     output reg         nudge_r,
@@ -212,7 +213,10 @@ module game_fsm (
                     end
                     // v3.2: a click also ends a replay early
                     if (tstate == `GS_REPLAY && (click || b_sel)) skip <= 1;
-                    if (t_kind[`PK_SPARE] && (btn_long[`BTN_L] || (r_press && tstate == `GS_AIM))) begin
+                    // v3.4: paused (sw0): a click / btnC leaves the game (saved at the last frame)
+                    if (paused && (click || b_sel)) begin
+                        abort <= 1; mode <= t_kind[`PK_SPARE] ? M_PRACT : M_MENU;
+                    end else if (t_kind[`PK_SPARE] && (btn_long[`BTN_L] || (r_press && tstate == `GS_AIM))) begin
                         abort <= 1; mode <= M_PRACT;
                     end else if (!t_kind[`PK_SPARE] && btn_long[`BTN_L]) begin
                         abort <= 1; mode <= M_MENU;                     // saved at the last frame
@@ -252,7 +256,9 @@ module game_fsm (
                             default: name[4:0] <= step_letter(name[4:0], (wheel < 0) || b_up);
                         endcase
                     end
-                    if (click || b_sel) begin
+                    // v3.4: right click / btnL steps back to the previous letter
+                    if ((r_press || b_back) && name_pos != 2'd0) name_pos <= name_pos - 2'd1;
+                    else if (click || b_sel) begin
                         if (name_pos != 2'd2) name_pos <= name_pos + 2'd1;
                         else begin
                             c_insert <= 1; ins_quick <= !t_kind[`PK_FULL];

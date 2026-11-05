@@ -159,6 +159,64 @@ module tb_physics;
         end
     end
 
+    // ---- v3.4 body footprint check: every collision circle of every pin
+    //      (standing: one 2.4 in circle; lying: 3.5 in at 5 in and 2.4 in at
+    //      11.5 in along the body; half the offsets while falling) against every
+    //      other. After C's pair pass the overlap must be gone: record the
+    //      deepest overlap seen and how long any overlap lasted (every 4 ticks).
+    integer worst_pen = 0, pen_run = 0, worst_run = 0, ia, ib, ca, cb, tc2 = 0;
+    integer cxa, cya, cxb, cyb, ra, rb, dd2, pen_now;
+    reg     ovl_now;
+    function integer c_off;                 // offset (1/64 in) along fall dir d, axis 0 = x
+        input [98:0] r; input integer axis, sub;
+        integer ds, dg, d;
+        begin
+            ds = sub ? 736 : 320; dg = sub ? 520 : 226;
+            if (r[14:12] == `PS_FALLING) begin ds = ds / 2; dg = dg / 2; end
+            d = r[11:9];
+            if (r[14:12] == `PS_STANDING || r[14:12] == `PS_WOBBLING) c_off = 0;
+            else case (d)
+                0: c_off = axis ? ds : 0;        1: c_off = dg;
+                2: c_off = axis ? 0 : ds;        3: c_off = axis ? -dg : dg;
+                4: c_off = axis ? -ds : 0;       5: c_off = -dg;
+                6: c_off = axis ? 0 : -ds;       default: c_off = axis ? dg : -dg;
+            endcase
+        end
+    endfunction
+    function integer isqrt; input integer v; integer s; begin s = 0; while ((s + 1) * (s + 1) <= v) s = s + 1; isqrt = s; end endfunction
+    always @(posedge clk) if (tick_phys) begin
+        tc2 = tc2 + 1;
+        // (not while the rake sweeps: the pin-setter drags every fallen pin
+        //  into the pit with the physics paused, so they pile up on purpose)
+        if (tc2 % 4 == 0 && rake == 0) begin
+            ovl_now = 0;
+            for (ia = 0; ia < 10; ia = ia + 1)
+                for (ib = ia + 1; ib < 10; ib = ib + 1)
+                    if (u_pins.rec[ia][14:12] != `PS_OFF && u_pins.rec[ib][14:12] != `PS_OFF &&
+                        !((u_pins.rec[ia][14:12] <= `PS_WOBBLING) && (u_pins.rec[ib][14:12] <= `PS_WOBBLING)))
+                        for (ca = 0; ca < 2; ca = ca + 1)
+                            for (cb = 0; cb < 2; cb = cb + 1)
+                                if (!(ca == 1 && u_pins.rec[ia][14:12] <= `PS_WOBBLING) &&
+                                    !(cb == 1 && u_pins.rec[ib][14:12] <= `PS_WOBBLING)) begin
+                                    cxa = u_pins.rec[ia][98:83] + c_off(u_pins.rec[ia], 0, ca);
+                                    cya = u_pins.rec[ia][76:61] + c_off(u_pins.rec[ia], 1, ca);
+                                    cxb = u_pins.rec[ib][98:83] + c_off(u_pins.rec[ib], 0, cb);
+                                    cyb = u_pins.rec[ib][76:61] + c_off(u_pins.rec[ib], 1, cb);
+                                    // radii as in pin_physics: a lying pin's belly 3.5 in, else 2.4 in
+                                    ra = (ca == 0 && u_pins.rec[ia][14:12] > `PS_WOBBLING) ? 224 : 154;
+                                    rb = (cb == 0 && u_pins.rec[ib][14:12] > `PS_WOBBLING) ? 224 : 154;
+                                    dd2 = (cxa - cxb) * (cxa - cxb) + (cya - cyb) * (cya - cyb);
+                                    if (dd2 < (ra + rb) * (ra + rb)) begin
+                                        pen_now = ra + rb - isqrt(dd2);
+                                        if (pen_now > 16) ovl_now = 1;          // more than 1/4 in
+                                        if (pen_now > worst_pen) worst_pen = pen_now;
+                                    end
+                                end
+            pen_run = ovl_now ? pen_run + 4 : 0;
+            if (pen_run > worst_run) worst_run = pen_run;
+        end
+    end
+
     // ---- one throw ------------------------------------------------------------
     reg [3:0] res_down;
     reg [9:0] res_stand;
@@ -317,6 +375,9 @@ module tb_physics;
         $display("      timeouts used: %0d", forced);
         check(worst_overlap < 2048, "pins never stay overlapping for 2 s");
         $display("      worst overlap run %0d ticks", worst_overlap);
+        // v3.4: the pins' bodies (two circles for a lying pin) never stay inside each other
+        $display("      body footprint: deepest overlap %0d/64 in, longest > 1/4 in overlap %0d ticks", worst_pen, worst_run);
+        check(worst_run <= 8, "pin bodies never stay overlapping (> 1/4 in for more than 8 ticks)");
 
         if (errors == 0) $display("PASS tb_physics: all checks");
         else             $display("FAIL tb_physics: %0d errors", errors);

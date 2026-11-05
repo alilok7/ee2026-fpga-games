@@ -58,7 +58,8 @@ sim/<a|b|d|top>/tb_*.v   self-checking testbenches (sim/d/flash_model.v = SPI fl
 | **btnL / btnR** (aiming) | Move the stance exactly one board left / right |
 | **btnD** (in a game) | Scorecard |
 | **btnC** | Choose; skip a result |
-| Hold **btnL** 1 s | Leave the game (it is saved) |
+| Hold **btnL** 1 s, or click while paused (v3.4) | Leave the game (it is saved) |
+| Initials: wheel / click / **right click** (v3.4) | Change letter / confirm / back one letter |
 | btnU + btnD 2 s | Soft reset (saves kept) |
 | **sw11 / sw12** | Ball 12 lb / 16 lb (both down = 14 lb) |
 | **sw13** | Neon "cosmic bowling" theme |

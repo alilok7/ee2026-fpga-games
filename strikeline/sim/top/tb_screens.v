@@ -135,7 +135,8 @@ module tb_screens;
         mright = 1; packet(0, 0); wheel(-3); wheel(-2);
         force u_top.u_cam.zl = 8'd255;
         freeze(-1000, -40 - 255); shot("zoom"); thaw;
-        release u_top.u_cam.zl;
+        // back to no zoom at once (the camera positions forced below assume zl = 0)
+        force u_top.u_cam.zl = 8'd0; @(posedge clk); release u_top.u_cam.zl;
         mright = 0; packet(0, 0); repeat (20000) @(posedge clk);
         // a hook swipe: curving to the left
         mleft = 1; packet(0, 0); packet(0, -60); packet(-4, -60); packet(-10, -60);

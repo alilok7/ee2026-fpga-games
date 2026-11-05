@@ -36,6 +36,18 @@
 //     livelier (e = 0.75 instead of 0.5)
 //   - the 45 pairs are walked forward and backward on alternate ticks, so
 //     the left and right sides of the rack are treated alike
+// v3.4 (footprint): pin vs pin, a lying pin is TWO circles along its body,
+//     matching the 15 in pin that is drawn: the belly at 5 in from the base
+//     (radius 3.5 in, see R_BIG) and the neck / head at 11.5 in (2.4 in; a
+//     head hit tips a standing pin with a quarter of the push); half
+//     those offsets while it is still falling. A standing pin is one 2.4 in
+//     circle. Each pair tests every circle of one pin against every circle
+//     of the other (up to 4 tests). When two circles overlap, the lying
+//     pin(s) are moved apart by the WHOLE overlap in the same tick (+1/64 in;
+//     shared half / half when both lie; a standing pin never slides), so pins
+//     can no longer sit inside each other. pin_vis now reports a lying pin at
+//     the centre of its body (7.5 in from the base), where both views draw it.
+//     (B's ball still sees one circle, as tuned in v3.)
 // Structure: the 10 pin records are written through exactly TWO write ports
 //   (A, B: at most two pins change per clock) plus whole-rack operations
 //   (rake, placement, settle timeout), so each record bit has a 4-input mux.
@@ -85,9 +97,17 @@ module pin_physics #(
     // falling / fallen pin is 15 in long and sweeps a much bigger area, so
     // it collides as a 4.0 in circle ("messenger" pins carry the action).
     //   upright + fallen : 6.4 in      fallen + fallen : 8.0 in
-    localparam [16:0] NEAR    = {R_DOWN, 1'b0} + 17'd64;          // 2R + 1 in quick reject
-    localparam [35:0] R2_MIX  = (R_DOWN + 36'd154) * (R_DOWN + 36'd154);   // (2.4 in + R)^2
-    localparam [35:0] R2_DD   = (R_DOWN + 36'd0) * (R_DOWN + 36'd0) * 36'd4;    // (2R)^2
+    // v3.4 circle radii (1/64 in): a standing pin and the head of a lying pin
+    // 2.4 in (the pin's real belly radius); the belly of a lying pin keeps
+    // v3's tuned "messenger" circle: 3.5 in at 5 in from the base.
+    // (Tried and measured with tb_carry: true-size 2.4 / 3.0 in bellies at
+    //  4.5 in -> 0 strikes from 8 pocket hits: in this flat 2-D model the
+    //  messenger pins must reach their neighbours as in v3.)
+    localparam [9:0]  R_BIG = 10'd224, R_SML = 10'd154;
+    localparam [16:0] NEAR    = 17'd512;                           // 2 x 3.5 in + 1 in quick reject
+    localparam [35:0] R2_BB   = 36'd200704;                        // (3.5 + 3.5 in)^2
+    localparam [35:0] R2_BS   = 36'd142884;                        // (3.5 + 2.4 in)^2
+    localparam [35:0] R2_SS   = 36'd94864;                         // (2.4 + 2.4 in)^2
     localparam [19:0] TOPPLE  = TOPPLE_P;
     // below this a slide stops. Must be >= 2^FRIC_SH: for smaller v the
     // friction step v >> FRIC_SH is 0 and a pin would slide forever (tb_top)
@@ -179,6 +199,40 @@ module pin_physics #(
     function [15:0] ccy;
         input [98:0] r;
         ccy = upright(fs(r)) ? r[76:61] : r[76:61] + coff(fd(r), 1'b1, fs(r) == `PS_FALLING);
+    endfunction
+    // v3.4: offset of a point `dist` along the body in fall direction d
+    // (straight: dist, diagonal: dist / sqrt 2 given as dg), signed, 1/64 in
+    function [15:0] boff;
+        input [2:0] d; input axis_y; input [9:0] dist; input [9:0] dg;
+        reg signed [15:0] s, g;
+        begin
+            s = $signed({6'd0, dist}); g = $signed({6'd0, dg});
+            case ({axis_y, d})
+                4'b0_000: boff = 16'sd0; 4'b1_000: boff = s;
+                4'b0_001: boff = g;      4'b1_001: boff = g;
+                4'b0_010: boff = s;      4'b1_010: boff = 16'sd0;
+                4'b0_011: boff = g;      4'b1_011: boff = -g;
+                4'b0_100: boff = 16'sd0; 4'b1_100: boff = -s;
+                4'b0_101: boff = -g;     4'b1_101: boff = -g;
+                4'b0_110: boff = -s;     4'b1_110: boff = 16'sd0;
+                default:  boff = axis_y ? g : -g;                     // 7: -x, +y
+            endcase
+        end
+    endfunction
+    // pin-pin collision circle `sub` (0 = belly 5 in, 1 = head 11.5 in).
+    // SIGNED 17 bit: a pin lying toward the gutter has circles at x < 0
+    // (found by tb_physics: unsigned, -0.25 in wrapped to 1023 in and the
+    // overlap was never seen)
+    function signed [16:0] pcc;
+        input [98:0] r; input axis_y; input sub;
+        reg half; reg [9:0] ds, dg; reg signed [15:0] o;
+        begin
+            half = (fs(r) == `PS_FALLING);
+            ds = sub ? 10'd736 : 10'd320;  dg = sub ? 10'd520 : 10'd226;   // head 11.5 in, belly 5 in
+            if (half) begin ds = ds >> 1; dg = dg >> 1; end
+            o = upright(fs(r)) ? 16'sd0 : boff(fd(r), axis_y, ds, dg);
+            pcc = $signed({1'b0, (axis_y ? r[76:61] : r[98:83])}) + {o[15], o};
+        end
     endfunction
     // a velocity change (Q3.16) hits a pin: topple, wobble, or add to its slide
     // (the topple decision, the fall direction and the fall time are worked
@@ -273,7 +327,15 @@ module pin_physics #(
             wire [8:0]  t = r[8:0];
             wire [1:0] stage = (s == `PS_DOWN) ? 2'd2 : (s != `PS_FALLING) ? 2'd0 :
                                (t > 9'd100) ? 2'd0 : (t > 9'd50) ? 2'd1 : 2'd2;
-            assign pin_vis[24*g +: 24] = {r[94:89], r[76:67], s, r[11:9], stage};   // x[17:12], y[21:12]
+            // v3.4: a lying / falling pin is reported at the centre of its body
+            // (7.5 in from the base; half while falling), where it is drawn
+            wire        lie = (s == `PS_FALLING) || (s == `PS_DOWN);
+            wire [9:0]  vs  = (s == `PS_FALLING) ? 10'd240 : 10'd480;
+            wire [9:0]  vg  = (s == `PS_FALLING) ? 10'd170 : 10'd339;
+            wire [15:0] vxp = r[98:83] + (lie ? boff(r[11:9], 1'b0, vs, vg) : 16'd0);
+            wire [15:0] vyp = r[76:61] + (lie ? boff(r[11:9], 1'b1, vs, vg) : 16'd0);
+            wire [5:0]  vx6 = vxp[15] ? 6'd0 : (vxp[15:6] > 10'd63) ? 6'd63 : vxp[11:6];
+            assign pin_vis[24*g +: 24] = {vx6, vyp[15:6], s, r[11:9], stage};      // whole inches
             assign standing[g] = upright(s);
             assign busy[g] = (s == `PS_WOBBLING) || (s == `PS_FALLING) ||
                              ((s == `PS_DOWN) && (r[54:35] != 0 || r[34:15] != 0));
@@ -286,13 +348,15 @@ module pin_physics #(
     // rec one clock later), so no clock path goes index -> 99-bit mux ->
     // physics -> register file. The FSM waits the extra clocks (the tick has
     // ~97 000 to spare).
-    localparam S_IDLE = 5'd0, S_UPD = 5'd1, S_PA = 5'd2, S_PB = 5'd3, S_PC = 5'd4,
-               S_PD = 5'd5, S_PE = 5'd6, S_PF = 5'd7, S_PG = 5'd8, S_PH = 5'd9,
-               S_PI = 5'd10, S_PJ = 5'd11, S_PK = 5'd12, S_PL = 5'd13, S_PM = 5'd14,
-               S_PNEXT = 5'd15, S_RAKE = 5'd16, S_PLACE = 5'd17, S_IMP1 = 5'd18, S_IMP2 = 5'd19,
-               S_PA2 = 5'd20, S_PA3 = 5'd21, S_PN = 5'd22, S_PW = 5'd23, S_PQ = 5'd24, S_PQ2 = 5'd25,
-               S_IMP1B = 5'd26, S_PA4 = 5'd27, S_PD2 = 5'd28, S_PJ0 = 5'd29;
-    reg [4:0] st;
+    localparam S_IDLE = 6'd0, S_UPD = 6'd1, S_PA = 6'd2, S_PB = 6'd3, S_PC = 6'd4,
+               S_PD = 6'd5, S_PE = 6'd6, S_PF = 6'd7, S_PG = 6'd8, S_PH = 6'd9,
+               S_PI = 6'd10, S_PJ = 6'd11, S_PK = 6'd12, S_PL = 6'd13, S_PM = 6'd14,
+               S_PNEXT = 6'd15, S_RAKE = 6'd16, S_PLACE = 6'd17, S_IMP1 = 6'd18, S_IMP2 = 6'd19,
+               S_PA2 = 6'd20, S_PA3 = 6'd21, S_PN = 6'd22, S_PW = 6'd23, S_PQ = 6'd24, S_PQ2 = 6'd25,
+               S_IMP1B = 6'd26, S_PA4 = 6'd27, S_PD2 = 6'd28, S_PJ0 = 6'd29,
+               S_PJ1 = 6'd30, S_PJ2 = 6'd31, S_PJ3 = 6'd32, S_PJ4 = 6'd33, S_PJ5 = 6'd34, S_PJ6 = 6'd35;
+    reg [5:0] st;
+    reg [1:0] sp;                            // v3.4: circle pair {circle of i, circle of j}
     reg       rack_run;
     reg [3:0] ui;
     reg [5:0] pk;
@@ -325,16 +389,48 @@ module pin_physics #(
     wire [3:0] rj = pair_rom[pk][3:0];
 
     // collision centres of the pair, registered one clock after rA / rB (timing)
-    reg  [15:0] cAx, cAy, cBx, cBy;
+    reg  signed [16:0] cAx, cAy, cBx, cBy;
     always @(posedge clk) begin
-        cAx <= ccx(rA); cAy <= ccy(rA); cBx <= ccx(rB); cBy <= ccy(rB);
+        cAx <= pcc(rA, 1'b0, sp[1]); cAy <= pcc(rA, 1'b1, sp[1]);
+        cBx <= pcc(rB, 1'b0, sp[0]); cBy <= pcc(rB, 1'b1, sp[0]);
     end
-    wire signed [16:0] pdx = $signed({1'b0, cBx}) - $signed({1'b0, cAx});
-    wire signed [16:0] pdy = $signed({1'b0, cBy}) - $signed({1'b0, cAy});
-    wire [16:0] adx = pdx[16] ? -pdx : pdx;
-    wire [16:0] ady = pdy[16] ? -pdy : pdy;
-    wire skip_pair = (fs(rA) == `PS_OFF) || (fs(rB) == `PS_OFF) ||
+    wire signed [17:0] pdx18 = {cBx[16], cBx} - {cAx[16], cAx};
+    wire signed [17:0] pdy18 = {cBy[16], cBy} - {cAy[16], cAy};
+    wire [17:0] adx18 = pdx18[17] ? -pdx18 : pdx18;
+    wire [17:0] ady18 = pdy18[17] ? -pdy18 : pdy18;
+    // (only pairs within NEAR are used further, so 17 bits are enough there)
+    wire signed [16:0] pdx = pdx18[16:0], pdy = pdy18[16:0];
+    wire [17:0] adx = adx18, ady = ady18;
+    // a standing pin has only circle 0
+    wire sub_bad   = (sp[1] && upright(fs(rA))) || (sp[0] && upright(fs(rB)));
+    // whole-pair reject from the BASES: two pins whose bases are more than
+    // 30 in apart (11.5 + 11.5 in of body + 6 in of radii + 1) cannot touch,
+    // so their other circle pairs are not even read (keeps the pass short)
+    wire signed [16:0] bpx = $signed({1'b0, rB[98:83]}) - $signed({1'b0, rA[98:83]});
+    wire signed [16:0] bpy = $signed({1'b0, rB[76:61]}) - $signed({1'b0, rA[76:61]});
+    wire [16:0] abpx = bpx[16] ? -bpx : bpx, abpy = bpy[16] ? -bpy : bpy;
+    wire pair_none = (fs(rA) == `PS_OFF) || (fs(rB) == `PS_OFF) ||
+                     (upright(fs(rA)) && upright(fs(rB))) || abpx > 17'd1920 || abpy > 17'd1920;
+    reg  pair_none_q;
+    wire skip_pair = (fs(rA) == `PS_OFF) || (fs(rB) == `PS_OFF) || sub_bad ||
                      (upright(fs(rA)) && upright(fs(rB))) || adx > NEAR || ady > NEAR;
+    // the radii of the two circles: big = the belly circle of a lying pin
+    wire bgA = !sp[1] && !upright(fs(rA)), bgB = !sp[0] && !upright(fs(rB));
+    reg  [35:0] r2_q;                         // (rA + rB)^2 of this circle pair
+    reg  [9:0]  rs_q;                         // rA + rB
+    reg  signed [17:0] dmag, cmag;            // |d|, push-out distance (1/64 in)
+    reg  signed [19:0] cvx, cvy;              // push-out vector (1/64 in)
+    reg         lyA, lyB;                     // which pins may be pushed (not standing)
+    // move a lying pin's record by (ox, oy) 1/64 in
+    function [98:0] mv;
+        input [98:0] r; input signed [19:0] ox, oy; input en;
+        begin
+            mv = r;
+            // (1/64 in -> Q10.12: << 6; the 22-bit two's-complement add wraps correctly)
+            if (en) mv = mk(fx(r) + {ox[15:0], 6'd0}, fy(r) + {oy[15:0], 6'd0},
+                            fvx(r), fvy(r), fs(r), fd(r), ft(r));
+        end
+    endfunction
     // v3: fall time from the size of the push (registered with topple_q)
     function [8:0] fall_time;
         input [20:0] nrm;
@@ -348,7 +444,7 @@ module pin_physics #(
     reg  [8:0]  fall_q;
     reg         pair_rev;                    // this tick walks the pairs 44 -> 0
     wire [35:0] d2_full  = d2 + mp[35:0];
-    wire [35:0] r2_pair  = mixed ? R2_MIX  : R2_DD;
+    wire [35:0] r2_pair  = r2_q;
     wire signed [42:0] vrn = (t + mp) >>> 14;          // (v_i - v_j) . n, Q3.16
     reg  signed [24:0] vrn_q;                          // v_rel_n, registered (timing)
     reg         vgt;
@@ -358,12 +454,9 @@ module pin_physics #(
     wire signed [24:0] vrn25 = vrn_q;
     wire signed [24:0] dl_calc = vrn25 - (vrn25 >>> DL_S1) - (vrn25 >>> DL_S2);
 
-    // separation steps: n (Q1.14) >> 8 = 1/64 in, >> 7 = 1/32 in
-    wire signed [17:0] n1x = nx >>> 8, n1y = ny >>> 8, n2x = nx >>> 7, n2y = ny >>> 7;
-    wire [21:0] sep1x = {{4{n1x[17]}}, n1x}, sep1y = {{4{n1y[17]}}, n1y};
-    wire [21:0] sep2x = {{4{n2x[17]}}, n2x}, sep2y = {{4{n2y[17]}}, n2y};
-    wire [21:0] sAx = upright(fs(rB)) ? sep2x : sep1x, sAy = upright(fs(rB)) ? sep2y : sep1y;
-    wire [21:0] sBx = upright(fs(rA)) ? sep2x : sep1x, sBy = upright(fs(rA)) ? sep2y : sep1y;
+    // v3.4: overlap depth -> push-out distance (registered steps S_PJ1, S_PJ2)
+    wire signed [17:0] pen_w = $signed({8'd0, rs_q}) - dmag;
+    wire signed [17:0] pen_p = (pen_w < 0) ? 18'sd0 : pen_w;
 
     // ball impulses and scan_done are remembered until the FSM takes them
     reg        imp_pend, scan_pend;
@@ -437,6 +530,8 @@ module pin_physics #(
             ma <= 0; mb <= 0; dx <= 0; dy <= 0; d2 <= 0; nx <= 0; ny <= 0; t <= 0; dl <= 0; dvx <= 0; dvy <= 0;
             ndvx <= 0; ndvy <= 0; topple_q <= 0; dir_p <= 0; dir_n <= 0; fall_q <= FALL_T; pair_rev <= 1'b0;
             mixed <= 0; imp_pend <= 0; scan_pend <= 0; imp_pin <= 0; imp_vx <= 0; imp_vy <= 0;
+            sp <= 2'd0; r2_q <= R2_BB; rs_q <= 10'd308; dmag <= 0; cmag <= 0; cvx <= 0; cvy <= 0;
+            lyA <= 0; lyB <= 0; pair_none_q <= 1'b1;
         end else begin
             if (impulse_valid) begin
                 imp_pend <= 1'b1; imp_pin <= impulse_pin;
@@ -485,8 +580,12 @@ module pin_physics #(
                 S_PA4: st <= S_PA3;                                // collision centres load
                 S_PA3: begin
                     dx <= pdx; dy <= pdy;
-                    mixed <= upright(fs(rA)) || upright(fs(rB));
-                    if (skip_pair) st <= S_PNEXT;
+                    // v3.4: this circle pair's contact distance, who may be pushed
+                    r2_q <= (bgA && bgB) ? R2_BB : (bgA || bgB) ? R2_BS : R2_SS;
+                    rs_q <= (bgA ? R_BIG : R_SML) + (bgB ? R_BIG : R_SML);
+                    lyA <= !upright(fs(rA)); lyB <= !upright(fs(rB));
+                    pair_none_q <= pair_none;
+                    if (skip_pair || pair_none) st <= S_PNEXT;
                     else begin ma <= pdx; mb <= pdx; st <= S_PB; end
                 end
                 S_PB: begin ma <= dy; mb <= dy; st <= S_PC; end
@@ -501,16 +600,24 @@ module pin_physics #(
                 S_PF: begin nx <= mp[17:0]; st <= S_PG; end
                 S_PG: begin ny <= mp[17:0]; ma <= fvx(rA) - fvx(rB); mb <= nx; st <= S_PH; end
                 S_PH: begin ma <= fvy(rA) - fvy(rB); mb <= ny; st <= S_PI; end
-                S_PI: begin t <= mp; st <= S_PJ0; end
-                S_PJ0: begin vrn_q <= vrn[24:0]; vgt <= (vrn > 0); st <= S_PJ; end   // (timing)
+                S_PI: begin t <= mp; ma <= d2s[24:0]; mb <= inv_q; st <= S_PJ0; end   // |d| = d^2 / |d|
+                S_PJ0: begin vrn_q <= vrn[24:0]; vgt <= (vrn > 0); st <= S_PJ1; end   // (timing)
+                // ---- v3.4: push the overlap out, in this tick ----
+                S_PJ1: begin dmag <= mp >>> 14; st <= S_PJ2; end
+                S_PJ2: begin                                       // whole overlap (+1/64), shared if both lie
+                    cmag <= (lyA && lyB) ? (pen_p >>> 1) + 18'sd1 : pen_p + 18'sd1;
+                    st <= S_PJ3;
+                end
+                S_PJ3: begin ma <= cmag; mb <= nx; st <= S_PJ4; end
+                S_PJ4: begin ma <= cmag; mb <= ny; st <= S_PJ5; end
+                S_PJ5: begin cvx <= mp >>> 14; st <= S_PJ6; end
+                S_PJ6: begin cvy <= mp >>> 14; st <= S_PJ; end
                 S_PJ: begin
                     if (vgt) begin dl <= dl_calc; ma <= dl_calc; mb <= nx; st <= S_PK; end
                     else begin
-                        // touching but not approaching: separate (written next clock)
-                        weA <= !upright(fs(rA)); waA <= ia_q;
-                        nA  <= mk(fx(rA) - sAx, fy(rA) - sAy, fvx(rA), fvy(rA), fs(rA), fd(rA), ft(rA));
-                        weB <= !upright(fs(rB)); waB <= ib_q;
-                        nB  <= mk(fx(rB) + sBx, fy(rB) + sBy, fvx(rB), fvy(rB), fs(rB), fd(rB), ft(rB));
+                        // touching but not approaching: only push apart (written next clock)
+                        weA <= lyA; waA <= ia_q; nA <= mv(rA, -cvx, -cvy, 1'b1);
+                        weB <= lyB; waB <= ib_q; nB <= mv(rB,  cvx,  cvy, 1'b1);
                         st <= S_PW;
                     end
                 end
@@ -524,21 +631,32 @@ module pin_physics #(
                     st <= S_PQ2;
                 end
                 S_PQ2: begin                                       // decide: topple? which way?
-                    topple_q <= hnorm > TOPPLE;
+                    // v3.4: a hit by a lying pin's HEAD circle strikes a standing
+                    // pin high up, so a quarter of the push tips it over
+                    topple_q <= (sp != 2'd0) ? (hnorm > (TOPPLE >> 2)) : (hnorm > TOPPLE);
                     fall_q   <= fall_time(hnorm);
                     dir_p <= dir8(dvx, dvy); dir_n <= dir8(ndvx, ndvy);
                     st <= S_PN;
                 end
                 S_PN: begin                                        // pin i loses dv along n, pin j gains it
-                    weA <= 1'b1; waA <= ia_q; nA <= hit(rA, ndvx, ndvy, topple_q, dir_n, fall_q);
-                    weB <= 1'b1; waB <= ib_q; nB <= hit(rB, dvx,  dvy,  topple_q, dir_p, fall_q);
+                    // (v3.4: plus the push-out, for a pin that was already lying)
+                    weA <= 1'b1; waA <= ia_q; nA <= mv(hit(rA, ndvx, ndvy, topple_q, dir_n, fall_q), -cvx, -cvy, lyA);
+                    weB <= 1'b1; waB <= ib_q; nB <= mv(hit(rB, dvx,  dvy,  topple_q, dir_p, fall_q),  cvx,  cvy, lyB);
                     st <= S_PW;
                 end
                 S_PW: st <= S_PNEXT;                               // the write lands now
-                S_PNEXT: if (pk == (pair_rev ? 6'd0 : 6'd44)) begin
-                             pair_rev <= ~pair_rev; st <= S_IDLE;
+                // v3.4: the next circle pair that exists (a standing pin has only
+                // circle 0) of the same two pins, re-read; then the next pin pair
+                S_PNEXT: if (!pair_none_q && sp == 2'd0 && (lyA || lyB)) begin
+                             sp <= lyB ? 2'd1 : 2'd2; st <= S_PA;
+                         end else if (!pair_none_q && sp == 2'd1 && lyA) begin
+                             sp <= 2'd2; st <= S_PA;
+                         end else if (!pair_none_q && sp == 2'd2 && lyB) begin
+                             sp <= 2'd3; st <= S_PA;
+                         end else if (pk == (pair_rev ? 6'd0 : 6'd44)) begin
+                             sp <= 2'd0; pair_rev <= ~pair_rev; st <= S_IDLE;
                          end else begin
-                             pk <= pair_rev ? pk - 6'd1 : pk + 6'd1; st <= S_PA;
+                             sp <= 2'd0; pk <= pair_rev ? pk - 6'd1 : pk + 6'd1; st <= S_PA;
                          end
                 S_RAKE: if (tick_phys) begin
                     // the rake moves 1/8 in per tick (0.55 s for 70 in)

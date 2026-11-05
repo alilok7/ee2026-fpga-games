@@ -24,8 +24,8 @@
 //             upright / wobbling / just hit : a silhouette, size class 0..31
 //                                             (height 2..53 px), from pin_fp.mem
 //             falling (half) / down         : a "bar" = the lying pin, centred
-//                                             3.75 / 7.5 in along its fall
-//                                             direction, half-width hw (across
+//                                             on its body (C's pin_vis gives
+//                                             that centre, v3.4), half-width hw (across
 //                                             the screen) and half-height hh
 //                                             (depth r^2/6120 + thickness),
 //                                             with the red neck toward the head
@@ -163,8 +163,9 @@ module persp_proj (
             S_SEL0: begin                                  // decode object k (timing)
                 base_x <= (k == 0) ? $signed({2'b00, ball_x[15:6]}) : $signed({6'd0, pv[23:18]});
                 base_y <= (k == 0) ? $signed({2'b00, ball_y[15:6]}) : $signed({2'b00, pv[17:8]});
-                offx_q <= (k == 0) ? 12'sd0 : offx;
-                offy_q <= (k == 0) ? 12'sd0 : offy;
+                // v3.4: C's pin_vis already gives a lying pin's body centre
+                offx_q <= 12'sd0;
+                offy_q <= 12'sd0;
                 on_q   <= (k == 0) ? ball_visible : (p_up || p_bar);
                 bar_q  <= (k != 0) && p_bar;
                 fall0_q <= (k != 0) && (ps == `PS_FALLING) && (pg == 2'd0);
