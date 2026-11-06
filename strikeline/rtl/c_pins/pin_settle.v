@@ -14,8 +14,8 @@
 //           Then the result: pins knocked down this ball = pins standing
 //           at the throw AND not standing now (popcount), plus the split
 //           flag from split_detect.
-// FSM     : IDLE -> (throw) ROLLING -> (ball in pit) QUIET -> FINISH ->
-//           SPLIT -> IDLE.  Timeout jumps from ROLLING/QUIET to FORCE.
+// FSM     : IDLE -> (throw) ROLL -> (ball in pit) QUIET -> FINISH ->
+//           SPLIT -> IDLE.  Timeout jumps from ROLL/QUIET to FORCE.
 //=============================================================================
 module pin_settle (
     input  wire        clk,
@@ -32,77 +32,122 @@ module pin_settle (
     output reg         split_flag,
     output reg  [9:0]  standing_before
 );
+
+    // ---------- 1. Constants and states ----------
     localparam [12:0] QUIET_T   = 13'd512;          // 0.5 s
     localparam [12:0] TIMEOUT_T = 13'd4096;         // 4 s
 
-    localparam S_IDLE = 3'd0, S_ROLL = 3'd1, S_QUIET = 3'd2, S_FORCE = 3'd3,
-               S_FINISH = 3'd4, S_SPLIT = 3'd5;
-    reg [2:0]  st;
-    reg [12:0] quiet_cnt, deck_cnt;
-    reg        on_deck;
-    reg [4:0]  wait_cnt;
+    localparam [2:0] S_IDLE   = 3'd0;
+    localparam [2:0] S_ROLL   = 3'd1;
+    localparam [2:0] S_QUIET  = 3'd2;
+    localparam [2:0] S_FORCE  = 3'd3;
+    localparam [2:0] S_FINISH = 3'd4;
+    localparam [2:0] S_SPLIT  = 3'd5;
 
-    wire ball_done = (ball_phase == `BP_PIT);
-    wire quiet     = (busy == 10'd0);
+    reg [2:0]  STATE;
+    reg [12:0] QUIET_COUNT, DECK_COUNT;
+    reg        ON_DECK;
+    reg [4:0]  WAIT_COUNT;
 
-    reg  sp_start;
-    wire sp_split, sp_done;
-    split_detect u_split (.clk(clk), .rst(rst), .start(sp_start), .standing(standing),
-                          .split(sp_split), .done(sp_done));
+    wire BALL_DONE = (ball_phase == `BP_PIT);
+    wire QUIET     = (busy == 10'd0);
 
-    // popcount of the knocked-down pins
-    reg [3:0] cnt;
+    // ---------- 2. Split detector ----------
+    reg  SPLIT_START;
+    wire SPLIT_RESULT, SPLIT_DONE;
+    split_detect split_module (
+        .clk(clk), .rst(rst), .start(SPLIT_START), .standing(standing),
+        .split(SPLIT_RESULT), .done(SPLIT_DONE));
+
+    // ---------- 3. Popcount of the knocked-down pins ----------
+    reg [3:0] DOWN_COUNT;
     integer k;
-    always @(*) begin
-        cnt = 4'd0;
+    always @ (*) begin
+        DOWN_COUNT = 4'd0;
         for (k = 0; k < 10; k = k + 1)
-            cnt = cnt + (standing_before[k] & ~standing[k]);
+            DOWN_COUNT = DOWN_COUNT + (standing_before[k] & ~standing[k]);
     end
 
-    always @(posedge clk) begin
-        force_settle <= 1'b0; settle_done <= 1'b0; sp_start <= 1'b0;
+    // ---------- 4. FSM ----------
+    always @ (posedge clk) begin
+        force_settle <= 1'b0;
+        settle_done <= 1'b0;
+        SPLIT_START <= 1'b0;
         if (rst) begin
-            st <= S_IDLE; quiet_cnt <= 0; deck_cnt <= 0; on_deck <= 1'b0; wait_cnt <= 0;
-            pins_down_this_ball <= 0; split_flag <= 0; standing_before <= 10'h3FF;
-        end else begin
+            STATE <= S_IDLE;
+            QUIET_COUNT <= 0;
+            DECK_COUNT <= 0;
+            ON_DECK <= 1'b0;
+            WAIT_COUNT <= 0;
+            pins_down_this_ball <= 0;
+            split_flag <= 0;
+            standing_before <= 10'h3FF;
+        end
+        else begin
             // timeout clock: runs once the ball reached the pin deck
-            if (st == S_ROLL || st == S_QUIET) begin
-                if (ball_y >= `W_DECK_Y || ball_done) on_deck <= 1'b1;
-                if (tick_phys && on_deck) deck_cnt <= deck_cnt + 13'd1;
+            if (STATE == S_ROLL || STATE == S_QUIET) begin
+                if (ball_y >= `W_DECK_Y || BALL_DONE)
+                    ON_DECK <= 1'b1;
+                if (tick_phys && ON_DECK)
+                    DECK_COUNT <= DECK_COUNT + 13'd1;
             end
-            case (st)
-                S_IDLE: if (throw_go) begin
-                    standing_before <= standing;
-                    on_deck <= 1'b0; deck_cnt <= 0; quiet_cnt <= 0;
-                    st <= S_ROLL;
+
+            case (STATE)
+                S_IDLE: begin
+                    if (throw_go) begin
+                        standing_before <= standing;
+                        ON_DECK <= 1'b0;
+                        DECK_COUNT <= 0;
+                        QUIET_COUNT <= 0;
+                        STATE <= S_ROLL;
+                    end
                 end
+
                 S_ROLL: begin
-                    quiet_cnt <= 0;
-                    if (deck_cnt == TIMEOUT_T) st <= S_FORCE;
-                    else if (ball_done) st <= S_QUIET;
+                    if (DECK_COUNT == TIMEOUT_T)
+                        STATE <= S_FORCE;
+                    else if (BALL_DONE)
+                        STATE <= S_QUIET;
                 end
+
                 S_QUIET: begin
-                    if (!quiet) quiet_cnt <= 0;
-                    else if (tick_phys) quiet_cnt <= quiet_cnt + 13'd1;
-                    if (deck_cnt == TIMEOUT_T) st <= S_FORCE;
-                    else if (quiet_cnt == QUIET_T) begin wait_cnt <= 0; st <= S_FINISH; end
+                    if (!QUIET)
+                        QUIET_COUNT <= 0;
+                    else if (tick_phys)
+                        QUIET_COUNT <= QUIET_COUNT + 13'd1;
+
+                    if (DECK_COUNT == TIMEOUT_T)
+                        STATE <= S_FORCE;
+                    else if (QUIET_COUNT == QUIET_T) begin
+                        WAIT_COUNT <= 0;
+                        STATE <= S_FINISH;
+                    end
                 end
-                S_FORCE: begin                          // tell C to finish every animation
+
+                S_FORCE: begin                          // tell pin_physics to finish every animation
                     force_settle <= 1'b1;
-                    wait_cnt <= 0;
-                    st <= S_FINISH;
+                    WAIT_COUNT <= 0;
+                    STATE <= S_FINISH;
                 end
-                S_FINISH: begin                         // give C a few clocks to apply it
-                    wait_cnt <= wait_cnt + 5'd1;
-                    if (wait_cnt == 5'd31) begin sp_start <= 1'b1; st <= S_SPLIT; end
+
+                S_FINISH: begin                         // give pin_physics 32 clocks to apply it
+                    WAIT_COUNT <= WAIT_COUNT + 5'd1;
+                    if (WAIT_COUNT == 5'd31) begin
+                        SPLIT_START <= 1'b1;
+                        STATE <= S_SPLIT;
+                    end
                 end
-                S_SPLIT: if (sp_done) begin
-                    pins_down_this_ball <= cnt;
-                    split_flag  <= sp_split;
-                    settle_done <= 1'b1;
-                    st <= S_IDLE;
+
+                S_SPLIT: begin
+                    if (SPLIT_DONE) begin
+                        pins_down_this_ball <= DOWN_COUNT;
+                        split_flag <= SPLIT_RESULT;
+                        settle_done <= 1'b1;
+                        STATE <= S_IDLE;
+                    end
                 end
-                default: st <= S_IDLE;
+
+                default: STATE <= S_IDLE;
             endcase
         end
     end

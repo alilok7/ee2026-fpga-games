@@ -2,7 +2,7 @@
 //=============================================================================
 // rom2p.v - a ROM in block RAM with two registered read ports (v3 resource squeeze)
 //-----------------------------------------------------------------------------
-// Owner (Q&A) : shared helper (used by C's pin_render)
+// Owner (Q&A) : Student C (v3.5 team split; before: shared helper (used by C's pin_render))
 // Purpose : a renderer that looks the same table up for 10 pins at once
 //           needed 10 LUT copies of it. In block RAM each copy costs no LUTs
 //           and serves 2 pins. The read is registered (1 clock); render_scan
@@ -20,10 +20,12 @@ module rom2p #(
     output reg  [DW-1:0] d0,
     output reg  [DW-1:0] d1
 );
-    (* rom_style = "block" *) reg [DW-1:0] rom [0:(1 << AW) - 1];
-    initial $readmemh(FILE, rom);
-    always @(posedge clk) begin
-        d0 <= rom[a0];
-        d1 <= rom[a1];
+
+    (* rom_style = "block" *) reg [DW-1:0] ROM [0:(1 << AW) - 1];
+    initial $readmemh(FILE, ROM);
+
+    always @ (posedge clk) begin
+        d0 <= ROM[a0];
+        d1 <= ROM[a1];
     end
 endmodule

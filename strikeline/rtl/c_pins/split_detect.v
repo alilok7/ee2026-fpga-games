@@ -22,49 +22,60 @@ module split_detect (
     output reg        split,
     output reg        done
 );
-    reg [9:0] adj_rom [0:9];
-    initial $readmemh("pin_adj.mem", adj_rom);
 
-    reg [9:0] stand, reach;
-    reg       busy;
+    // ---------- 1. Neighbour table ----------
+    reg [9:0] ADJ_ROM [0:9];
+    initial $readmemh("pin_adj.mem", ADJ_ROM);
 
+    reg [9:0] STAND, REACH;
+    reg       BUSY;
+
+    // ---------- 2. Next step of the fill ----------
     // neighbours of every pin already reached (OR of their ROM rows)
-    reg [9:0] nb;
+    reg [9:0] NEIGHBOURS;
     integer k;
-    always @(*) begin
-        nb = 10'd0;
+    always @ (*) begin
+        NEIGHBOURS = 10'd0;
         for (k = 0; k < 10; k = k + 1)
-            if (reach[k]) nb = nb | adj_rom[k];
+            if (REACH[k])
+                NEIGHBOURS = NEIGHBOURS | ADJ_ROM[k];
     end
-    wire [9:0] grow = reach | (nb & stand);
+    wire [9:0] GROW = REACH | (NEIGHBOURS & STAND);
 
     // lowest standing pin (start of the fill)
-    reg [9:0] first;
-    always @(*) begin
-        first = 10'd0;
+    reg [9:0] FIRST;
+    always @ (*) begin
+        FIRST = 10'd0;
         for (k = 9; k >= 0; k = k - 1)
-            if (standing[k]) first = 10'd1 << k;
+            if (standing[k])
+                FIRST = 10'd1 << k;
     end
 
     // number of standing pins >= 2  <=>  more than one bit set
-    wire two_plus = (stand & (stand - 10'd1)) != 10'd0;
+    wire TWO_PLUS = (STAND & (STAND - 10'd1)) != 10'd0;
 
-    always @(posedge clk) begin
+    // ---------- 3. Fill, one step per clock ----------
+    always @ (posedge clk) begin
         done <= 1'b0;
         if (rst) begin
-            busy <= 1'b0; stand <= 0; reach <= 0; split <= 1'b0;
-        end else if (start) begin
-            stand <= standing;
-            reach <= first;
-            busy  <= 1'b1;
-        end else if (busy) begin
-            if (grow == reach) begin                 // fill finished
-                busy  <= 1'b0;
-                done  <= 1'b1;
-                split <= !stand[0] && two_plus && ((stand & ~reach) != 10'd0);
-            end else begin
-                reach <= grow;
+            BUSY <= 1'b0;
+            STAND <= 0;
+            REACH <= 0;
+            split <= 1'b0;
+        end
+        else if (start) begin
+            STAND <= standing;
+            REACH <= FIRST;
+            BUSY <= 1'b1;
+        end
+        else if (BUSY) begin
+            if (GROW == REACH) begin                 // fill finished
+                BUSY <= 1'b0;
+                done <= 1'b1;
+                split <= !STAND[0] && TWO_PLUS && ((STAND & ~REACH) != 10'd0);
             end
+            else
+                REACH <= GROW;
         end
     end
 endmodule
