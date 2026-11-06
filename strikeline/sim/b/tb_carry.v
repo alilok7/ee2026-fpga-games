@@ -6,9 +6,8 @@
 // Owners : Students B and C
 // One physics tick = 1500 clocks here (real: 97 656), still far more than
 // B's scan + C's pair iterator need, so the schedule is the real one.
-// Checks: ball phase FSM, gutter, hook distance, ball-pin momentum, pin
-//         action + settle result, a ball that touches no pins, Spare
-//         Challenge leaves, split detection, pins never stuck overlapping.
+// Throws many balls at a full rack, sorts each by where it enters the head-pin
+// row (pocket, nose, Brooklyn, light) and checks the strike rate of each class.
 //=============================================================================
 module tb_carry;
     reg clk = 0;

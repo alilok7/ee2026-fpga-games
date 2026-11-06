@@ -1,19 +1,27 @@
-# Part B: ball physics, lane and camera (Student B)
+# Part B: ball and the 3-D VGA world (Student B)
 
-## Files
+**How to read this file:** the current design is v3.5. The sections marked "v2" are kept as history, so you can explain why the design changed. For the physics, read "v3: slip-based hook" and "Questions" first.
+
+## Files (v3.5 team split)
 | File | What it does |
 |---|---|
-| `rtl/b_ball/ball_physics.v` | Phase FSM, oil/dry friction and hook, gutter, ball→pin collisions (impulses to C) |
-| `rtl/b_ball/camera.v` | Low-pass camera with speed lead |
+| `rtl/b_ball/ball_physics.v` | Phase FSM, slip friction on the oil pattern, steer window, gutter, ball→pin collisions (impulses to C) |
+| `rtl/b_ball/camera.v` | Low-pass camera with speed lead, dolly zoom |
+| `rtl/b_ball/persp_proj.v` | Projects the ball, 10 pins and 2 backdrop planes once per frame, using A's `div_seq` |
 | `rtl/b_ball/ball_trace.v` | 64-row path memory for the minimap (LUTRAM, cleared one entry per clock on a new throw) |
-| `rtl/b_ball/lane_render.v` | Lane, oil sheen, arrows, deck, pit, gutters, kickbacks, themes, minimap |
-| `rtl/b_ball/ball_render.v` | The ball, rotating finger holes, debug vectors (`sw[2]`) |
-| `rtl/top/timebase.v` | Every tick of the design, including `tick_phys` (1024 Hz, slow motion, pause) |
+| `rtl/b_ball/lane_render.v` | Lane zones in top-down and 3-D, neighbouring lanes, aim guide, themes, minimap |
+| `rtl/b_ball/color_dim.v` | Darkens a colour by 0, 1/8 or 1/4 (haze and grain), kept separate so it uses no DSP slices |
+| `rtl/b_ball/backdrop_render.v` | Ceiling, masking unit and curtain at their real distance |
+| `rtl/b_ball/ball_render.v` | Top-down ball, shaded 3-D ball, shadow, reflection, finger holes, debug view (`sw[2]`) |
+| `rtl/top/render_scan.v` | Walks every pixel of both screens once per frame, 8 clocks per pixel |
+| `rtl/top/view_map.v` | Which picture a scanned pixel belongs to, and its UI-space position |
+| `rtl/top/vga_out.v` | Frame buffers (VGA and OLED), dither, 640 × 480 @ 60 Hz timing |
 | `rtl/top/mul_s25x18.v` | The shared multiplier (one instance per part) |
-| `tools/gen_tables.py` | `ball_params.mem` (per oil × weight), `ball_marker.mem` (sin/cos offsets) |
-| `sim/b/tb_physics.v` | B + C together, 20 checks |
+| `rtl/top/pixel_xy.v` | **Not used since v3:** nothing instantiates it, so it is not in the bitstream. Do not claim it in the report |
+| `tools/gen_tables.py` | `ball_params.mem`, `oil_pattern.mem`, `persp_v.mem`. It also still writes `ball_marker.mem`, which no Part B file reads any more |
+| `sim/b/tb_physics.v`, `sim/b/tb_carry.v` | B + C together: phases, hook, momentum, steer; strike rate by entry point |
 
-## Ball phase FSM (once per `tick_phys`)
+## Ball phase FSM (v2, replaced by the slip model in v3)
 ```
 IDLE --throw--> SKID --(y >= oil length)--> HOOK --(640 ticks)--> ROLL --(y >= 760 in)--> PIT
                   \___________ centre past a lane edge, before the deck ____________/--> GUTTER --> PIT
@@ -41,7 +49,7 @@ Why the hook starts at the oil line: oil makes the lane slippery, so the ball sk
 - **Hooking costs forward speed:** the forward deceleration grows by the hook acceleration.
 - **Drive:** a spinning ball deflects less: `kb × (1 − |spin| / 16)`.
 
-## Ball → pin collision (per pin, sequential, one multiplier)
+## Ball → pin collision (v2 method; step 3 now uses the `inv_len` ROM, see v2 and v3 changes)
 1. Quick reject: `|dx|` or `|dy|` > 7 in, skip (no multiply).
 2. `|d|² = dx² + dy² < (Rb + Rp)² = (6.7 in)²`. Squares, so **no square root**.
 3. Normal `n = d × (1 / 6.7 in)`, a constant reciprocal. At first contact |d| is within one tick of travel (about 6%) of 6.7 in, so no divider is needed.
@@ -51,7 +59,7 @@ Why the hook starts at the oil line: oil makes the lane slippery, so the ball sk
 
 Cycle budget: 4 clocks per tick for integration, 4 per near pin, about 20 per hit pin. Worst case is about 200 clocks out of 97 656.
 
-## First-person view (v2)
+## First-person view (v2; for today's numbers see "VGA 3-D view" and question 14)
 - While aiming and rolling the OLED shows the lane from behind the ball; the pin action cuts to the overhead deck camera (TV-style). sw4 forces the classic top-down view.
 - **No 3-D maths:** the camera has a fixed height and tilt, so screen row y always looks at the same distance ahead, `dist = 1530 / (y - 12)` inches (horizon on row 12), and one inch across is `(y - 12) / 51` px there. `persp.mem` stores `dist` and `inv = 51*256/(y-12)` per row; a lane pixel is at `world y = cam_fp + dist[y]`, `world x = 30 + (px - 30) * inv[y] >> 8` (one multiply). The existing lane "texture" (boards, oil, arrows, deck) is then evaluated at that point unchanged. Boards are only drawn where 1 in ≥ 0.5 px (no shimmer far away).
 - `persp_proj.v` projects the ball and the 10 pins once per frame (row = 12 + 1530/dz, x = 30 + (wx-30)·r/51) with one sequential divider (~220 clocks per frame); `ball_render` draws a circle of the projected radius, `pin_render` (C) draws pin silhouettes from a 128-entry size-class ROM.
@@ -85,7 +93,7 @@ a = min(mu(x, y), REV);   REV -= a;   vx -= a (spin > 0 hooks left);   vy -= dec
 
 Q: *Why a dolly zoom and not just a longer lens?* A longer lens alone pushes the bottom of the screen further away (K / 89 in): at ×8 that is 275 in, so the ball would leave the screen. Backing the camera off by the same amount keeps the ball, the whole dotted line and the pins in one picture, like a TV camera behind the bowler.
 
-**VGA 3-D view.** Same camera maths at twice the resolution: horizon on row 30 of 160 × 120, lane centre column 56, `dist = 3060/(y−30)`, `inv = 51·256/(y−30)` (`persp_v.mem`, 128 × 27 bit). `persp_proj` now projects every pin on the deck (standing pins as silhouettes in 16 sizes; falling / lying pins as bars along their fall direction), and `ball_render` draws a shaded sphere with a shadow and finger holes scaled to its radius. The lane renderer adds the masking unit, range finders, and the dotted aim guide (stance → wheel-chosen target at 16 ft → pins).
+**VGA 3-D view (v3.5 numbers).** The picture is 320 × 240 with the horizon on row 60 and the lane centre on column 160. A point `dz` inches ahead appears on row `60 + r`, with `r = 2K / dz`, and one inch across is `r / 51` px there, so `x = 160 + (wx − 30)·r/51`. `persp_v.mem` holds the distance and the lateral scale for each row. (v3 first used 160 × 120: horizon on row 30, `dist = 3060/(y−30)`.) `persp_proj` now projects every pin on the deck (standing pins as silhouettes in 16 sizes; falling / lying pins as bars along their fall direction), and `ball_render` draws a shaded sphere with a shadow and finger holes scaled to its radius. The lane renderer adds the masking unit, range finders, and the dotted aim guide (stance → wheel-chosen target at 16 ft → pins).
 
 ### v3 tuning log (`tb_physics`, `tb_carry`, 16 lb unless noted)
 | Measure | v2 | v3 |
@@ -98,29 +106,31 @@ Q: *Why a dolly zoom and not just a longer lens?* A longer lens alone pushes the
 | `rev_k` 12 / 14 / 16 lb | - | 1250 / 1150 / 1080 (first try 1400 / 1300 / 1220 hooked 14.6 boards) |
 | tangential kick per spin level | - | 6/4096 (24/4096 pushed the 3 pin away from the 6: pocket 2/8) |
 
-Light hits (entry 34.5-36 in, just outside the pocket window) now carry 2 of 4, so that target was relaxed from ≤ 30 % to ≤ 50 %; the team may want to retune it with real players.
+**v3.5 carry map, measured with `tb_carry`:** pocket 4/8, nose 0/7, Brooklyn 3/9, light 0/4 (the table above is from v3; pin physics has changed since). The pocket result is exactly on the test's 50 % limit, so a small tuning change could make `tb_carry` fail.
+
+In v3, light hits (entry 34.5-36 in, just outside the pocket window) carried 2 of 4, so that target was relaxed from ≤ 30 % to ≤ 50 %; the team may want to retune it with real players.
 
 ## How this relates to the lectures
 - Counters with enables (L2): `timebase` builds every tick from the 100 MHz clock (Lab 4 clock-divider idea, used as enables).
 - FSM (L3): the phase FSM, plus a micro-sequenced datapath FSM that steps the shared multiplier.
 - Beyond the course: fixed-point physics, impulse-based collisions, a low-pass filter.
 
-## 15 likely questions
-1. **What is your fixed-point format and why?** Positions Q10.20 and velocities 2^-20 in/tick internally, so friction steps of 8 LSB per tick still register. Exported as Q10.6 / Q3.12.
-2. **Can anything overflow?** Speeds are clamped to 3–22 mph (well inside ±8 in/tick) and positions stay below 1024 in. Products are 43-bit in the DSP and only the needed bits are kept.
-3. **Walk me through the phase FSM.** SKID → HOOK at the oil line → ROLL after 640 hook ticks → PIT at 760 in, or GUTTER when the centre passes a lane edge before the deck.
-4. **Why does the hook start at the oil line?** In oil the friction is tiny and the spin can't grip. On the dry back end it grips and pushes the ball sideways.
+## Questions (answers checked against the v3.5 code)
+1. **What is your fixed-point format and why?** Positions Q10.20 and velocities 2^-20 in/tick internally, so very small friction steps still register. Exported as Q10.6 / Q3.12.
+2. **Can anything overflow?** The forward speed has a floor of 3 mph on the lane and 1 mph on the deck, and throw speeds are well inside ±8 in/tick. Positions stay below 1024 in. Products are 43-bit in the DSP and only the needed bits are kept.
+3. **Walk me through the phase FSM.** Each tick: SKID while `mu` is below 16 (oil), HOOK while slip is left on the dry wood, ROLL once the slip is used up, PIT at 760 in. GUTTER when the centre passes a lane edge before the deck.
+4. **Why does the ball hook late?** The friction limit `mu` comes from the oil pattern ROM: about 1 in the oil, about 44 on dry wood. There is no fixed hook start; it follows from where `mu` rises and from how fast the ball gets there.
 5. **How do you detect a ball–pin collision without a square root?** Compare the squared distance with the squared contact distance.
-6. **And the normal without a divide?** Multiply by a constant 1/6.7 in. At first contact the distance is within 6% of 6.7 in.
+6. **And the normal without a divide?** `n = d × inv_len[|d|² >> 12]`: a 128-entry ROM gives 1/|d| in Q1.14, so `nx` and `ny` are each one multiply.
 7. **Why test v_rel·n > 0?** Only approaching bodies collide. It, plus the touching flag, prevents double impulses.
 8. **Show that momentum is conserved.** Pin gets J/mp, ball gets −J/mb with the same J, so mb·Δvb + mp·Δvp = 0. `kp` and `kb` come from one ROM line. The test checks it to within 6%.
-9. **How many multiplies per tick, and why one multiplier?** About 2 + 4 per near pin + 10 per hit. There are 97 000 clocks per tick, so one DSP used one product per clock is plenty and saves DSPs and LUTs.
+9. **How many multiplies per tick, and why one multiplier?** 2 per near pin, 13 more per hit (15 in all), and none for the hook. There are about 97 000 clocks per tick, so one DSP used for one product per clock is plenty. The answer arrives 2 clocks after the operands are set, which is why the FSM has "req" and "ready" steps.
 10. **Why 1024 Hz?** Per-second constants become shifts, and the ball moves only 0.3 in per tick, so contacts are never skipped.
 11. **What does slow motion do?** `timebase` passes 1 of every 4 physics ticks. The physics code is unchanged.
 12. **Explain the camera.** A first-order filter, `cam += (target − cam) >> 3`, with a speed lead so the steady-state lag is cancelled.
-13. **How is the ball drawn?** A range check `dx² + dy² ≤ 18` (|dx| ≤ 4, so the square is a 5-entry table), lit from the top left. Finger holes come from a 64-entry ROM indexed by the spin angle.
-14. **How does the first-person view work without 3-D maths?** Fixed camera height and tilt → each screen row is at a fixed distance (1530/(y-12) in); a ROM gives that distance and the lateral scale per row, one multiply gives the lane x. Objects: row = 12 + 1530/dz, one divider for 11 objects per frame.
-15b. **How does the oil setting change the game?** It moves the SKID→HOOK boundary from 40 to 45 ft: less dry lane, a smaller and later hook (checked in the test).
+13. **How is the ball drawn?** Top-down: a range check `dx² + dy² ≤ 18` (|dx| ≤ 4, so the square is a 5-entry table), lit from the top left. 3-D: a sphere of the projected radius with light bands, a darker rim, a specular spot and a shadow. The white dot and the finger holes come from small `case` tables driven by `ball_angle`, scaled to the radius in 3-D.
+14. **How does the first-person view work without 3-D maths?** With a fixed camera height and tilt, each screen row is at a fixed distance. For a pixel: `persp_v.mem` gives that row's distance and lateral scale, and one multiply gives the lane x. For an object: row = 60 + r with r = 2K/dz, using one 16-cycle divider, shared by the 11 objects and then the backdrop planes each frame.
+15b. **How does the oil setting change the game?** It selects the other half of the oil pattern ROM (40 or 45 ft), so there is less dry lane and a smaller, later hook (checked in `tb_physics`).
 15. **What happens if a ball is in the gutter?** It snaps to the channel centre, can't touch pins, rolls into the pit and scores 0. D shows GUTTER.
 
 ### v3 questions
@@ -129,3 +139,15 @@ Light hits (entry 34.5-36 in, just outside the pocket window) now carry 2 of 4, 
 18. **What is the oil pattern ROM?** 2 × 48 × 8 friction values (oil length, 16 in rows, 4 in columns from the centre), made by `gen_tables.py` with a smooth-step from oil to dry.
 19. **How is the steer window bounded?** It lasts 512 ticks, each packet is clamped to ±64 counts, and the total added vx is clamped to ±1536 LSB.
 20. **How do pins appear in front of or behind the ball in 3-D?** Both renderers output the screen row of what they draw (`depth`); the compositor draws the pin when its row is larger (nearer the camera).
+
+### VGA and frame buffer questions (files moved to Part B in the v3.5 split)
+21. **Why is there no tearing with only one frame buffer?** Drawing starts in the vertical blank. A 320-pixel row takes 320 × 8 = 2 560 clocks to draw, while the monitor takes 6 400 clocks to show that row (2 lines of 3 200 clocks). So the drawing always stays ahead of the monitor.
+22. **Why only one VGA buffer, and why 9 bits?** Two buffers would not fit in the block RAM next to the rest of the game. 320 × 240 × 9 bits uses the RAM's native 4K × 9 shape, so the third blue bit costs nothing.
+23. **How long does a frame take to draw?** (76 800 + 6 144) pixels × 8 clocks = about 664 000 clocks = 6.6 ms of the 16.7 ms frame.
+24. **Why hold each pixel for 8 clocks?** The renderers are combinational and need several clocks to settle. The compositor captures on clock 7 and the buffer is written on clock 8; the XDC gives those paths 7 clocks.
+25. **How do you get smooth shading from 3 bits per colour?** A 2 × 2 ordered dither when RGB565 is rounded to RGB333: neighbouring pixels round differently, so the average looks like an in-between colour.
+26. **Where does the 25 MHz pixel rate come from?** It is a clock enable, every 4th clock of 100 MHz, not a second clock. Each line is 800 pixels (640 + 16 + 96 + 48) and each frame 525 lines (480 + 10 + 2 + 33).
+27. **Why is the backdrop drawn with planes instead of a fixed band?** A fixed band looks infinitely far away, so the lane edges showed behind the rack as the camera rolled in. The panel (700 in) and curtain (790 in) use the same `r = 2K / d`, so they grow with the pins.
+28. **Why is `color_dim` a separate module?** `lane_render` asks for DSP slices with `use_dsp`, and those subtractions would have taken DSPs the chip does not have (the build needed 91 of 90).
+29. **How does the ball show that it is rolling and spinning?** Each tick a roll position moves by the forward roll (`vy >> 11`) plus the side slip left (`rev >> 8`), so a spinning ball turns fast at first and settles as its slip is used up (about a quarter of the real rate, so the eye can follow it). A white dot circles the centre around the vertical axis, in opposite directions for left and right spin. Three finger holes roll up over the ball, and their path slants toward the hook side by an amount set by the slip left (none, gentle, medium, strong). `ball_angle[15:13]` holds the position, `[12]` the side and `[11:10]` the amount, and the replay stores all of them.
+30. **How many clocks does one physics tick take?** 55 clocks with no pin near: 4 to move the ball, 5 per pin, 1 to finish. A near miss takes 9 clocks instead of 5, and a full hit 29. The worst case, all 10 pins hit in one tick, is 295 of the 97 656 clocks per tick, about 0.3 %.
