@@ -1,24 +1,13 @@
 `timescale 1ns / 1ps
 `include "strike_defs.vh"
-//=============================================================================
-// input_conditioner.v : every switch and push-button enters the design here
-//-----------------------------------------------------------------------------
-// Owner   : Student D
-// Purpose : 1. 2-flop synchroniser on all inputs (metastability, L1).
-//           2. Switches: 5 ms stable-count debounce -> clean levels.
-//           3. Buttons: 10 ms debounce, then press / long / repeat events
-//              (button_events.v) for the menus.
-//           4. Soft reset: btnU and btnD held together for 2 s. It re-arms
-//              only after both are released, so holding them does not loop.
-// Ports
-//   sw_level    debounced switches (sw[0] pause, [1] minimap, [2] debug,
-//               [3] slow motion, [15] left-handed)
-//   btn_*       {U, D, L, R, C}, index with `BTN_x
-//=============================================================================
+
 module input_conditioner #(
     parameter SW_MS    = 5,
     parameter BTN_MS   = 10,
-    parameter COMBO_MS = 2000
+    parameter COMBO_MS = 2000,
+    parameter SW_W = 4,
+    parameter BTN_W = 4,
+    parameter COMBO_W = 11
 ) (
     input  wire        clk,
     input  wire        rst,
@@ -32,58 +21,134 @@ module input_conditioner #(
     output wire [4:0]  btn_repeat,
     output reg         soft_reset_req
 );
-    // ---- 1. two-flop synchroniser (not reset: it just follows the pins) ----
-    reg [20:0] sync1, sync2;
-    always @(posedge clk) begin
-        sync1 <= {btn, sw};
-        sync2 <= sync1;
-    end
 
-    // ---- 2. switches -------------------------------------------------------
     wire [15:0] sw_tgl_unused;
-    genvar i;
-    generate
-        for (i = 0; i < 16; i = i + 1) begin : g_sw
-            debounce #(.N_MS(SW_MS), .W(4)) u_db (
-                .clk(clk), .rst(rst), .tick_1ms(tick_1ms), .din(sync2[i]),
-                .level(sw_level[i]), .toggled(sw_tgl_unused[i]));
-        end
-    endgenerate
-
-    // ---- 3. buttons --------------------------------------------------------
     wire [4:0] btn_tgl_unused;
-    generate
-        for (i = 0; i < 5; i = i + 1) begin : g_btn
-            debounce #(.N_MS(BTN_MS), .W(4)) u_db (
-                .clk(clk), .rst(rst), .tick_1ms(tick_1ms), .din(sync2[16 + i]),
-                .level(btn_level[i]), .toggled(btn_tgl_unused[i]));
-            button_events u_ev (
-                .clk(clk), .rst(rst), .tick_1ms(tick_1ms), .level(btn_level[i]),
-                .press(btn_press[i]), .long_press(btn_long[i]),
-                .repeat_pulse(btn_repeat[i]));
-        end
-    endgenerate
 
-    // ---- 4. soft reset combo ----------------------------------------------
-    reg [10:0] combo_ms;
+    debounce #(.N_MS(SW_MS), .W(SW_W)) sw0 (
+        .clk(clk), .rst(rst), .tick_1ms(tick_1ms), .din(sw[0]),
+        .level(sw_level[0]), .toggled(sw_tgl_unused[0])
+    );
+    debounce #(.N_MS(SW_MS), .W(4)) sw1 (
+        .clk(clk), .rst(rst), .tick_1ms(tick_1ms), .din(sw[1]),
+        .level(sw_level[1]), .toggled(sw_tgl_unused[1])
+    );
+    debounce #(.N_MS(SW_MS), .W(4)) sw2 (
+        .clk(clk), .rst(rst), .tick_1ms(tick_1ms), .din(sw[2]),
+        .level(sw_level[2]), .toggled(sw_tgl_unused[2])
+    );
+    debounce #(.N_MS(SW_MS), .W(4)) sw3 (
+        .clk(clk), .rst(rst), .tick_1ms(tick_1ms), .din(sw[3]),
+        .level(sw_level[3]), .toggled(sw_tgl_unused[3])
+    );
+    debounce #(.N_MS(SW_MS), .W(4)) sw4 (
+        .clk(clk), .rst(rst), .tick_1ms(tick_1ms), .din(sw[4]),
+        .level(sw_level[4]), .toggled(sw_tgl_unused[4])
+    );
+    debounce #(.N_MS(SW_MS), .W(4)) sw5 (
+        .clk(clk), .rst(rst), .tick_1ms(tick_1ms), .din(sw[5]),
+        .level(sw_level[5]), .toggled(sw_tgl_unused[5])
+    );
+    debounce #(.N_MS(SW_MS), .W(4)) sw6 (
+        .clk(clk), .rst(rst), .tick_1ms(tick_1ms), .din(sw[6]),
+        .level(sw_level[6]), .toggled(sw_tgl_unused[6])
+    );
+    debounce #(.N_MS(SW_MS), .W(4)) sw7 (
+        .clk(clk), .rst(rst), .tick_1ms(tick_1ms), .din(sw[7]),
+        .level(sw_level[7]), .toggled(sw_tgl_unused[7])
+    );
+    debounce #(.N_MS(SW_MS), .W(4)) sw8 (
+        .clk(clk), .rst(rst), .tick_1ms(tick_1ms), .din(sw[8]),
+        .level(sw_level[8]), .toggled(sw_tgl_unused[8])
+    );
+    debounce #(.N_MS(SW_MS), .W(4)) sw9 (
+        .clk(clk), .rst(rst), .tick_1ms(tick_1ms), .din(sw[9]),
+        .level(sw_level[9]), .toggled(sw_tgl_unused[9])
+    );
+    debounce #(.N_MS(SW_MS), .W(4)) sw10 (
+        .clk(clk), .rst(rst), .tick_1ms(tick_1ms), .din(sw[10]),
+        .level(sw_level[10]), .toggled(sw_tgl_unused[10])
+    );
+    debounce #(.N_MS(SW_MS), .W(4)) sw11 (
+        .clk(clk), .rst(rst), .tick_1ms(tick_1ms), .din(sw[11]),
+        .level(sw_level[11]), .toggled(sw_tgl_unused[11])
+    );
+    debounce #(.N_MS(SW_MS), .W(4)) sw12 (
+        .clk(clk), .rst(rst), .tick_1ms(tick_1ms), .din(sw[12]),
+        .level(sw_level[12]), .toggled(sw_tgl_unused[12])
+    );
+    debounce #(.N_MS(SW_MS), .W(4)) sw13 (
+        .clk(clk), .rst(rst), .tick_1ms(tick_1ms), .din(sw[13]),
+        .level(sw_level[13]), .toggled(sw_tgl_unused[13])
+    );
+    debounce #(.N_MS(SW_MS), .W(4)) sw14 (
+        .clk(clk), .rst(rst), .tick_1ms(tick_1ms), .din(sw[14]),
+        .level(sw_level[14]), .toggled(sw_tgl_unused[14])
+    );
+    debounce #(.N_MS(SW_MS), .W(4)) sw15 (
+        .clk(clk), .rst(rst), .tick_1ms(tick_1ms), .din(sw[15]),
+        .level(sw_level[15]), .toggled(sw_tgl_unused[15])
+    );
+    debounce #(.N_MS(BTN_MS), .W(BTN_W)) button0 (
+        .clk(clk), .rst(rst), .tick_1ms(tick_1ms), .din(btn[0]),
+        .level(btn_level[0]), .toggled(btn_tgl_unused[0])
+    );
+    button_events events0 (
+        .clk(clk), .rst(rst), .tick_1ms(tick_1ms), .level(btn_level[0]),
+        .press(btn_press[0]), .long_press(btn_long[0]), .repeat_pulse(btn_repeat[0])
+    );
+    debounce #(.N_MS(BTN_MS), .W(4)) button1 (
+        .clk(clk), .rst(rst), .tick_1ms(tick_1ms), .din(btn[1]),
+        .level(btn_level[1]), .toggled(btn_tgl_unused[1])
+    );
+    button_events events1 (
+        .clk(clk), .rst(rst), .tick_1ms(tick_1ms), .level(btn_level[1]),
+        .press(btn_press[1]), .long_press(btn_long[1]), .repeat_pulse(btn_repeat[1])
+    );
+    debounce #(.N_MS(BTN_MS), .W(4)) button2 (
+        .clk(clk), .rst(rst), .tick_1ms(tick_1ms), .din(btn[2]),
+        .level(btn_level[2]), .toggled(btn_tgl_unused[2])
+    );
+    button_events events2 (
+        .clk(clk), .rst(rst), .tick_1ms(tick_1ms), .level(btn_level[2]),
+        .press(btn_press[2]), .long_press(btn_long[2]), .repeat_pulse(btn_repeat[2])
+    );
+    debounce #(.N_MS(BTN_MS), .W(4)) button3 (
+        .clk(clk), .rst(rst), .tick_1ms(tick_1ms), .din(btn[3]),
+        .level(btn_level[3]), .toggled(btn_tgl_unused[3])
+    );
+    button_events events3 (
+        .clk(clk), .rst(rst), .tick_1ms(tick_1ms), .level(btn_level[3]),
+        .press(btn_press[3]), .long_press(btn_long[3]), .repeat_pulse(btn_repeat[3])
+    );
+    debounce #(.N_MS(BTN_MS), .W(4)) button4 (
+        .clk(clk), .rst(rst), .tick_1ms(tick_1ms), .din(btn[4]),
+        .level(btn_level[4]), .toggled(btn_tgl_unused[4])
+    );
+    button_events events4 (
+        .clk(clk), .rst(rst), .tick_1ms(tick_1ms), .level(btn_level[4]),
+        .press(btn_press[4]), .long_press(btn_long[4]), .repeat_pulse(btn_repeat[4])
+    );
+
+    reg [COMBO_W-1:0] combo_ms;
     reg        armed;
-    wire both = btn_level[`BTN_U] & btn_level[`BTN_D];
+    wire both = btn_level[`BTN_L] & btn_level[`BTN_R];
     always @(posedge clk) begin
         soft_reset_req <= 1'b0;
         if (rst) begin
-            combo_ms <= 11'd0;
+            combo_ms <= 0;
             armed    <= 1'b0;
         end else begin
-            if (!btn_level[`BTN_U] && !btn_level[`BTN_D]) armed <= 1'b1;
+            if (!btn_level[`BTN_L] && !btn_level[`BTN_R]) armed <= 1'b1;
             if (!both || !armed) begin
-                combo_ms <= 11'd0;
+                combo_ms <= 0;
             end else if (tick_1ms) begin
                 if (combo_ms == COMBO_MS - 1) begin
                     soft_reset_req <= 1'b1;
                     armed          <= 1'b0;
-                    combo_ms       <= 11'd0;
+                    combo_ms       <= 0;
                 end else begin
-                    combo_ms <= combo_ms + 11'd1;
+                    combo_ms <= combo_ms + 1'b1;
                 end
             end
         end

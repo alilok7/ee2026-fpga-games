@@ -1,32 +1,14 @@
 `timescale 1ns / 1ps
 `include "strike_defs.vh"
-//=============================================================================
-// replay_buffer.v : instant replay of the last throw, in slow motion
-//-----------------------------------------------------------------------------
-// Owner   : Student D
-// Record  : every OLED frame (60 Hz) while the ball rolls and the pins act
-//           (ROLL, PINACTION, SETTLE), one "snapshot" of what is on screen:
-//             ball {visible, x, y, finger-hole angle}  23 bit
-//             camera                                    11 bit
-//             10 pins (pin_vis)                         240 bit
-//           = 274 bits, stored as 8 words of 36 bits in a 2048 x 36 block
-//           RAM (2 BRAM36): 256 snapshots = 4.3 s, the last 4.3 s are kept.
-// Play    : (start) from the oldest snapshot: every 2nd frame (half speed)
-//           the 8 words of the next snapshot are read (1 per clock) into
-//           registers; while `active` the top-level muxes feed these
-//           registers to B's and C's renderers instead of the live state.
-//           The physics itself is not touched: it is only a picture.
-//           (v3.2) `fast` plays every frame (real speed: the automatic replay
-//           after each ball); `stop` ends a replay early (a click skips it).
-//=============================================================================
+
 module replay_buffer (
     input  wire        clk,
     input  wire        rst,
     input  wire        tick_frame,
     input  wire [`GS_W-1:0] game_state,
     input  wire        start,
-    input  wire        fast,             // v3.2: real speed instead of half speed
-    input  wire        stop,             // v3.2: end the replay now
+    input  wire        fast,
+    input  wire        stop,
     input  wire        ball_vis_in,
     input  wire [15:0] ball_x_in,
     input  wire [15:0] ball_y_in,
@@ -43,86 +25,124 @@ module replay_buffer (
     output reg  [239:0] pins
 );
     reg [35:0] ram [0:2047];
-    reg        we;
-    reg [10:0] wa, ra;
-    reg [35:0] wd, rd;
+    reg        write_enable;
+    reg [10:0] write_address, read_address;
+    reg [35:0] write_data, read_data;
     always @(posedge clk) begin
-        if (we) ram[wa] <= wd;
-        rd <= ram[ra];
+        if (write_enable) ram[write_address] <= write_data;
+        read_data <= ram[read_address];
     end
 
-    // the snapshot being recorded, as 8 words
-    // {pad 14, visible 1, x 6 (whole inches < 64), y 10, angle 6, camera 11, pins 240} = 288
-    wire [287:0] snap = {14'd0, ball_vis_in, ball_x_in[11:6], ball_y_in[15:6], angle_in, cam_in, pins_in};
+    wire [287:0] snapshot = {14'd0, ball_vis_in, ball_x_in[11:6], ball_y_in[15:6], angle_in, cam_in, pins_in};
     wire recording = (game_state == `GS_ROLL) || (game_state == `GS_PINACTION) || (game_state == `GS_SETTLE);
 
-    reg [7:0]  wslot;                 // next snapshot slot (0..255)
-    reg [8:0]  count;                 // snapshots recorded for this throw (max 256)
-    reg [3:0]  wi;                    // word being written
-    reg        wbusy;
-    reg [287:0] snap_l;
-    reg        was_rec;
+    reg [7:0]  write_slot;
+    reg [8:0]  count;
+    reg [3:0]  write_word;
+    reg        write_active;
+    reg [287:0] write_bits;
+    reg        was_recording;
 
-    localparam P_IDLE = 2'd0, P_WAIT = 2'd1, P_READ = 2'd2;
-    reg [1:0]  ps;
-    reg [7:0]  rslot;
-    reg [8:0]  left;                  // snapshots still to show
-    reg [3:0]  ri;
-    reg        half;
-    reg [287:0] acc;
-    wire [287:0] full7 = {rd, acc[287:36]};     // word 7 on top of words 0..6 (after 7 shifts)
+    localparam IDLE = 2'd0, WAIT_FRAME = 2'd1, READ_WORDS = 2'd2;
+    reg [1:0]  play_state;
+    reg [7:0]  read_slot;
+    reg [8:0]  frames_left;
+    reg [3:0]  read_word;
+    reg        half_speed;
+    reg [287:0] frame_bits;
+    wire [287:0] complete_frame = {read_data, frame_bits[287:36]};
 
     always @(posedge clk) begin
-        we <= 1'b0; done <= 1'b0;
+        write_enable <= 1'b0;
+        done <= 1'b0;
         if (rst) begin
-            wslot <= 0; count <= 0; wi <= 0; wbusy <= 0; snap_l <= 0; was_rec <= 0;
-            ps <= P_IDLE; rslot <= 0; left <= 0; ri <= 0; half <= 0; acc <= 0; active <= 0;
-            wa <= 0; ra <= 0; wd <= 0;
-            ball_vis <= 0; ball_x <= 0; ball_y <= 0; angle <= 0; cam <= 0; pins <= 0;
+            write_slot <= 0;
+            count <= 0;
+            write_word <= 0;
+            write_active <= 0;
+            write_bits <= 0;
+            was_recording <= 0;
+            play_state <= IDLE;
+            read_slot <= 0;
+            frames_left <= 0;
+            read_word <= 0;
+            half_speed <= 0;
+            frame_bits <= 0;
+            active <= 0;
+            write_address <= 0;
+            read_address <= 0;
+            write_data <= 0;
+            ball_vis <= 0;
+            ball_x <= 0;
+            ball_y <= 0;
+            angle <= 0;
+            cam <= 0;
+            pins <= 0;
         end else begin
-            // ---------------- record ----------------
-            was_rec <= recording;
-            if (recording && !was_rec) count <= 0;                  // a new throw
-            if (recording && tick_frame && !wbusy && !active) begin
-                snap_l <= snap; wi <= 0; wbusy <= 1;
+            was_recording <= recording;
+            if (recording && !was_recording) count <= 0;
+            if (recording && tick_frame && !write_active && !active) begin
+                write_bits <= snapshot;
+                write_word <= 0;
+                write_active <= 1;
             end
-            if (wbusy) begin                     // shift the snapshot out, 36 bits per clock
-                we <= 1'b1; wa <= {wslot, wi[2:0]}; wd <= snap_l[35:0];
-                snap_l <= snap_l >> 36;
-                wi <= wi + 4'd1;
-                if (wi == 4'd7) begin
-                    wbusy <= 0; wslot <= wslot + 8'd1;
+            if (write_active) begin
+                write_enable <= 1'b1;
+                write_address <= {write_slot, write_word[2:0]};
+                write_data <= write_bits[35:0];
+                write_bits <= write_bits >> 36;
+                write_word <= write_word + 4'd1;
+                if (write_word == 4'd7) begin
+                    write_active <= 0;
+                    write_slot <= write_slot + 8'd1;
                     if (count != 9'd256) count <= count + 9'd1;
                 end
             end
-            // ---------------- play ----------------
-            case (ps)
-                P_IDLE: if (start && count != 0) begin
-                    active <= 1; rslot <= wslot - count[7:0]; left <= count; half <= 0;
-                    ps <= P_WAIT;
+
+            case (play_state)
+                IDLE: if (start && count != 0) begin
+                    active <= 1;
+                    read_slot <= write_slot - count[7:0];
+                    frames_left <= count;
+                    half_speed <= 0;
+                    play_state <= WAIT_FRAME;
                 end else if (start) done <= 1'b1;
-                P_WAIT: if (stop) begin
-                    active <= 0; done <= 1'b1; ps <= P_IDLE;
+                WAIT_FRAME: if (stop) begin
+                    active <= 0;
+                    done <= 1'b1;
+                    play_state <= IDLE;
                 end else if (tick_frame) begin
-                    half <= ~half;
-                    if (!half || fast) begin
-                        if (left == 0) begin active <= 0; done <= 1'b1; ps <= P_IDLE; end
-                        else begin ri <= 0; ra <= {rslot, 3'd0}; ps <= P_READ; end
+                    half_speed <= ~half_speed;
+                    if (!half_speed || fast) begin
+                        if (frames_left == 0) begin
+                            active <= 0;
+                            done <= 1'b1;
+                            play_state <= IDLE;
+                        end
+                        else begin
+                            read_word <= 0;
+                            read_address <= {read_slot, 3'd0};
+                            play_state <= READ_WORDS;
+                        end
                     end
                 end
-                P_READ: begin                 // rd belongs to the address set one clock earlier
-                    ri <= ri + 4'd1;
-                    ra <= {rslot, ri[2:0] + 3'd1};
-                    if (ri != 0) acc <= {rd, acc[287:36]};   // shift in: word 0 ends at the bottom
-                    if (ri == 4'd8) begin              // rd = word 7 now: unpack the snapshot
-                        pins     <= full7[239:0];
-                        cam      <= full7[250:240];
-                        ps <= P_WAIT; rslot <= rslot + 8'd1; left <= left - 9'd1;
-                        {ball_vis, ball_x, ball_y} <= {full7[273], 4'd0, full7[272:267], 6'd32, full7[266:257], 6'd32};
-                        angle    <= full7[256:251];
+                READ_WORDS: begin
+                    read_word <= read_word + 4'd1;
+                    read_address <= {read_slot, read_word[2:0] + 3'd1};
+                    if (read_word != 0) frame_bits <= {read_data, frame_bits[287:36]};
+                    if (read_word == 4'd8) begin
+                        pins     <= complete_frame[239:0];
+                        cam      <= complete_frame[250:240];
+                        play_state <= WAIT_FRAME;
+                        read_slot <= read_slot + 8'd1;
+                        frames_left <= frames_left - 9'd1;
+                        ball_vis <= complete_frame[273];
+                        ball_x <= {4'd0, complete_frame[272:267], 6'd32};
+                        ball_y <= {complete_frame[266:257], 6'd32};
+                        angle    <= complete_frame[256:251];
                     end
                 end
-                default: ps <= P_IDLE;
+                default: play_state <= IDLE;
             endcase
         end
     end

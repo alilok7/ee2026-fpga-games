@@ -1,14 +1,6 @@
 `timescale 1ns / 1ps
 `include "strike_defs.vh"
-//=============================================================================
-// tb_gesture.v : swipe_capture + gesture_features against synthetic swipes
-//-----------------------------------------------------------------------------
-// Owner : Student A
-// Time is compressed: one 200 Hz sample = 20 clocks, and MouseCtl's 40 Hz
-// packets arrive every 5 samples, exactly the real ratio.
-// A swipe is a list of per-packet velocity vectors (counts per 25 ms) with a
-// speed and a heading that can turn by a fixed angle per packet (a curve).
-//=============================================================================
+
 module tb_gesture;
     reg clk = 0;
     always #5 clk = ~clk;
@@ -54,7 +46,6 @@ module tb_gesture;
         .throw_vx(tvx), .throw_spin(tspin), .throw_x0(tx0), .throw_mph10(tmph), .reject(rej),
         .reject_msg(rmsg), .aim_level(alev), .aim_right(aright));
 
-    // 200 Hz sample every 20 clocks
     integer cyc = 0;
     always @(posedge clk) begin
         cyc <= cyc + 1;
@@ -69,22 +60,18 @@ module tb_gesture;
         end
     endtask
 
-    // ---- one swipe: npk packets, speed `spd` counts/packet, start heading
-    //      h0 (milli-radians, 0 = straight forward, + = right), turn per
-    //      packet `dh` (+ = clockwise = to the right)
     reg got_throw, got_reject, got_cancel;
     reg [1:0] last_msg;
     reg signed [`SPIN_W-1:0] last_spin;
     reg signed [15:0] last_vx, last_vy;
     reg [7:0] last_mph;
     always @(posedge clk) begin
-        if (tv) $display("      dbg n=%0d area2=%0d L2=%0d turn256=%0d peak=%0d spin=%0d", u_feat.n, u_feat.csum, u_feat.l2, u_feat.dv_quo, u_feat.peak, tspin);
+        if (tv) $display("      dbg n=%0d mid_cross=%0d L2=%0d turn256=%0d peak=%0d spin=%0d", u_feat.sample_count, u_feat.middle_cross, u_feat.chord_squared, u_feat.dv_quo, u_feat.peak, tspin);
         if (tv)  begin got_throw <= 1; last_spin <= tspin; last_vx <= tvx; last_vy <= tvy; last_mph <= tmph; end
-        if (rej) begin got_reject <= 1; last_msg <= rmsg; $display("      reject msg=%0d n=%0d js=%0d je=%0d peak=%0d dfs=%0d", rmsg, u_feat.n, u_feat.js, u_feat.je, u_feat.peak, u_feat.dfs_q); end
+        if (rej) begin got_reject <= 1; last_msg <= rmsg; $display("      reject msg=%0d n=%0d js=%0d je=%0d peak=%0d dfs=%0d", rmsg, u_feat.sample_count, u_feat.first_move, u_feat.last_move, u_feat.peak, u_feat.total_f); end
         if (scancel) got_cancel <= 1;
     end
 
-    // tremor: packets of +-1..2 counts before and after the real swipe
     integer pre_jit = 0, post_jit = 0;
     task jitter(input integer k);
         integer p, s;
@@ -113,7 +100,7 @@ module tb_gesture;
                 for (s = 0; s < 5; s = s + 1) @(posedge tick_sample);
                 @(posedge clk);
                 ddx <= $rtoi(spd * $sin(h));
-                ddy <= -$rtoi(spd * $cos(h));          // forward = -y
+                ddy <= -$rtoi(spd * $cos(h));
                 dv  <= 1;
                 @(posedge clk) dv <= 0;
                 h = h + dh / 1000.0;
@@ -133,7 +120,6 @@ module tb_gesture;
         rst <= 0;
         repeat (50) @(posedge clk);
 
-        // 1. straight forward flick
         swipe(10, 60, 0, 0, 0);
         check(got_throw, "straight swipe -> throw");
         check(last_spin == 0, "straight swipe -> no spin");
@@ -141,54 +127,42 @@ module tb_gesture;
         check(last_mph >= 150 && last_mph <= 200, "60 counts/packet -> 15-20 mph");
         $display("      mph10=%0d vy=%0d", last_mph, last_vy);
 
-        // 2. curving left (counter-clockwise): heading turns -0.12 rad/packet
         swipe(10, 60, 0, -120, 0);
         check(got_throw && last_spin > 0, "curve left -> positive spin (hook left)");
         $display("      spin=%0d", last_spin);
 
-        // 3. gentle curve right
         swipe(10, 60, 0, 40, 0);
         check(got_throw && last_spin < 0, "curve right -> negative spin");
         $display("      spin=%0d", last_spin);
 
-        // 4. angled 25 degrees right, straight line
         swipe(10, 60, 436, 0, 0);
         check(got_throw && last_vx > 0 && last_spin == 0, "angled right -> vx > 0, no spin");
         $display("      vx=%0d vy=%0d", last_vx, last_vy);
 
-        // 5. 5 degrees right: inside the dead zone
         swipe(10, 60, 87, 0, 0);
         check(got_throw && last_vx == 0, "5 degree swipe -> dead zone, vx = 0");
 
-        // 6. sideways
         swipe(10, 60, 1300, 0, 0);
         check(got_reject && last_msg == `GM_FORWARD, "sideways -> SWIPE FORWARD");
 
-        // 7. backwards
         swipe(10, 60, 3141, 0, 0);
         check(got_reject && last_msg == `GM_FORWARD, "backwards -> SWIPE FORWARD");
 
-        // 8. very slow
         swipe(10, 4, 0, 0, 0);
         check(got_reject && last_msg == `GM_FASTER, "slow swipe -> SWIPE FASTER");
 
-        // 9. zero-length (press and release)
         got_throw = 0;
         @(posedge clk) lp <= 1; @(posedge clk) lp <= 0;
         @(posedge clk) lr <= 1; @(posedge clk) lr <= 0;
         repeat (500) @(posedge clk);
         check(!got_throw && !grabbing, "zero-length swipe -> nothing thrown");
 
-        // 10. right click cancels
         swipe(10, 60, 0, 0, 1);
         check(got_cancel && !got_throw, "right click -> cancelled");
 
-        // 11. very fast flick saturates at 22 mph
         swipe(6, 250, 0, 0, 0);
         check(got_throw && last_mph == 220, "huge flick -> capped at 22.0 mph");
 
-        // ---- v3: spin from the whole curve ----------------------------
-        // 13. more curve -> more spin, and even a gentle curve registers
         begin : t13
             integer s1, s2, s3, s4;
             swipe(10, 60, 0, 10, 0);  s1 = -last_spin;
@@ -198,7 +172,7 @@ module tb_gesture;
             $display("      spin for 10/20/40/60 mrad per packet: %0d %0d %0d %0d", s1, s2, s3, s4);
             check(s1 >= 1 && s1 < s2 && s2 < s3 && s3 < s4, "spin grows steadily with the curve (31 levels)");
         end
-        // 14. mirror images give equal and opposite spin
+
         begin : t14
             integer a, b;
             swipe(10, 60, 0, 40, 0);  a = last_spin;
@@ -206,7 +180,7 @@ module tb_gesture;
             $display("      +curve %0d  -curve %0d", a, b);
             check(a == -b && a != 0, "mirrored swipes give mirrored spin");
         end
-        // 15. hand tremor before and after the swipe does not change it
+
         begin : t15
             integer a, b;
             swipe(10, 60, 0, -40, 0); a = last_spin;
@@ -216,7 +190,7 @@ module tb_gesture;
             $display("      clean %0d  with tremor %0d", a, b);
             check(got_throw && (a - b <= 1) && (b - a <= 1), "tremor before / after the swipe is trimmed off");
         end
-        // 16. the spin-sensitivity setting
+
         begin : t16
             integer a, b;
             swipe(10, 60, 0, -20, 0); a = last_spin;
@@ -226,18 +200,17 @@ module tb_gesture;
             $display("      normal %0d  high %0d", a, b);
             check(b > a && a > 0, "HIGH spin sensitivity gives more spin");
         end
-        // 17. a straight swipe still gives exactly 0 (dead zone)
+
         swipe(10, 60, 0, 0, 0);
         check(got_throw && last_spin == 0, "straight swipe after curves -> spin 0");
 
-        // 12. a grab is refused outside AIM
         gs = `GS_ROLL;
         @(posedge clk) lp <= 1; @(posedge clk) lp <= 0;
         repeat (5) @(posedge clk);
         check(!grabbing, "no grab while the ball is rolling");
 
         if (errors == 0) $display("PASS tb_gesture: all checks");
-        else             $display("FAIL tb_gesture: %0d errors", errors);
+        else begin $display("FAIL tb_gesture: %0d errors", errors); $stop; end
         $finish;
     end
 endmodule

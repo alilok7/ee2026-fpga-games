@@ -1,65 +1,100 @@
 `timescale 1ns / 1ps
-//=============================================================================
-// button_events.v : press / long-press / auto-repeat for ONE debounced button
-//-----------------------------------------------------------------------------
-// Owner   : Student D (shared input library)
-// Purpose : Menus need three kinds of event from a single button:
-//             press   - the moment it goes down
-//             long    - once, when it has been held for LONG_MS
-//             repeat  - after REP_DELAY ms, then every REP_PERIOD ms while
-//                       held (holding Down scrolls a list)
-//           A hold-time counter (in ms) drives all three, like the lab's
-//           counters that advance on a 1 kHz enable.
-// Ports
-//   level   debounced button level (from debounce.v)
-//   press, long_press, repeat   1-cycle pulses
-//=============================================================================
 module button_events #(
-    parameter LONG_MS    = 1000,
-    parameter REP_DELAY  = 400,
-    parameter REP_PERIOD = 100
+    parameter LONG_MS = 1000,
+    parameter REP_DELAY = 400,
+    parameter REP_PERIOD = 100,
+    parameter HOLD_W = 10,
+    parameter REPEAT_W = 9
 ) (
-    input  wire clk,
-    input  wire rst,
-    input  wire tick_1ms,
-    input  wire level,
-    output reg  press,
-    output reg  long_press,
-    output reg  repeat_pulse
+    input wire clk, rst, tick_1ms, level,
+    output reg press, long_press, repeat_pulse
 );
-    reg        prev;
-    reg [10:0] hold_ms;                 // saturates at 2047 ms
-    reg [6:0]  rep_ms;
+    localparam IDLE = 0, HELD = 1, REPEATING = 2;
+    reg [1:0] state;
+    reg [1:0] next_state;
+    reg [HOLD_W-1:0] hold_ms;
+    reg [REPEAT_W-1:0] repeat_ms;
+
+    reg [2:0] startup;
+
+    always @(*) begin
+        next_state = state;
+        if (startup != 4) begin
+            if (level) next_state = HELD;
+            else next_state = IDLE;
+        end else if (!level) begin
+            next_state = IDLE;
+        end else begin
+            case (state)
+                IDLE: next_state = HELD;
+                HELD: begin
+                    if (tick_1ms && repeat_ms == REP_DELAY - 1) next_state = REPEATING;
+                end
+                REPEATING: next_state = REPEATING;
+                default: next_state = IDLE;
+            endcase
+        end
+    end
 
     always @(posedge clk) begin
-        press        <= 1'b0;
-        long_press   <= 1'b0;
-        repeat_pulse <= 1'b0;
+        if (rst) state <= IDLE;
+        else state <= next_state;
+    end
+
+    always @(posedge clk) begin
+        press <= 0;
+        long_press <= 0;
+        repeat_pulse <= 0;
+
         if (rst) begin
-            prev    <= level;           // a button held through reset is not a press
-            hold_ms <= 11'd0;
-            rep_ms  <= 7'd0;
+            hold_ms <= 0;
+            repeat_ms <= 0;
+            startup <= 0;
+        end else if (startup != 4) begin
+            startup <= startup + 1'b1;
+            hold_ms <= 0;
+            repeat_ms <= 0;
+        end else if (!level) begin
+            hold_ms <= 0;
+            repeat_ms <= 0;
         end else begin
-            prev <= level;
-            if (level && !prev) begin                    // rising edge
-                press   <= 1'b1;
-                hold_ms <= 11'd0;
-                rep_ms  <= 7'd0;
-            end else if (level && tick_1ms) begin
-                if (hold_ms != 11'h7FF) hold_ms <= hold_ms + 11'd1;
-                if (hold_ms == LONG_MS - 1) long_press <= 1'b1;
-                if (hold_ms == REP_DELAY - 1) begin
-                    repeat_pulse <= 1'b1;
-                    rep_ms       <= 7'd0;
-                end else if (hold_ms >= REP_DELAY) begin
-                    if (rep_ms == REP_PERIOD - 1) begin
-                        repeat_pulse <= 1'b1;
-                        rep_ms       <= 7'd0;
-                    end else begin
-                        rep_ms <= rep_ms + 7'd1;
+            if (state != IDLE && tick_1ms && hold_ms < LONG_MS) begin
+                hold_ms <= hold_ms + 1;
+                if (hold_ms == LONG_MS - 1) long_press <= 1;
+            end
+
+            case (state)
+                IDLE: begin
+                    press <= 1;
+
+                    hold_ms <= 0;
+                    repeat_ms <= 0;
+                end
+                HELD: begin
+                    if (tick_1ms) begin
+                        if (repeat_ms == REP_DELAY - 1) begin
+                            repeat_pulse <= 1;
+                            repeat_ms <= 0;
+                        end else begin
+                            repeat_ms <= repeat_ms + 1;
+                        end
                     end
                 end
-            end
+                REPEATING: begin
+                    if (tick_1ms) begin
+                        if (repeat_ms == REP_PERIOD - 1) begin
+                            repeat_pulse <= 1;
+                            repeat_ms <= 0;
+                        end else begin
+                            repeat_ms <= repeat_ms + 1;
+                        end
+                    end
+                end
+                default: begin
+                    hold_ms <= 0;
+                    repeat_ms <= 0;
+                end
+            endcase
         end
     end
 endmodule

@@ -1,0 +1,65 @@
+Icarus Verilog 12.0, -g2001 -Wall; vvp -N
+
+PASS compile_all: all Part A RTL in Verilog-2001 mode
+PASS tb_controls: debounce, events, reset and all 65536 8-bit divisions
+strikeline/sim/checks/tb_controls.v:96: $finish called at 6555906000 (1ps)
+PASS tb_ui: timebase, display and input wiring
+strikeline/sim/checks/tb_ui.v:84: $finish called at 2556000 (1ps)
+PASS tb_startup: no power-up switch/button events; real press still works
+strikeline/sim/checks/tb_startup.v:50: $finish called at 1256000 (1ps)
+PASS tb_datapaths: signed multiplier; all 9-bit and 16-bit BCD values
+strikeline/sim/checks/tb_datapaths.v:65: $finish called at 96868000 (1ps)
+      dbg n=50 mid_cross=0 L2=360000 turn256=0 peak=195 spin=0
+PASS straight swipe -> throw
+PASS straight swipe -> no spin
+PASS straight swipe -> no aim
+PASS 60 counts/packet -> 15-20 mph
+      mph10=172 vy=6880
+      dbg n=50 mid_cross=48538 L2=314120 turn256=316 peak=179 spin=31
+PASS curve left -> positive spin (hook left)
+      spin=31
+      dbg n=50 mid_cross=-17410 L2=347965 turn256=102 peak=192 spin=-23
+PASS curve right -> negative spin
+      spin=-23
+      dbg n=50 mid_cross=0 L2=354100 turn256=0 peak=176 spin=0
+PASS angled right -> vx > 0, no spin
+      vx=74 vy=6640
+      dbg n=50 mid_cross=0 L2=350600 turn256=0 peak=192 spin=0
+PASS 5 degree swipe -> dead zone, vx = 0
+      reject msg=1 n=50 js=5 je=53 peak=52 dfs=160
+PASS sideways -> SWIPE FORWARD
+      reject msg=1 n=50 js=5 je=53 peak=0 dfs=-590
+PASS backwards -> SWIPE FORWARD
+      reject msg=2 n=57 js=1 je=1 peak=0 dfs=-590
+PASS slow swipe -> SWIPE FASTER
+PASS zero-length swipe -> nothing thrown
+PASS right click -> cancelled
+      dbg n=30 mid_cross=0 L2=2250000 turn256=0 peak=813 spin=0
+PASS huge flick -> capped at 22.0 mph
+      dbg n=50 mid_cross=-4148 L2=349765 turn256=24 peak=192 spin=-4
+      dbg n=50 mid_cross=-8594 L2=351682 turn256=50 peak=192 spin=-10
+      dbg n=50 mid_cross=-17410 L2=347965 turn256=102 peak=192 spin=-23
+      dbg n=50 mid_cross=-25891 L2=343765 turn256=154 peak=190 spin=-31
+      spin for 10/20/40/60 mrad per packet: 4 10 23 31
+PASS spin grows steadily with the curve (31 levels)
+      dbg n=50 mid_cross=-17410 L2=347965 turn256=102 peak=192 spin=-23
+      dbg n=50 mid_cross=17410 L2=347965 turn256=102 peak=192 spin=23
+      +curve -23  -curve 23
+PASS mirrored swipes give mirrored spin
+      dbg n=50 mid_cross=17410 L2=347965 turn256=102 peak=192 spin=23
+      dbg n=50 mid_cross=17410 L2=347965 turn256=102 peak=192 spin=23
+      clean 23  with tremor 23
+PASS tremor before / after the swipe is trimmed off
+      dbg n=50 mid_cross=8594 L2=351682 turn256=50 peak=192 spin=10
+      dbg n=50 mid_cross=8594 L2=351682 turn256=50 peak=192 spin=21
+      normal 10  high 21
+PASS HIGH spin sensitivity gives more spin
+      dbg n=50 mid_cross=0 L2=360000 turn256=0 peak=195 spin=0
+PASS straight swipe after curves -> spin 0
+PASS no grab while the ball is rolling
+PASS tb_gesture: all checks
+strikeline/sim/a/tb_gesture.v:214: $finish called at 870085000 (1ps)
+
+Separate regression comparison against the prior source snapshot:
+PASS tb_equivalence: 20000 cycles of mouse, renderer, replay and display outputs
+work/tb_equivalence.v:215: $finish called at 200056000 (1ps)
