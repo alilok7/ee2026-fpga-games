@@ -1,54 +1,69 @@
 `timescale 1ns / 1ps
-//=============================================================================
-// spi_byte.v : one SPI byte, mode 0, MSB first, SCK = 100 MHz / 8
-//-----------------------------------------------------------------------------
-// Owner   : Student D
-// Purpose : The flash samples MOSI on the rising SCK edge and changes MISO
-//           after the falling edge (mode 0). One bit takes 8 system clocks:
-//             phase 0..3  SCK low   (MOSI set at phase 0)
-//             phase 4..7  SCK high  (MISO sampled at phase 4)
-//           12.5 MHz is far below the flash's 40-50 MHz READ limit, so the
-//           STARTUPE2 clock-path delay does not matter.
-//=============================================================================
+// spi_byte.v : send and receive one byte over SPI mode 0, MSB first
+// Student D. SCK = 100 MHz / 8 (mod-8 phase counter, same idea as the clock
+// divider from the lab). MOSI is set while SCK is low, MISO is read when it goes high.
 module spi_byte (
     input  wire       clk,
     input  wire       rst,
     input  wire       start,
-    input  wire [7:0] tx,
-    output reg  [7:0] rx,
-    output reg        done,
-    output wire       busy,
-    output reg        sck,
-    output reg        mosi,
-    input  wire       miso
+    input  wire [7:0] tx,         // byte to send
+    output reg  [7:0] rx = 0,
+    output reg        done = 0,   // 1 clock: the byte is finished
+    output wire       busy,       // a byte is in flight
+    output reg        sck = 0,
+    output reg        mosi = 0,   // SPI data out (QspiDB[0])
+    input  wire       miso        // SPI data in  (QspiDB[1])
 );
-    reg [2:0] phase;
-    reg [3:0] bits;                    // bits left
-    reg [7:0] sh;
-    assign busy = (bits != 4'd0);
+    // state register + next-state logic
+    parameter IDLE = 1'b0, SHIFT = 1'b1;
+    reg state = IDLE, nextstate;
 
+    // two mod-8 counters (clock in the bit, which bit) and the shift register
+    reg [2:0] phase   = 0;
+    reg [2:0] bit_cnt = 0;
+    reg [7:0] sh      = 0;
+
+    wire last_clk = (phase == 3'd7) && (bit_cnt == 3'd7);    // end of the 8th bit
+
+    // next-state logic
+    always @(*) begin
+        case (state)
+            IDLE:    nextstate = start ? SHIFT : IDLE;
+            SHIFT:   nextstate = last_clk ? IDLE : SHIFT;
+            default: nextstate = IDLE;
+        endcase
+    end
+
+    // state register
     always @(posedge clk) begin
-        done <= 1'b0;
+        if (rst) state <= IDLE;
+        else     state <= nextstate;
+    end
+
+    // output logic (Moore)
+    assign busy = (state == SHIFT);
+
+    // datapath: counters, shift register, pins
+    always @(posedge clk) begin
         if (rst) begin
-            phase <= 0; bits <= 0; sh <= 0; rx <= 0; sck <= 1'b0; mosi <= 1'b0;
-        end else if (start && !busy) begin
-            sh <= tx; bits <= 4'd8; phase <= 3'd0;
-        end else if (busy) begin
-            phase <= phase + 3'd1;
-            case (phase)
-                3'd0: begin sck <= 1'b0; mosi <= sh[7]; end
-                3'd4: begin sck <= 1'b1; sh <= {sh[6:0], miso}; end
-                3'd7: begin
-                    bits <= bits - 4'd1;
-                    if (bits == 4'd1) begin
-                        done <= 1'b1;
-                        rx   <= sh;            // all 8 bits shifted in
+            phase <= 0; bit_cnt <= 0; sh <= 0; rx <= 0; done <= 0; sck <= 0; mosi <= 0;
+        end else begin
+            done <= 1'b0;                                    // a pulse: low unless set below
+            case (state)
+                IDLE: begin
+                    sck <= 1'b0; phase <= 0; bit_cnt <= 0;
+                    if (start) sh <= tx;                     // load the byte to send
+                end
+                SHIFT: begin
+                    phase <= phase + 3'd1;                   // 7 + 1 wraps to 0
+                    if (phase == 3'd0) begin sck <= 1'b0; mosi <= sh[7]; end   // set the bit
+                    if (phase == 3'd4) begin sck <= 1'b1; sh <= {sh[6:0], miso}; end // read a bit
+                    if (phase == 3'd7) begin
+                        bit_cnt <= bit_cnt + 3'd1;
+                        if (bit_cnt == 3'd7) begin done <= 1'b1; rx <= sh; end
                     end
                 end
-                default: ;
             endcase
-        end else begin
-            sck <= 1'b0;
         end
     end
 endmodule

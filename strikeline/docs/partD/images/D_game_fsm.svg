@@ -1,0 +1,114 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="820" viewBox="0 0 1600 820">
+<rect x="0" y="0" width="1600" height="820" fill="white"/>
+<text x="800" y="46" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="34" fill="#2e8b3d" text-anchor="middle" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">BLOCK DIAGRAM: game_fsm  (the main FSM)</text>
+<rect x="230" y="90" width="1080" height="680" fill="none" stroke="#222222" stroke-width="6"/>
+<text x="234" y="80" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="20" fill="#222222" text-anchor="start" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">module game_fsm</text>
+<path d="M 10 140 L 300 140" fill="none" stroke="#29a8e0" stroke-width="2.5"/>
+<polygon points="300,140 290,144 290,136" fill="#29a8e0"/>
+<text x="10" y="132" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#29a8e0" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">cursor_x[6:0], cursor_y[5:0], mouse_move</text>
+<path d="M 10 188 L 300 188" fill="none" stroke="#29a8e0" stroke-width="2.5"/>
+<polygon points="300,188 290,192 290,184" fill="#29a8e0"/>
+<text x="10" y="180" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#29a8e0" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">l_press, r_press, m_press, r_level, wheel[3:0]</text>
+<path d="M 10 236 L 300 236" fill="none" stroke="#29a8e0" stroke-width="2.5"/>
+<polygon points="300,236 290,240 290,232" fill="#29a8e0"/>
+<text x="10" y="228" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#29a8e0" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">btn_press[4:0], btn_repeat, btn_long</text>
+<path d="M 10 284 L 300 284" fill="none" stroke="#29a8e0" stroke-width="2.5"/>
+<polygon points="300,284 290,288 290,280" fill="#29a8e0"/>
+<text x="10" y="276" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#29a8e0" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">paused (sw0), sw_play[3:0], sw_lefty</text>
+<path d="M 10 332 L 300 332" fill="none" stroke="#e07b00" stroke-width="2.5"/>
+<polygon points="300,332 290,336 290,328" fill="#e07b00"/>
+<text x="10" y="324" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#e07b00" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">tstate[4:0], t_game_over, t_kind[2:0]</text>
+<path d="M 10 380 L 300 380" fill="none" stroke="#e07b00" stroke-width="2.5"/>
+<polygon points="300,380 290,384 290,376" fill="#e07b00"/>
+<text x="10" y="372" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#e07b00" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">game0[8:0], game1[8:0]</text>
+<path d="M 10 428 L 300 428" fill="none" stroke="#0d4fa1" stroke-width="2.5"/>
+<polygon points="300,428 290,432 290,424" fill="#0d4fa1"/>
+<text x="10" y="420" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#0d4fa1" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">load_done</text>
+<path d="M 10 476 L 300 476" fill="none" stroke="#a0461e" stroke-width="2.5"/>
+<polygon points="300,476 290,480 290,472" fill="#a0461e"/>
+<text x="10" y="468" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#a0461e" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">persist_busy</text>
+<path d="M 10 524 L 300 524" fill="none" stroke="#2e8b3d" stroke-width="2.5"/>
+<polygon points="300,524 290,528 290,520" fill="#2e8b3d"/>
+<text x="10" y="516" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#2e8b3d" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">rd[7:0] (image port 3)</text>
+<rect x="300" y="120" width="300" height="260" rx="4" fill="white" stroke="#29a8e0" stroke-width="3"/>
+<text x="302" y="113" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="16" fill="#29a8e0" text-anchor="start" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">input events</text>
+<text x="310" y="142" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#29a8e0" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// b_up / b_down / b_sel / b_back</text>
+<text x="310" y="159" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#29a8e0" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// row_at = cursor_y / 8</text>
+<text x="310" y="176" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#29a8e0" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// act = click on the hovered row</text>
+<text x="310" y="193" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#29a8e0" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">//   or btnC</text>
+<text x="310" y="210" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#29a8e0" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// chip_hit = click on 1P/2P chip</text>
+<text x="310" y="227" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#29a8e0" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">//   or btnR</text>
+<text x="310" y="244" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#29a8e0" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// any_sel, back</text>
+<rect x="660" y="120" width="300" height="290" rx="4" fill="white" stroke="#b0279c" stroke-width="3"/>
+<text x="662" y="113" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="16" fill="#b0279c" text-anchor="start" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">next-state logic (always @(*))</text>
+<text x="670" y="142" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// the next-state TABLE:</text>
+<text x="670" y="159" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// BOOT  -&gt; TITLE (settings read)</text>
+<text x="670" y="176" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// TITLE -&gt; MENU (click)</text>
+<text x="670" y="193" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// MENU  -&gt; PLAY / SCORES / SET /</text>
+<text x="670" y="210" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">//          HELP / TITLE</text>
+<text x="670" y="227" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// PLAY  -&gt; QUAL (game over)</text>
+<text x="670" y="244" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">//       -&gt; MENU (pause+click)</text>
+<text x="670" y="261" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// QUAL  -&gt; OVER -&gt; NAME | SCORES</text>
+<text x="670" y="278" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// NAME  -&gt; SCORES (3 letters)</text>
+<text x="670" y="295" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// SET / SCORES / HELP -&gt; MENU</text>
+<path d="M 600 250 L 660 250" fill="none" stroke="#29a8e0" stroke-width="2.5"/>
+<polygon points="660,250 650,254 650,246" fill="#29a8e0"/>
+<rect x="660" y="460" width="300" height="90" rx="4" fill="white" stroke="#b0279c" stroke-width="3"/>
+<text x="662" y="453" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="16" fill="#b0279c" text-anchor="start" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">state register  mode [3:0]</text>
+<text x="670" y="482" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// if (rst) mode &lt;= M_BOOT;</text>
+<text x="670" y="499" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// else mode &lt;= nextmode;</text>
+<path d="M 810 410 L 810 460" fill="none" stroke="#b0279c" stroke-width="2.5"/>
+<polygon points="810,460 806,450 814,450" fill="#b0279c"/>
+<text x="860" y="440" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#b0279c" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">nextmode</text>
+<path d="M 660 505 L 630 505 L 630 300 L 660 300" fill="none" stroke="#b0279c" stroke-width="2.5"/>
+<polygon points="660,300 650,304 650,296" fill="#b0279c"/>
+<rect x="300" y="450" width="300" height="290" rx="4" fill="white" stroke="#a0461e" stroke-width="3"/>
+<text x="302" y="443" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="16" fill="#a0461e" text-anchor="start" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">screen registers + pulses</text>
+<text x="310" y="472" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#a0461e" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// hover, chip_two, has_save,</text>
+<text x="310" y="489" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#a0461e" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// set_r (+ set_dirty FIX), erase,</text>
+<text x="310" y="506" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#a0461e" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// name / name_pos / newhi,</text>
+<text x="310" y="523" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#a0461e" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// tab_quick, card_show, aim_zoom</text>
+<text x="310" y="540" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#a0461e" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// QUAL: GAMEEND, check place 5</text>
+<text x="310" y="557" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#a0461e" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// go_new / go_resume / abort</text>
+<text x="310" y="574" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#a0461e" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// c_insert / c_settings / save_req</text>
+<text x="310" y="591" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#a0461e" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// (uses nextmode = transition taken)</text>
+<path d="M 660 530 L 600 530" fill="none" stroke="#b0279c" stroke-width="2.5"/>
+<polygon points="600,530 610,526 610,534" fill="#b0279c"/>
+<text x="630" y="522" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#b0279c" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">mode, nextmode</text>
+<rect x="1010" y="120" width="270" height="200" rx="4" fill="white" stroke="#b0279c" stroke-width="3"/>
+<text x="1012" y="113" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="16" fill="#b0279c" text-anchor="start" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">output logic (Moore)</text>
+<text x="1020" y="142" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// game_state = case (mode)</text>
+<text x="1020" y="159" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">//   PLAY: tstate (submachine)</text>
+<text x="1020" y="176" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">//   else GS_TITLE / MENU / ...</text>
+<text x="1020" y="193" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// settings = set_r + switches</text>
+<text x="1020" y="210" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">//   (oil, theme, ball, hand)</text>
+<path d="M 960 480 L 1150 480 L 1150 320" fill="none" stroke="#b0279c" stroke-width="2.5"/>
+<polygon points="1150,320 1154,330 1146,330" fill="#b0279c"/>
+<text x="1050" y="472" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#b0279c" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">mode</text>
+<path d="M 1310 380 L 1590 380" fill="none" stroke="#b0279c" stroke-width="2.5"/>
+<polygon points="1590,380 1580,384 1580,376" fill="#b0279c"/>
+<text x="1320" y="372" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">game_state[4:0], settings[15:0] -&gt; everyone</text>
+<path d="M 1310 430 L 1590 430" fill="none" stroke="#e07b00" stroke-width="2.5"/>
+<polygon points="1590,430 1580,434 1580,426" fill="#e07b00"/>
+<text x="1320" y="422" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#e07b00" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">go_new, go_resume, kind_out[2:0], abort -&gt; C</text>
+<path d="M 1310 480 L 1590 480" fill="none" stroke="#a0461e" stroke-width="2.5"/>
+<polygon points="1590,480 1580,484 1580,476" fill="#a0461e"/>
+<text x="1320" y="472" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#a0461e" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">c_insert, c_settings, c_gameend, c_defaults -&gt; persist</text>
+<path d="M 1310 530 L 1590 530" fill="none" stroke="#0d4fa1" stroke-width="2.5"/>
+<polygon points="1590,530 1580,534 1580,526" fill="#0d4fa1"/>
+<text x="1320" y="522" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#0d4fa1" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">save_req -&gt; flash_ctrl</text>
+<path d="M 1310 580 L 1590 580" fill="none" stroke="#b0279c" stroke-width="2.5"/>
+<polygon points="1590,580 1580,584 1580,576" fill="#b0279c"/>
+<text x="1320" y="572" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">hover, chip_two, has_save, name ... -&gt; menu_render</text>
+<path d="M 1310 630 L 1590 630" fill="none" stroke="#29a8e0" stroke-width="2.5"/>
+<polygon points="1590,630 1580,634 1580,626" fill="#29a8e0"/>
+<text x="1320" y="622" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#29a8e0" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">aim_zoom -&gt; B,  nudge_l/r -&gt; A</text>
+<path d="M 1310 680 L 1590 680" fill="none" stroke="#e07b00" stroke-width="2.5"/>
+<polygon points="1590,680 1580,684 1580,676" fill="#e07b00"/>
+<text x="1320" y="672" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#e07b00" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">want_replay, skip, card_show</text>
+<path d="M 1280 220 L 1300 220 L 1300 380 L 1310 380" fill="none" stroke="#b0279c" stroke-width="2.5"/>
+<path d="M 600 600 L 1300 600 L 1300 680" fill="none" stroke="#a0461e" stroke-width="2.5"/>
+<text x="1010" y="345" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#d32f2f" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">game_fsm = MAIN machine,</text>
+<text x="1010" y="361" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#d32f2f" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">C's turn_fsm = submachine (go_new -&gt;</text>
+<text x="1010" y="377" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#d32f2f" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">... -&gt; t_game_over).</text>
+</svg>

@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="700" viewBox="0 0 1400 700">
+<rect x="0" y="0" width="1400" height="700" fill="white"/>
+<text x="700" y="46" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="34" fill="#2e8b3d" text-anchor="middle" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">STATE DIAGRAM: persist_ctrl</text>
+<ellipse cx="650" cy="330" rx="60" ry="27" fill="white" stroke="#b0279c" stroke-width="3"/>
+<text x="650" y="335" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="15" fill="#b0279c" text-anchor="middle" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">IDLE</text>
+<path d="M 536 290 L 592 320" fill="none" stroke="#222222" stroke-width="2.5"/>
+<polygon points="592,320 581,319 585,311" fill="#222222"/>
+<text x="526" y="284" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#222222" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">reset</text>
+<ellipse cx="200" cy="120" rx="52" ry="22" fill="white" stroke="#0d4fa1" stroke-width="3"/>
+<text x="200" y="120" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="15" fill="#0d4fa1" text-anchor="middle" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">DEF</text>
+<text x="200" y="138" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#0d4fa1" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">128 writes</text>
+<path d="M 560 278 L 299 172" fill="none" stroke="#222222" stroke-width="1.8"/>
+<polygon points="299,172 310,172 307,180" fill="#222222"/>
+<ellipse cx="420" cy="100" rx="52" ry="22" fill="white" stroke="#0d4fa1" stroke-width="3"/>
+<text x="420" y="100" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="15" fill="#0d4fa1" text-anchor="middle" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">CLR</text>
+<text x="420" y="118" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#0d4fa1" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">45 writes</text>
+<path d="M 604 272 L 471 158" fill="none" stroke="#222222" stroke-width="1.8"/>
+<polygon points="471,158 481,161 475,167" fill="#222222"/>
+<ellipse cx="650" cy="90" rx="52" ry="22" fill="white" stroke="#0d4fa1" stroke-width="3"/>
+<text x="650" y="90" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="15" fill="#0d4fa1" text-anchor="middle" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">ROLL</text>
+<text x="650" y="108" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#0d4fa1" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">2 writes</text>
+<path d="M 650 270 L 650 150" fill="none" stroke="#222222" stroke-width="1.8"/>
+<polygon points="650,150 654,160 646,160" fill="#222222"/>
+<ellipse cx="880" cy="100" rx="52" ry="22" fill="white" stroke="#0d4fa1" stroke-width="3"/>
+<text x="880" y="100" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="15" fill="#0d4fa1" text-anchor="middle" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">HDR</text>
+<text x="880" y="118" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#0d4fa1" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">4 writes</text>
+<path d="M 696 272 L 829 158" fill="none" stroke="#222222" stroke-width="1.8"/>
+<polygon points="829,158 825,167 819,161" fill="#222222"/>
+<ellipse cx="1100" cy="120" rx="52" ry="22" fill="white" stroke="#0d4fa1" stroke-width="3"/>
+<text x="1100" y="120" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="15" fill="#0d4fa1" text-anchor="middle" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">STRK</text>
+<text x="1100" y="138" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#0d4fa1" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">4 steps</text>
+<path d="M 740 278 L 1001 172" fill="none" stroke="#222222" stroke-width="1.8"/>
+<polygon points="1001,172 993,180 990,172" fill="#222222"/>
+<ellipse cx="1180" cy="300" rx="52" ry="22" fill="white" stroke="#0d4fa1" stroke-width="3"/>
+<text x="1180" y="300" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="15" fill="#0d4fa1" text-anchor="middle" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">SPAR</text>
+<text x="1180" y="318" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#0d4fa1" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">4 steps</text>
+<path d="M 756 322 L 1063 308" fill="none" stroke="#222222" stroke-width="1.8"/>
+<polygon points="1063,308 1053,312 1053,304" fill="#222222"/>
+<ellipse cx="1100" cy="500" rx="52" ry="22" fill="white" stroke="#0d4fa1" stroke-width="3"/>
+<text x="1100" y="500" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="15" fill="#0d4fa1" text-anchor="middle" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">GEND</text>
+<text x="1100" y="518" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#0d4fa1" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">4 steps</text>
+<path d="M 740 372 L 1001 458" fill="none" stroke="#222222" stroke-width="1.8"/>
+<polygon points="1001,458 990,458 993,450" fill="#222222"/>
+<ellipse cx="200" cy="530" rx="52" ry="22" fill="white" stroke="#0d4fa1" stroke-width="3"/>
+<text x="200" y="530" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="15" fill="#0d4fa1" text-anchor="middle" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">SET</text>
+<text x="200" y="548" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#0d4fa1" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">2 writes</text>
+<path d="M 560 380 L 299 480" fill="none" stroke="#222222" stroke-width="1.8"/>
+<polygon points="299,480 307,472 310,480" fill="#222222"/>
+<ellipse cx="1100" cy="640" rx="52" ry="22" fill="white" stroke="#0d4fa1" stroke-width="3"/>
+<text x="1100" y="640" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="15" fill="#0d4fa1" text-anchor="middle" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">BEST</text>
+<text x="1100" y="658" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#0d4fa1" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">3 steps</text>
+<path d="M 1100 540 L 1100 600" fill="none" stroke="#222222" stroke-width="1.8"/>
+<polygon points="1100,600 1096,590 1104,590" fill="#222222"/>
+<text x="1110" y="580" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">Full game</text>
+<ellipse cx="420" cy="560" rx="56" ry="25" fill="white" stroke="#2e8b3d" stroke-width="3"/>
+<text x="420" y="565" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="15" fill="#2e8b3d" text-anchor="middle" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">INS_FIND</text>
+<ellipse cx="560" cy="640" rx="56" ry="25" fill="white" stroke="#2e8b3d" stroke-width="3"/>
+<text x="560" y="645" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="15" fill="#2e8b3d" text-anchor="middle" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">INS_RDHI</text>
+<ellipse cx="760" cy="640" rx="56" ry="25" fill="white" stroke="#2e8b3d" stroke-width="3"/>
+<text x="760" y="645" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="15" fill="#2e8b3d" text-anchor="middle" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">INS_CMP</text>
+<ellipse cx="820" cy="520" rx="56" ry="25" fill="white" stroke="#2e8b3d" stroke-width="3"/>
+<text x="820" y="525" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="15" fill="#2e8b3d" text-anchor="middle" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">INS_SHIFT</text>
+<ellipse cx="930" cy="420" rx="56" ry="25" fill="white" stroke="#2e8b3d" stroke-width="3"/>
+<text x="930" y="425" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="15" fill="#2e8b3d" text-anchor="middle" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">INS_MOVE</text>
+<ellipse cx="430" cy="420" rx="56" ry="25" fill="white" stroke="#2e8b3d" stroke-width="3"/>
+<text x="430" y="425" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="15" fill="#2e8b3d" text-anchor="middle" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">INS_WRITE</text>
+<path d="M 600 370 L 460 525" fill="none" stroke="#222222" stroke-width="1.8"/>
+<polygon points="460,525 464,515 470,520" fill="#222222"/>
+<path d="M 450 600 L 510 625" fill="none" stroke="#222222" stroke-width="1.8"/>
+<polygon points="510,625 499,625 502,617" fill="#222222"/>
+<path d="M 625 640 L 695 640" fill="none" stroke="#222222" stroke-width="1.8"/>
+<polygon points="695,640 685,644 685,636" fill="#222222"/>
+<text x="620" y="680" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">next entry (k+1)</text>
+<path d="M 740 670 L 600 670 L 580 665" fill="none" stroke="#222222" stroke-width="1.5"/>
+<polygon points="580,665 591,663 589,672" fill="#222222"/>
+<path d="M 790 600 L 805 560" fill="none" stroke="#222222" stroke-width="1.8"/>
+<polygon points="805,560 805,571 797,568" fill="#222222"/>
+<text x="810" y="600" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">beats entry k</text>
+<path d="M 860 485 L 895 455" fill="none" stroke="#222222" stroke-width="1.8"/>
+<polygon points="895,455 890,465 885,458" fill="#222222"/>
+<path d="M 870 410 L 500 415" fill="none" stroke="#222222" stroke-width="1.8"/>
+<polygon points="500,415 510,411 510,419" fill="#222222"/>
+<text x="600" y="400" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">moved down to pos (or pos = 5)</text>
+<text x="40" y="300" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">IDLE picks the LOWEST pending flag:</text>
+<text x="40" y="316" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">DEF &gt; CLR &gt; ROLL &gt; HDR &gt; STRK &gt; SPAR</text>
+<text x="40" y="332" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">&gt; GEND &gt; INS &gt; SET.</text>
+<text x="40" y="348" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">Every job returns to IDLE and clears</text>
+<text x="40" y="364" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">its flag. 'step' counts the clocks in</text>
+<text x="40" y="380" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">each state (the submachine).</text>
+</svg>

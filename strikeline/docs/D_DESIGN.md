@@ -1,5 +1,7 @@
 # Part D: game controller, scoring, UI and save system (Student D)
 
+> **Part D was rewritten on branch `partD-aliasgar`.** Current notes: [partD/INTEGRATION_PARTD.md](partD/INTEGRATION_PARTD.md) (what changed, interfaces, checks), [partD/FEATURES_AND_CONTROLS.md](partD/FEATURES_AND_CONTROLS.md) and [partD/MODULE_NOTES.md](partD/MODULE_NOTES.md). Parts of this older file (written before the four-way split) describe files that now belong to A and C.
+
 ## Files
 | File | What it does |
 |---|---|

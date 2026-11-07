@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="640" viewBox="0 0 1400 640">
+<rect x="0" y="0" width="1400" height="640" fill="white"/>
+<text x="700" y="46" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="34" fill="#2e8b3d" text-anchor="middle" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">BLOCK DIAGRAM: save_image  (128 bytes that survive power-off)</text>
+<rect x="160" y="90" width="1000" height="500" fill="none" stroke="#222222" stroke-width="6"/>
+<text x="164" y="80" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="20" fill="#222222" text-anchor="start" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">module save_image</text>
+<text x="20" y="150" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="15" fill="#29a8e0" text-anchor="start" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">clk</text>
+<path d="M 20 160 L 620 160 L 620 230" fill="none" stroke="#29a8e0" stroke-width="2.5"/>
+<polygon points="620,230 616,220 624,220" fill="#29a8e0"/>
+<path d="M 20 260 L 260 260" fill="none" stroke="#0d4fa1" stroke-width="2.5"/>
+<polygon points="260,260 250,264 250,256" fill="#0d4fa1"/>
+<text x="140" y="250" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#0d4fa1" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">we_flash, wa_flash[6:0], wd_flash[7:0]</text>
+<path d="M 20 360 L 260 360" fill="none" stroke="#a0461e" stroke-width="2.5"/>
+<polygon points="260,360 250,364 250,356" fill="#a0461e"/>
+<text x="140" y="350" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#a0461e" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">we_game, wa_game[6:0], wd_game[7:0]</text>
+<rect x="260" y="230" width="220" height="160" rx="4" fill="white" stroke="#b0279c" stroke-width="3"/>
+<text x="262" y="223" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="16" fill="#b0279c" text-anchor="start" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">2-to-1 mux</text>
+<text x="270" y="252" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// we = we_flash | we_game</text>
+<text x="270" y="269" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// wa = we_flash ?</text>
+<text x="270" y="286" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">//   wa_flash : wa_game</text>
+<text x="270" y="303" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// (flash has priority)</text>
+<path d="M 480 310 L 560 310" fill="none" stroke="#b0279c" stroke-width="2.5"/>
+<polygon points="560,310 550,314 550,306" fill="#b0279c"/>
+<text x="520" y="302" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#b0279c" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">we, wa, wd</text>
+<rect x="560" y="230" width="240" height="200" rx="4" fill="white" stroke="#2e8b3d" stroke-width="3"/>
+<text x="562" y="223" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="16" fill="#2e8b3d" text-anchor="start" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">reg [7:0] mem [0:127]</text>
+<text x="570" y="252" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#2e8b3d" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// 128 x 8 cells</text>
+<text x="570" y="269" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#2e8b3d" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// -&gt; LUT-RAM</text>
+<text x="570" y="286" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#2e8b3d" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// always @(posedge clk)</text>
+<text x="570" y="303" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#2e8b3d" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">//   if (we) mem[wa] &lt;= wd;</text>
+<text x="570" y="320" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#2e8b3d" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// initial: all 0</text>
+<path d="M 1380 120 L 1180 120 L 1180 128 L 800 306" fill="none" stroke="#888888" stroke-width="1.5"/>
+<polygon points="800,306 807,298 811,306" fill="#888888"/>
+<text x="1200" y="112" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">ra0 [6:0]  &lt;- flash_ctrl</text>
+<path d="M 820 310 L 1000 146 L 1380 146" fill="none" stroke="#2e8b3d" stroke-width="1.5"/>
+<polygon points="1380,146 1370,150 1370,142" fill="#2e8b3d"/>
+<text x="1200" y="140" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#2e8b3d" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">rd0 [7:0] = mem[ra0]</text>
+<path d="M 1380 182 L 1180 182 L 1180 190 L 800 314" fill="none" stroke="#888888" stroke-width="1.5"/>
+<polygon points="800,314 808,307 811,315" fill="#888888"/>
+<text x="1200" y="174" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">ra1 [6:0]  &lt;- persist_ctrl</text>
+<path d="M 820 318 L 1000 208 L 1380 208" fill="none" stroke="#2e8b3d" stroke-width="1.5"/>
+<polygon points="1380,208 1370,212 1370,204" fill="#2e8b3d"/>
+<text x="1200" y="202" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#2e8b3d" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">rd1 [7:0] = mem[ra1]</text>
+<path d="M 1380 244 L 1180 244 L 1180 252 L 800 322" fill="none" stroke="#888888" stroke-width="1.5"/>
+<polygon points="800,322 809,316 811,324" fill="#888888"/>
+<text x="1200" y="236" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">ra2 [6:0]  &lt;- C score_engine</text>
+<path d="M 820 326 L 1000 270 L 1380 270" fill="none" stroke="#2e8b3d" stroke-width="1.5"/>
+<polygon points="1380,270 1370,274 1370,266" fill="#2e8b3d"/>
+<text x="1200" y="264" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#2e8b3d" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">rd2 [7:0] = mem[ra2]</text>
+<path d="M 1380 306 L 1180 306 L 1180 314 L 800 330" fill="none" stroke="#888888" stroke-width="1.5"/>
+<polygon points="800,330 810,325 810,334" fill="#888888"/>
+<text x="1200" y="298" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">ra3 [6:0]  &lt;- game_fsm</text>
+<path d="M 820 334 L 1000 332 L 1380 332" fill="none" stroke="#2e8b3d" stroke-width="1.5"/>
+<polygon points="1380,332 1370,336 1370,328" fill="#2e8b3d"/>
+<text x="1200" y="326" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#2e8b3d" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">rd3 [7:0] = mem[ra3]</text>
+<path d="M 1380 368 L 1180 368 L 1180 376 L 800 338" fill="none" stroke="#888888" stroke-width="1.5"/>
+<polygon points="800,338 811,335 810,343" fill="#888888"/>
+<text x="1200" y="360" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">ra4 [6:0]  &lt;- menu_render lo</text>
+<path d="M 820 342 L 1000 394 L 1380 394" fill="none" stroke="#2e8b3d" stroke-width="1.5"/>
+<polygon points="1380,394 1370,398 1370,390" fill="#2e8b3d"/>
+<text x="1200" y="388" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#2e8b3d" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">rd4 [7:0] = mem[ra4]</text>
+<path d="M 1380 430 L 1180 430 L 1180 438 L 800 346" fill="none" stroke="#888888" stroke-width="1.5"/>
+<polygon points="800,346 811,344 809,353" fill="#888888"/>
+<text x="1200" y="422" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">ra5 [6:0]  &lt;- menu_render hi</text>
+<path d="M 820 350 L 1000 456 L 1380 456" fill="none" stroke="#2e8b3d" stroke-width="1.5"/>
+<polygon points="1380,456 1370,460 1370,452" fill="#2e8b3d"/>
+<text x="1200" y="450" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#2e8b3d" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">rd5 [7:0] = mem[ra5]</text>
+<path d="M 1380 492 L 1180 492 L 1180 500 L 800 354" fill="none" stroke="#888888" stroke-width="1.5"/>
+<polygon points="800,354 811,354 808,362" fill="#888888"/>
+<text x="1200" y="484" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">ra6 [6:0]  &lt;- C turn_fsm</text>
+<path d="M 820 358 L 1000 518 L 1380 518" fill="none" stroke="#2e8b3d" stroke-width="1.5"/>
+<polygon points="1380,518 1370,522 1370,514" fill="#2e8b3d"/>
+<text x="1200" y="512" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#2e8b3d" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">rd6 [7:0] = mem[ra6]</text>
+<text x="180" y="470" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="14" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">each read port is a 128-to-1 multiplexer: assign rdN = mem[raN];</text>
+<text x="180" y="487" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="14" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">Vivado copies the RAM once per port (about 16 LUTs each).</text>
+</svg>
