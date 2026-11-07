@@ -1,4 +1,6 @@
 `timescale 1ns / 1ps
+// reset_gen.v : power-on reset + soft reset
+// Owner: Student A
 module reset_gen #(parameter HOLD_CYCLES = 1_000_000, parameter COUNT_W = 20) (
     input wire clk, soft_req,
     (* max_fanout = 40 *) output reg rst = 1,

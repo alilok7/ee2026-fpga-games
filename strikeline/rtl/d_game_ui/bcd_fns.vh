@@ -1,3 +1,5 @@
+// bcd_fns.vh : combinational binary -> BCD (include INSIDE a module)
+// Owner: Student A
 function [11:0] bcd9;
     input [8:0] v;
     reg [11:0] b;

@@ -1,4 +1,6 @@
 `timescale 1ns / 1ps
+// string_rom.v : every on-screen word, as glyph codes
+// Owner: Student A
 
 module string_rom #(
     parameter MEM_FILE = "strings.mem"

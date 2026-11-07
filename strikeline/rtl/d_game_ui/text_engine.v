@@ -1,4 +1,6 @@
 `timescale 1ns / 1ps
+// text_engine.v : the ONE place where characters are turned into pixels
+// Owner: Student A
 `include "strike_defs.vh"
 
 module text_engine (

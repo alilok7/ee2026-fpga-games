@@ -1,4 +1,6 @@
 `timescale 1ns / 1ps
+// timebase.v : the ONE place where slow timing is made
+// Owner: Student A
 
 module timebase #(
     parameter MS_DIV   = 100_000,

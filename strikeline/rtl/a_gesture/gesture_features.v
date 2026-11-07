@@ -1,4 +1,6 @@
 `timescale 1ns / 1ps
+// gesture_features.v : turn a recorded swipe into a throw
+// Owner: Student A
 `include "strike_defs.vh"
 
 module gesture_features (

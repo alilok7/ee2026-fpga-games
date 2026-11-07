@@ -1,4 +1,6 @@
 `timescale 1ns / 1ps
+// swipe_capture.v : grab -> swipe -> release, sampled at 200 Hz
+// Owner: Student A
 `include "strike_defs.vh"
 
 module swipe_capture (

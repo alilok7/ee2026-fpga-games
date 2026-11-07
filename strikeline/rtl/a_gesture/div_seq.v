@@ -1,4 +1,6 @@
 `timescale 1ns / 1ps
+// div_seq.v : unsigned restoring divider, one quotient bit per clock
+// Owner: Student A
 module div_seq #(parameter W = 40, parameter COUNT_W = 6) (
     input wire clk, rst, start,
     input wire [W-1:0] num, den,

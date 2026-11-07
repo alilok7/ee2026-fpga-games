@@ -1,4 +1,6 @@
 `timescale 1ns / 1ps
+// debounce.v : stable-count debouncer for ONE already-synchronised input
+// Owner: Student A
 module debounce #(parameter N_MS = 5, parameter W = 4) (
     input wire clk, rst, tick_1ms, din,
     output reg level, toggled

@@ -1,4 +1,6 @@
 `timescale 1ns / 1ps
+// seg7_driver.v : 4-digit multiplexed 7-segment display
+// Owner: Student A
 
 module seg7_driver (
     input  wire        clk,

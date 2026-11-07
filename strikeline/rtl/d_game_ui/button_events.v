@@ -1,4 +1,6 @@
 `timescale 1ns / 1ps
+// button_events.v : press / long-press / auto-repeat for ONE debounced button
+// Owner: Student A
 module button_events #(
     parameter LONG_MS = 1000,
     parameter REP_DELAY = 400,

@@ -1,4 +1,6 @@
 `timescale 1ns / 1ps
+// input_conditioner.v : every switch and push-button enters the design here
+// Owner: Student A
 `include "strike_defs.vh"
 
 module input_conditioner #(

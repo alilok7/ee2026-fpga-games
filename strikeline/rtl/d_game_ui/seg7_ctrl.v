@@ -1,4 +1,6 @@
 `timescale 1ns / 1ps
+// seg7_ctrl.v : what the 4-digit display says
+// Owner: Student A
 `include "strike_defs.vh"
 
 module seg7_ctrl (

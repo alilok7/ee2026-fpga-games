@@ -154,9 +154,9 @@ module tb_screens;
         // v3.2: the automatic top-down replay starts 0.6 s into the result
         wait_state(`GS_REPLAY, 2000); repeat (2000) @(posedge clk);
         // (the sim records only a few snapshots, so hold the replay while capturing)
-        force u_top.u_replay.left = 9'd4;
+        force u_top.u_replay.frames_left = 9'd4;
         force u_top.tick_phys = 1'b0; shot("replay"); release u_top.tick_phys;
-        release u_top.u_replay.left;
+        release u_top.u_replay.frames_left;
         wait_state(`GS_AIM, 8000); repeat (2000) @(posedge clk);
         force u_top.u_game.card_show = 1'b1;
         freeze(-1000, -40); shot("card"); thaw;

@@ -1,4 +1,6 @@
 `timescale 1ns / 1ps
+// mouse_setup.v : MouseCtl configuration, movement deltas, cursor, buttons
+// Owner: Student A
 `include "strike_defs.vh"
 
 module mouse_setup (

@@ -1,3 +1,5 @@
+// txt_helpers.vh : helpers for building text requests (include INSIDE a module)
+// Owner: Student A
 function [3:0] c6;
     input [6:0] x;
     reg [12:0] p;

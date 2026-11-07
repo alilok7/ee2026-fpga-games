@@ -1,4 +1,6 @@
 `timescale 1ns / 1ps
+// gesture_render.v : everything A draws, plus led[15:10]
+// Owner: Student A
 `include "strike_defs.vh"
 
 module gesture_render (

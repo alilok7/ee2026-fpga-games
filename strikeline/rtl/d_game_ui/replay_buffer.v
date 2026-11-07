@@ -1,4 +1,6 @@
 `timescale 1ns / 1ps
+// replay_buffer.v : instant replay of the last throw, in slow motion
+// Owner: Student A
 `include "strike_defs.vh"
 
 module replay_buffer (
