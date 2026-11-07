@@ -101,7 +101,8 @@ module gesture_features (
             abs_cross = middle_cross;
         end
     end
-    wire [44:0] spin_num = {abs_cross, 11'd0};
+    // turn * 256 = 6 * |S| / L^2 * 256 = 1536 * |S| / L^2   (1536 = 1024 + 512)
+    wire [44:0] spin_num = {1'b0, abs_cross, 10'd0} + {2'b00, abs_cross, 9'd0};
 
     reg [8:0] spin_turn;
     reg [8:0] spin_above_deadzone;
