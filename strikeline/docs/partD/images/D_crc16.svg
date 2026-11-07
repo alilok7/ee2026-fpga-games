@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="560" viewBox="0 0 1500 560">
+<rect x="0" y="0" width="1500" height="560" fill="white"/>
+<text x="750" y="46" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="34" fill="#2e8b3d" text-anchor="middle" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">BLOCK DIAGRAM: crc16  (8 one-bit steps in a chain)</text>
+<rect x="150" y="110" width="1200" height="380" fill="none" stroke="#222222" stroke-width="6"/>
+<text x="154" y="100" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="20" fill="#222222" text-anchor="start" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">module crc16</text>
+<path d="M 20 300 L 190 300" fill="none" stroke="#a0461e" stroke-width="2.5"/>
+<polygon points="190,300 180,304 180,296" fill="#a0461e"/>
+<text x="80" y="290" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#a0461e" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">crc_in</text>
+<line x1="114" y1="308" x2="126" y2="292" stroke="#a0461e" stroke-width="2.5"/>
+<text x="124" y="289" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#a0461e" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">16</text>
+<path d="M 20 420 L 60 420" fill="none" stroke="#0d4fa1" stroke-width="2.5"/>
+<text x="30" y="410" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#0d4fa1" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">data</text>
+<line x1="39" y1="428" x2="51" y2="412" stroke="#0d4fa1" stroke-width="2.5"/>
+<text x="49" y="409" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#0d4fa1" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">8</text>
+<rect x="190" y="250" width="100" height="100" rx="4" fill="white" stroke="#b0279c" stroke-width="3"/>
+<text x="192" y="243" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="16" fill="#b0279c" text-anchor="start" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">crc_step s7</text>
+<text x="200" y="272" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// fb = c[15]</text>
+<text x="200" y="287" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">//  ^ d</text>
+<text x="200" y="302" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// shift,</text>
+<text x="200" y="317" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// ^0x1021</text>
+<path d="M 60 420 L 240 420 L 240 350" fill="none" stroke="#0d4fa1" stroke-width="2.5"/>
+<polygon points="240,350 244,360 236,360" fill="#0d4fa1"/>
+<text x="240" y="440" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#0d4fa1" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">data[7]</text>
+<path d="M 290 300 L 330 300" fill="none" stroke="#a0461e" stroke-width="2.5"/>
+<polygon points="330,300 320,304 320,296" fill="#a0461e"/>
+<text x="310" y="290" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#a0461e" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">c1</text>
+<rect x="330" y="250" width="100" height="100" rx="4" fill="white" stroke="#b0279c" stroke-width="3"/>
+<text x="332" y="243" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="16" fill="#b0279c" text-anchor="start" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">crc_step s6</text>
+<text x="340" y="272" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// fb = c[15]</text>
+<text x="340" y="287" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">//  ^ d</text>
+<text x="340" y="302" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// shift,</text>
+<text x="340" y="317" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// ^0x1021</text>
+<path d="M 60 420 L 380 420 L 380 350" fill="none" stroke="#0d4fa1" stroke-width="2.5"/>
+<polygon points="380,350 384,360 376,360" fill="#0d4fa1"/>
+<text x="380" y="440" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#0d4fa1" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">data[6]</text>
+<path d="M 430 300 L 470 300" fill="none" stroke="#a0461e" stroke-width="2.5"/>
+<polygon points="470,300 460,304 460,296" fill="#a0461e"/>
+<text x="450" y="290" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#a0461e" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">c2</text>
+<rect x="470" y="250" width="100" height="100" rx="4" fill="white" stroke="#b0279c" stroke-width="3"/>
+<text x="472" y="243" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="16" fill="#b0279c" text-anchor="start" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">crc_step s5</text>
+<text x="480" y="272" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// fb = c[15]</text>
+<text x="480" y="287" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">//  ^ d</text>
+<text x="480" y="302" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// shift,</text>
+<text x="480" y="317" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// ^0x1021</text>
+<path d="M 60 420 L 520 420 L 520 350" fill="none" stroke="#0d4fa1" stroke-width="2.5"/>
+<polygon points="520,350 524,360 516,360" fill="#0d4fa1"/>
+<text x="520" y="440" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#0d4fa1" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">data[5]</text>
+<path d="M 570 300 L 610 300" fill="none" stroke="#a0461e" stroke-width="2.5"/>
+<polygon points="610,300 600,304 600,296" fill="#a0461e"/>
+<text x="590" y="290" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#a0461e" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">c3</text>
+<rect x="610" y="250" width="100" height="100" rx="4" fill="white" stroke="#b0279c" stroke-width="3"/>
+<text x="612" y="243" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="16" fill="#b0279c" text-anchor="start" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">crc_step s4</text>
+<text x="620" y="272" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// fb = c[15]</text>
+<text x="620" y="287" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">//  ^ d</text>
+<text x="620" y="302" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// shift,</text>
+<text x="620" y="317" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// ^0x1021</text>
+<path d="M 60 420 L 660 420 L 660 350" fill="none" stroke="#0d4fa1" stroke-width="2.5"/>
+<polygon points="660,350 664,360 656,360" fill="#0d4fa1"/>
+<text x="660" y="440" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#0d4fa1" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">data[4]</text>
+<path d="M 710 300 L 750 300" fill="none" stroke="#a0461e" stroke-width="2.5"/>
+<polygon points="750,300 740,304 740,296" fill="#a0461e"/>
+<text x="730" y="290" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#a0461e" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">c4</text>
+<rect x="750" y="250" width="100" height="100" rx="4" fill="white" stroke="#b0279c" stroke-width="3"/>
+<text x="752" y="243" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="16" fill="#b0279c" text-anchor="start" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">crc_step s3</text>
+<text x="760" y="272" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// fb = c[15]</text>
+<text x="760" y="287" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">//  ^ d</text>
+<text x="760" y="302" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// shift,</text>
+<text x="760" y="317" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// ^0x1021</text>
+<path d="M 60 420 L 800 420 L 800 350" fill="none" stroke="#0d4fa1" stroke-width="2.5"/>
+<polygon points="800,350 804,360 796,360" fill="#0d4fa1"/>
+<text x="800" y="440" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#0d4fa1" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">data[3]</text>
+<path d="M 850 300 L 890 300" fill="none" stroke="#a0461e" stroke-width="2.5"/>
+<polygon points="890,300 880,304 880,296" fill="#a0461e"/>
+<text x="870" y="290" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#a0461e" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">c5</text>
+<rect x="890" y="250" width="100" height="100" rx="4" fill="white" stroke="#b0279c" stroke-width="3"/>
+<text x="892" y="243" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="16" fill="#b0279c" text-anchor="start" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">crc_step s2</text>
+<text x="900" y="272" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// fb = c[15]</text>
+<text x="900" y="287" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">//  ^ d</text>
+<text x="900" y="302" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// shift,</text>
+<text x="900" y="317" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// ^0x1021</text>
+<path d="M 60 420 L 940 420 L 940 350" fill="none" stroke="#0d4fa1" stroke-width="2.5"/>
+<polygon points="940,350 944,360 936,360" fill="#0d4fa1"/>
+<text x="940" y="440" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#0d4fa1" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">data[2]</text>
+<path d="M 990 300 L 1030 300" fill="none" stroke="#a0461e" stroke-width="2.5"/>
+<polygon points="1030,300 1020,304 1020,296" fill="#a0461e"/>
+<text x="1010" y="290" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#a0461e" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">c6</text>
+<rect x="1030" y="250" width="100" height="100" rx="4" fill="white" stroke="#b0279c" stroke-width="3"/>
+<text x="1032" y="243" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="16" fill="#b0279c" text-anchor="start" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">crc_step s1</text>
+<text x="1040" y="272" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// fb = c[15]</text>
+<text x="1040" y="287" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">//  ^ d</text>
+<text x="1040" y="302" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// shift,</text>
+<text x="1040" y="317" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// ^0x1021</text>
+<path d="M 60 420 L 1080 420 L 1080 350" fill="none" stroke="#0d4fa1" stroke-width="2.5"/>
+<polygon points="1080,350 1084,360 1076,360" fill="#0d4fa1"/>
+<text x="1080" y="440" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#0d4fa1" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">data[1]</text>
+<path d="M 1130 300 L 1170 300" fill="none" stroke="#a0461e" stroke-width="2.5"/>
+<polygon points="1170,300 1160,304 1160,296" fill="#a0461e"/>
+<text x="1150" y="290" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#a0461e" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">c7</text>
+<rect x="1170" y="250" width="100" height="100" rx="4" fill="white" stroke="#b0279c" stroke-width="3"/>
+<text x="1172" y="243" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="16" fill="#b0279c" text-anchor="start" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">crc_step s0</text>
+<text x="1180" y="272" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// fb = c[15]</text>
+<text x="1180" y="287" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">//  ^ d</text>
+<text x="1180" y="302" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// shift,</text>
+<text x="1180" y="317" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// ^0x1021</text>
+<path d="M 60 420 L 1220 420 L 1220 350" fill="none" stroke="#0d4fa1" stroke-width="2.5"/>
+<polygon points="1220,350 1224,360 1216,360" fill="#0d4fa1"/>
+<text x="1220" y="440" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#0d4fa1" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">data[0]</text>
+<path d="M 1270 300 L 1470 300" fill="none" stroke="#a0461e" stroke-width="2.5"/>
+<polygon points="1470,300 1460,304 1460,296" fill="#a0461e"/>
+<text x="1390" y="290" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#a0461e" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">crc_out</text>
+<line x1="1414" y1="308" x2="1426" y2="292" stroke="#a0461e" stroke-width="2.5"/>
+<text x="1424" y="289" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#a0461e" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">16</text>
+<text x="170" y="150" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="14" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">each crc_step: assign c_out = {c_in[14:0], 1'b0} ^ ({16{c_in[15] ^ d}} &amp; 16'h1021);</text>
+<text x="170" y="167" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="14" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">8 steps = one byte, MSB first. Purely combinational (no clock).</text>
+<text x="170" y="184" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="14" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">Check: "123456789" from 0xFFFF -&gt; 0x29B1.</text>
+</svg>

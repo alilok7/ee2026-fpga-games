@@ -1,0 +1,164 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1900" height="1100" viewBox="0 0 1900 1100">
+<rect x="0" y="0" width="1900" height="1100" fill="white"/>
+<text x="950" y="46" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="34" fill="#2e8b3d" text-anchor="middle" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">PART D BLOCK DIAGRAM (inside My_Top_Module)</text>
+<rect x="230" y="90" width="1440" height="960" fill="none" stroke="#222222" stroke-width="6"/>
+<text x="234" y="80" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="20" fill="#222222" text-anchor="start" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">module My_Top_Module  (only Part D's wires shown)</text>
+<text x="20" y="150" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="16" fill="#29a8e0" text-anchor="start" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">Student A</text>
+<text x="20" y="170" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#29a8e0" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">mouse: ucur_x/y,</text>
+<text x="20" y="186" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#29a8e0" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">clicks, wheel</text>
+<text x="20" y="202" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#29a8e0" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">buttons {U,D,L,R,C}</text>
+<text x="20" y="218" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#29a8e0" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">switches sw0, sw11-15</text>
+<text x="20" y="300" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="16" fill="#e07b00" text-anchor="start" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">Student C</text>
+<text x="20" y="320" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#e07b00" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">turn_fsm: tstate,</text>
+<text x="20" y="336" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#e07b00" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">game over, kind,</text>
+<text x="20" y="352" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#e07b00" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">scores game0/1</text>
+<text x="20" y="460" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#e07b00" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">turn_fsm: roll, header,</text>
+<text x="20" y="476" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#e07b00" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">clear, strike, spare,</text>
+<text x="20" y="492" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#e07b00" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">save_req_t</text>
+<text x="20" y="730" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="16" fill="#0d4fa1" text-anchor="start" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">Student B</text>
+<text x="20" y="750" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#0d4fa1" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">pixel ux,uy / hx,hy,</text>
+<text x="20" y="766" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#0d4fa1" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">cap, scr, v3d, u_in</text>
+<text x="20" y="940" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="16" fill="#6a3fb5" text-anchor="start" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">A, B, C layers</text>
+<text x="20" y="960" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#6a3fb5" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">en / colour / text</text>
+<text x="20" y="976" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#6a3fb5" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">of every renderer</text>
+<text x="20" y="1080" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#29a8e0" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">basys clock 100 MHz + rst go to every module</text>
+<rect x="360" y="130" width="400" height="210" rx="4" fill="white" stroke="#b0279c" stroke-width="3"/>
+<text x="362" y="123" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="16" fill="#b0279c" text-anchor="start" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">module game_fsm</text>
+<text x="370" y="152" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// main FSM: BOOT, TITLE, MENU,</text>
+<text x="370" y="169" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// PLAY, QUAL, OVER, NAME, SET, SCORES, HELP</text>
+<text x="370" y="186" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// game_state = Moore output (turn_fsm's</text>
+<text x="370" y="203" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">//   state while a game runs)</text>
+<text x="370" y="220" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// builds settings from menu + switches</text>
+<text x="370" y="237" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// hover follows the pointer, buttons too</text>
+<path d="M 180 190 L 360 190" fill="none" stroke="#29a8e0" stroke-width="2.5"/>
+<polygon points="360,190 350,194 350,186" fill="#29a8e0"/>
+<text x="290" y="182" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#29a8e0" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">controls</text>
+<path d="M 180 340 L 320 340 L 320 300 L 360 300" fill="none" stroke="#e07b00" stroke-width="2.5"/>
+<polygon points="360,300 350,304 350,296" fill="#e07b00"/>
+<text x="290" y="332" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#e07b00" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">tstate, game over</text>
+<rect x="360" y="450" width="330" height="180" rx="4" fill="white" stroke="#a0461e" stroke-width="3"/>
+<text x="362" y="443" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="16" fill="#a0461e" text-anchor="start" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">module persist_ctrl</text>
+<text x="370" y="472" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#a0461e" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// the ONLY game writer of the image</text>
+<text x="370" y="489" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#a0461e" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// 1-clock commands -&gt; pending flags</text>
+<text x="370" y="506" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#a0461e" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// (SR flip-flop idea) -&gt; FSM, one</text>
+<text x="370" y="523" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#a0461e" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// read / write per clock</text>
+<text x="370" y="540" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#a0461e" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// INSERT keeps the top 5 sorted</text>
+<path d="M 180 500 L 360 500" fill="none" stroke="#e07b00" stroke-width="2.5"/>
+<polygon points="360,500 350,504 350,496" fill="#e07b00"/>
+<text x="290" y="492" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#e07b00" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">c_roll, c_hdr ...</text>
+<path d="M 500 340 L 500 450" fill="none" stroke="#b0279c" stroke-width="2.5"/>
+<polygon points="500,450 496,440 504,440" fill="#b0279c"/>
+<text x="610" y="400" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#b0279c" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">c_insert, c_settings, c_gameend</text>
+<rect x="820" y="450" width="280" height="190" rx="4" fill="white" stroke="#2e8b3d" stroke-width="3"/>
+<text x="822" y="443" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="16" fill="#2e8b3d" text-anchor="start" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">module save_image</text>
+<text x="830" y="472" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#2e8b3d" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// 128 x 8 LUT-RAM (IM_* layout)</text>
+<text x="830" y="489" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#2e8b3d" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// write: 2-to-1 mux, flash first</text>
+<text x="830" y="506" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#2e8b3d" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// 7 read ports:</text>
+<text x="830" y="523" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#2e8b3d" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">//  0 flash  1 persist  2 C score</text>
+<text x="830" y="540" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#2e8b3d" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">//  3 game_fsm  4,5 menu  6 C turn</text>
+<path d="M 690 490 L 820 490" fill="none" stroke="#a0461e" stroke-width="2.5"/>
+<polygon points="820,490 810,494 810,486" fill="#a0461e"/>
+<text x="755" y="482" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#a0461e" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">we, wa, wd</text>
+<path d="M 820 580 L 690 580" fill="none" stroke="#2e8b3d" stroke-width="2.5"/>
+<polygon points="690,580 700,576 700,584" fill="#2e8b3d"/>
+<text x="755" y="572" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#2e8b3d" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">rd1</text>
+<path d="M 960 450 L 960 260 L 760 260" fill="none" stroke="#2e8b3d" stroke-width="2.5"/>
+<polygon points="760,260 770,256 770,264" fill="#2e8b3d"/>
+<text x="870" y="250" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#2e8b3d" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">rd3 [7:0] (settings, top 5)</text>
+<path d="M 1100 610 L 1190 610 L 1190 700 L 1890 700" fill="none" stroke="#2e8b3d" stroke-width="2.5"/>
+<polygon points="1890,700 1880,704 1880,696" fill="#2e8b3d"/>
+<text x="1760" y="690" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#2e8b3d" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">rd2, rd6 [7:0] -&gt; C score_engine, turn_fsm</text>
+<rect x="1250" y="400" width="340" height="250" rx="4" fill="white" stroke="#0d4fa1" stroke-width="3"/>
+<text x="1252" y="393" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="16" fill="#0d4fa1" text-anchor="start" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">module flash_ctrl</text>
+<text x="1260" y="422" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#0d4fa1" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// modular FSM:</text>
+<text x="1260" y="439" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#0d4fa1" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// UPPER (boot / save steps)</text>
+<text x="1260" y="456" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#0d4fa1" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">//  -&gt; LOWER (one transaction)</text>
+<text x="1260" y="473" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#0d4fa1" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">//   -&gt; spi_byte (one byte)</text>
+<text x="1260" y="490" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#0d4fa1" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// 2 slots + seq number + CRC-16</text>
+<text x="1260" y="507" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#0d4fa1" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// 4 s timeout while polling</text>
+<rect x="1270" y="565" width="140" height="60" rx="4" fill="white" stroke="#0d4fa1" stroke-width="2"/>
+<text x="1272" y="558" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="16" fill="#0d4fa1" text-anchor="start" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">spi_byte</text>
+<text x="1280" y="587" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#0d4fa1" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// mode 0</text>
+<rect x="1430" y="565" width="140" height="60" rx="4" fill="white" stroke="#0d4fa1" stroke-width="2"/>
+<text x="1432" y="558" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="16" fill="#0d4fa1" text-anchor="start" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">crc16</text>
+<text x="1440" y="587" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#0d4fa1" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// 8 x crc_step</text>
+<path d="M 1250 490 L 1100 490" fill="none" stroke="#0d4fa1" stroke-width="2.5"/>
+<polygon points="1100,490 1110,486 1110,494" fill="#0d4fa1"/>
+<text x="1175" y="482" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#0d4fa1" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">boot load</text>
+<path d="M 1100 540 L 1250 540" fill="none" stroke="#2e8b3d" stroke-width="2.5"/>
+<polygon points="1250,540 1240,544 1240,536" fill="#2e8b3d"/>
+<text x="1175" y="532" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#2e8b3d" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">rd0</text>
+<path d="M 600 630 L 600 675 L 1420 675 L 1420 650" fill="none" stroke="#a0461e" stroke-width="2.5"/>
+<polygon points="1420,650 1424,660 1416,660" fill="#a0461e"/>
+<text x="1000" y="667" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#a0461e" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">persist_busy</text>
+<path d="M 180 530 L 300 530 L 300 655 L 1300 655 L 1300 650" fill="none" stroke="#e07b00" stroke-width="2.5"/>
+<polygon points="1300,650 1304,660 1296,660" fill="#e07b00"/>
+<text x="720" y="651" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#e07b00" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">save_req_t (C) | save_req_g (game_fsm) -&gt; flash_ctrl</text>
+<path d="M 1590 450 L 1890 450" fill="none" stroke="#0d4fa1" stroke-width="2.5"/>
+<polygon points="1890,450 1880,454 1880,446" fill="#0d4fa1"/>
+<text x="1760" y="440" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#0d4fa1" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">QspiCSn, QspiDB[0]</text>
+<path d="M 1590 500 L 1890 500" fill="none" stroke="#0d4fa1" stroke-width="2.5"/>
+<polygon points="1890,500 1880,504 1880,496" fill="#0d4fa1"/>
+<text x="1760" y="490" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#0d4fa1" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">spi_sck -&gt; STARTUPE2</text>
+<path d="M 1890 550 L 1590 550" fill="none" stroke="#0d4fa1" stroke-width="2.5"/>
+<polygon points="1590,550 1600,546 1600,554" fill="#0d4fa1"/>
+<text x="1760" y="542" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#0d4fa1" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">QspiDB[1] (MISO)</text>
+<rect x="360" y="760" width="300" height="140" rx="4" fill="white" stroke="#b0279c" stroke-width="3"/>
+<text x="362" y="753" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="16" fill="#b0279c" text-anchor="start" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">module menu_render</text>
+<text x="370" y="782" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// title, menu, settings, scores,</text>
+<text x="370" y="799" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// help, game over, initials</text>
+<text x="370" y="816" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// 96 x 64, range checks per pixel</text>
+<text x="370" y="833" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// text -&gt; requests (TX_*)</text>
+<rect x="720" y="760" width="300" height="140" rx="4" fill="white" stroke="#b0279c" stroke-width="3"/>
+<text x="722" y="753" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="16" fill="#b0279c" text-anchor="start" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">module vga_hud</text>
+<text x="730" y="782" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// VGA panel (speed, power, spin,</text>
+<text x="730" y="799" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// revs, entry, pins), popups,</text>
+<text x="730" y="816" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// replay look, menu backdrop</text>
+<path d="M 180 780 L 360 780" fill="none" stroke="#0d4fa1" stroke-width="2.5"/>
+<polygon points="360,780 350,784 350,776" fill="#0d4fa1"/>
+<text x="290" y="772" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#0d4fa1" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">ux, uy</text>
+<path d="M 180 810 L 320 810 L 320 940 L 870 940 L 870 900" fill="none" stroke="#0d4fa1" stroke-width="2.5"/>
+<polygon points="870,900 874,910 866,910" fill="#0d4fa1"/>
+<text x="600" y="932" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#0d4fa1" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">hx, hy, v3d ...</text>
+<path d="M 745 340 L 745 735 L 610 735 L 610 760" fill="none" stroke="#b0279c" stroke-width="2.5" stroke-dasharray="6 5"/>
+<polygon points="610,760 606,750 614,750" fill="#b0279c"/>
+<text x="752" y="420" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">hover, name,</text>
+<text x="752" y="436" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">tab ...</text>
+<path d="M 960 640 L 960 715 L 450 715 L 450 760" fill="none" stroke="#2e8b3d" stroke-width="2.5"/>
+<polygon points="450,760 446,750 454,750" fill="#2e8b3d"/>
+<text x="700" y="707" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#2e8b3d" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">rd4, rd5 (scores, stats)</text>
+<rect x="1180" y="760" width="380" height="200" rx="4" fill="white" stroke="#a0461e" stroke-width="3"/>
+<text x="1182" y="753" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="16" fill="#a0461e" text-anchor="start" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">module compositor</text>
+<text x="1190" y="782" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#a0461e" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// 1. first text request -&gt; A's text_engine</text>
+<text x="1190" y="799" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#a0461e" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// 2. priority mux of all layers</text>
+<text x="1190" y="816" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#a0461e" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// 3. brightness (shifts)  4. fade (counter)</text>
+<text x="1190" y="833" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#a0461e" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// 5. register pix &lt;= colour on cap</text>
+<text x="1190" y="850" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#a0461e" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">//    (7-clock multicycle in the XDC)</text>
+<path d="M 660 880 L 690 880 L 690 990 L 1250 990 L 1250 960" fill="none" stroke="#b0279c" stroke-width="2.5"/>
+<polygon points="1250,960 1254,970 1246,970" fill="#b0279c"/>
+<text x="960" y="982" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#b0279c" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">menu en / colour [15:0] / txt [52:0]</text>
+<path d="M 1020 830 L 1180 830" fill="none" stroke="#b0279c" stroke-width="2.5"/>
+<polygon points="1180,830 1170,834 1170,826" fill="#b0279c"/>
+<text x="1100" y="822" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#b0279c" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">vh en / c / t</text>
+<path d="M 180 960 L 280 960 L 280 1025 L 1400 1025 L 1400 960" fill="none" stroke="#6a3fb5" stroke-width="2.5"/>
+<polygon points="1400,960 1404,970 1396,970" fill="#6a3fb5"/>
+<text x="860" y="1017" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#6a3fb5" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">A, B, C layers + cap, scr</text>
+<path d="M 1560 860 L 1890 860" fill="none" stroke="#a0461e" stroke-width="2.5"/>
+<polygon points="1890,860 1880,864 1880,856" fill="#a0461e"/>
+<text x="1730" y="850" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#a0461e" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">pix [15:0]</text>
+<text x="1690" y="890" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="14" fill="#a0461e" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">-&gt; B vga_out frame buffers</text>
+<text x="1690" y="908" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="14" fill="#a0461e" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">-&gt; VGA + OLED</text>
+<path d="M 760 160 L 1890 160" fill="none" stroke="#b0279c" stroke-width="2.5"/>
+<polygon points="1890,160 1880,164 1880,156" fill="#b0279c"/>
+<text x="1320" y="150" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#b0279c" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">game_state [4:0], settings [15:0] -&gt; A, B, C, all renderers</text>
+<path d="M 760 200 L 1890 200" fill="none" stroke="#b0279c" stroke-width="2.5"/>
+<polygon points="1890,200 1880,204 1880,196" fill="#b0279c"/>
+<text x="1320" y="190" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#b0279c" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">go_new, go_resume, abort, kind_out [2:0] -&gt; C turn_fsm</text>
+<path d="M 760 240 L 1890 240" fill="none" stroke="#b0279c" stroke-width="2.5"/>
+<polygon points="1890,240 1880,244 1880,236" fill="#b0279c"/>
+<text x="1320" y="230" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#b0279c" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">aim_zoom -&gt; B,  nudge_l/r -&gt; A,  want_replay, skip -&gt; C</text>
+<text x="1250" y="300" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#d32f2f" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">All wires inside a module are 'wire'.</text>
+<text x="1250" y="315" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#d32f2f" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">Every bus has its size written.</text>
+<text x="1250" y="330" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#d32f2f" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">One always block drives each signal</text>
+<text x="1250" y="345" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#d32f2f" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">(no multi-driven nets).</text>
+</svg>

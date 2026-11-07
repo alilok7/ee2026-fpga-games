@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="760" viewBox="0 0 1500 760">
+<rect x="0" y="0" width="1500" height="760" fill="white"/>
+<text x="750" y="46" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="34" fill="#2e8b3d" text-anchor="middle" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">STATE DIAGRAM: flash_ctrl upper FSM  (boot + save)</text>
+<ellipse cx="120" cy="160" rx="54" ry="24" fill="white" stroke="#0d4fa1" stroke-width="3"/>
+<text x="120" y="165" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="15" fill="#0d4fa1" text-anchor="middle" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">DUMMY</text>
+<path d="M 12 120 L 68 150" fill="none" stroke="#222222" stroke-width="2.5"/>
+<polygon points="68,150 57,149 61,141" fill="#222222"/>
+<text x="2" y="114" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#222222" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">reset</text>
+<ellipse cx="330" cy="160" rx="54" ry="24" fill="white" stroke="#0d4fa1" stroke-width="3"/>
+<text x="330" y="165" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="15" fill="#0d4fa1" text-anchor="middle" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">RDID</text>
+<ellipse cx="540" cy="160" rx="54" ry="24" fill="white" stroke="#0d4fa1" stroke-width="3"/>
+<text x="540" y="165" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="15" fill="#0d4fa1" text-anchor="middle" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">RDSR0</text>
+<ellipse cx="750" cy="160" rx="54" ry="24" fill="white" stroke="#0d4fa1" stroke-width="3"/>
+<text x="750" y="165" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="15" fill="#0d4fa1" text-anchor="middle" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">SCAN</text>
+<ellipse cx="960" cy="160" rx="54" ry="24" fill="white" stroke="#0d4fa1" stroke-width="3"/>
+<text x="960" y="165" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="15" fill="#0d4fa1" text-anchor="middle" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">CHOOSE</text>
+<ellipse cx="1180" cy="160" rx="54" ry="24" fill="white" stroke="#0d4fa1" stroke-width="3"/>
+<text x="1180" y="165" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="15" fill="#0d4fa1" text-anchor="middle" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">LOAD</text>
+<ellipse cx="750" cy="330" rx="54" ry="24" fill="white" stroke="#0d4fa1" stroke-width="3"/>
+<text x="750" y="335" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="15" fill="#0d4fa1" text-anchor="middle" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">DEF</text>
+<ellipse cx="960" cy="330" rx="54" ry="24" fill="white" stroke="#0d4fa1" stroke-width="3"/>
+<text x="960" y="335" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="15" fill="#0d4fa1" text-anchor="middle" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">DEFW</text>
+<ellipse cx="1180" cy="420" rx="54" ry="24" fill="white" stroke="#b0279c" stroke-width="3"/>
+<text x="1180" y="425" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="15" fill="#b0279c" text-anchor="middle" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">READY</text>
+<ellipse cx="1180" cy="600" rx="54" ry="24" fill="white" stroke="#b0279c" stroke-width="3"/>
+<text x="1180" y="605" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="15" fill="#b0279c" text-anchor="middle" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">SNAP</text>
+<ellipse cx="960" cy="600" rx="54" ry="24" fill="white" stroke="#b0279c" stroke-width="3"/>
+<text x="960" y="605" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="15" fill="#b0279c" text-anchor="middle" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">WREN1</text>
+<ellipse cx="750" cy="600" rx="54" ry="24" fill="white" stroke="#b0279c" stroke-width="3"/>
+<text x="750" y="605" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="15" fill="#b0279c" text-anchor="middle" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">ERASE</text>
+<ellipse cx="540" cy="600" rx="54" ry="24" fill="white" stroke="#b0279c" stroke-width="3"/>
+<text x="540" y="605" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="15" fill="#b0279c" text-anchor="middle" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">POLL1</text>
+<ellipse cx="330" cy="600" rx="54" ry="24" fill="white" stroke="#b0279c" stroke-width="3"/>
+<text x="330" y="605" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="15" fill="#b0279c" text-anchor="middle" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">WREN2</text>
+<ellipse cx="120" cy="600" rx="54" ry="24" fill="white" stroke="#b0279c" stroke-width="3"/>
+<text x="120" y="605" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="15" fill="#b0279c" text-anchor="middle" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">PROG</text>
+<ellipse cx="120" cy="420" rx="54" ry="24" fill="white" stroke="#b0279c" stroke-width="3"/>
+<text x="120" y="425" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="15" fill="#b0279c" text-anchor="middle" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">POLL2</text>
+<ellipse cx="330" cy="420" rx="54" ry="24" fill="white" stroke="#b0279c" stroke-width="3"/>
+<text x="330" y="425" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="15" fill="#b0279c" text-anchor="middle" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">VERIFY</text>
+<ellipse cx="540" cy="420" rx="54" ry="24" fill="white" stroke="#b0279c" stroke-width="3"/>
+<text x="540" y="425" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="15" fill="#b0279c" text-anchor="middle" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">DONE</text>
+<path d="M 172 160 L 278 160" fill="none" stroke="#222222" stroke-width="2"/>
+<polygon points="278,160 268,164 268,156" fill="#222222"/>
+<text x="205" y="152" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">t_done</text>
+<path d="M 382 160 L 488 160" fill="none" stroke="#222222" stroke-width="2"/>
+<polygon points="488,160 478,164 478,156" fill="#222222"/>
+<text x="415" y="152" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">t_done</text>
+<path d="M 592 160 L 698 160" fill="none" stroke="#222222" stroke-width="2"/>
+<polygon points="698,160 688,164 688,156" fill="#222222"/>
+<text x="605" y="152" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">flash answered</text>
+<path d="M 580 193 L 710 297" fill="none" stroke="#222222" stroke-width="2"/>
+<polygon points="710,297 699,294 704,288" fill="#222222"/>
+<text x="585" y="255" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">no flash</text>
+<text x="585" y="270" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">(ID 00/FF)</text>
+<path d="M 802 160 L 908 160" fill="none" stroke="#222222" stroke-width="2"/>
+<polygon points="908,160 898,164 898,156" fill="#222222"/>
+<text x="835" y="152" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">t_done</text>
+<path d="M 913 182 L 855 210 L 797 182" fill="none" stroke="#222222" stroke-width="2"/>
+<polygon points="797,182 808,183 804,191" fill="#222222"/>
+<text x="795" y="222" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">slot A done: scan B</text>
+<path d="M 1012 160 L 1128 160" fill="none" stroke="#222222" stroke-width="2"/>
+<polygon points="1128,160 1118,164 1118,156" fill="#222222"/>
+<text x="1030" y="144" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">A or B valid:</text>
+<text x="1030" y="159" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">load the newer</text>
+<path d="M 922 195 L 850 260 L 793 300" fill="none" stroke="#222222" stroke-width="2"/>
+<polygon points="793,300 798,291 803,298" fill="#222222"/>
+<text x="867" y="268" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">none valid</text>
+<path d="M 802 330 L 908 330" fill="none" stroke="#222222" stroke-width="2"/>
+<polygon points="908,330 898,334 898,326" fill="#222222"/>
+<text x="825" y="322" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">c_defaults</text>
+<path d="M 1005 356 L 1080 400 L 1129 410" fill="none" stroke="#222222" stroke-width="2"/>
+<polygon points="1129,410 1118,412 1120,404" fill="#222222"/>
+<text x="1067" y="363" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">persist idle:</text>
+<text x="1067" y="378" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">load_done</text>
+<path d="M 1180 212 L 1180 368" fill="none" stroke="#222222" stroke-width="2"/>
+<polygon points="1180,368 1176,358 1184,358" fill="#222222"/>
+<text x="1190" y="290" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">t_done:</text>
+<text x="1190" y="305" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">load_done</text>
+<path d="M 1180 472 L 1180 548" fill="none" stroke="#222222" stroke-width="2"/>
+<polygon points="1180,548 1176,538 1184,538" fill="#222222"/>
+<text x="1190" y="510" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">save_req, flash_ok,</text>
+<text x="1190" y="525" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">persist idle</text>
+<path d="M 1128 600 L 1012 600" fill="none" stroke="#222222" stroke-width="2"/>
+<polygon points="1012,600 1022,596 1022,604" fill="#222222"/>
+<text x="1020" y="586" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">128 bytes copied</text>
+<text x="1020" y="601" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">(+ seq, CRC)</text>
+<path d="M 908 600 L 802 600" fill="none" stroke="#222222" stroke-width="2"/>
+<polygon points="802,600 812,596 812,604" fill="#222222"/>
+<text x="835" y="592" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">t_done</text>
+<path d="M 698 600 L 592 600" fill="none" stroke="#222222" stroke-width="2"/>
+<polygon points="592,600 602,596 602,604" fill="#222222"/>
+<text x="625" y="592" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">t_done</text>
+<path d="M 488 600 L 382 600" fill="none" stroke="#222222" stroke-width="2"/>
+<polygon points="382,600 392,596 392,604" fill="#222222"/>
+<text x="415" y="592" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">WIP = 0</text>
+<path d="M 278 600 L 172 600" fill="none" stroke="#222222" stroke-width="2"/>
+<polygon points="172,600 182,596 182,604" fill="#222222"/>
+<text x="205" y="592" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">t_done</text>
+<path d="M 120 548 L 120 472" fill="none" stroke="#222222" stroke-width="2"/>
+<polygon points="120,472 124,482 116,482" fill="#222222"/>
+<text x="130" y="510" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">t_done</text>
+<path d="M 172 420 L 278 420" fill="none" stroke="#222222" stroke-width="2"/>
+<polygon points="278,420 268,424 268,416" fill="#222222"/>
+<text x="205" y="412" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">WIP = 0</text>
+<path d="M 382 420 L 488 420" fill="none" stroke="#222222" stroke-width="2"/>
+<polygon points="488,420 478,424 478,416" fill="#222222"/>
+<text x="415" y="412" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">t_done</text>
+<path d="M 592 420 L 1128 420" fill="none" stroke="#222222" stroke-width="2"/>
+<polygon points="1128,420 1118,424 1118,416" fill="#222222"/>
+<text x="800" y="404" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">ok: last_b flips,</text>
+<text x="800" y="419" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">seq + 1</text>
+<text x="40" y="260" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#d32f2f" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">POLL1 / POLL2: WIP still 1 after 4 s -&gt; save_error, READY (timeout).</text>
+<text x="40" y="276" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#d32f2f" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">DONE with a bad read-back -&gt; save_error, the same slot is retried next time.</text>
+<text x="40" y="720" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">Each state with a flash command starts ONE transaction on the lower FSM (go) and waits for t_done.</text>
+</svg>

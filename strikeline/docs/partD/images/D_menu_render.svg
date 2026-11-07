@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="760" viewBox="0 0 1500 760">
+<rect x="0" y="0" width="1500" height="760" fill="white"/>
+<text x="750" y="46" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="34" fill="#2e8b3d" text-anchor="middle" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">BLOCK DIAGRAM: menu_render  (the full-screen screens, 96 x 64)</text>
+<rect x="200" y="90" width="1060" height="620" fill="none" stroke="#222222" stroke-width="6"/>
+<text x="204" y="80" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="20" fill="#222222" text-anchor="start" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">module menu_render</text>
+<path d="M 20 150 L 270 150" fill="none" stroke="#0d4fa1" stroke-width="2.5"/>
+<polygon points="270,150 260,154 260,146" fill="#0d4fa1"/>
+<text x="120" y="142" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#0d4fa1" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">px_x[6:0], px_y[5:0]</text>
+<path d="M 20 220 L 270 220" fill="none" stroke="#b0279c" stroke-width="2.5"/>
+<polygon points="270,220 260,224 260,216" fill="#b0279c"/>
+<text x="120" y="212" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#b0279c" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">game_state[4:0]</text>
+<path d="M 20 280 L 270 280" fill="none" stroke="#b0279c" stroke-width="2.5"/>
+<polygon points="270,280 260,284 260,276" fill="#b0279c"/>
+<text x="120" y="272" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#b0279c" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">hover, chip_two, has_save ...</text>
+<path d="M 20 340 L 270 340" fill="none" stroke="#e07b00" stroke-width="2.5"/>
+<polygon points="270,340 260,344 260,336" fill="#e07b00"/>
+<text x="120" y="332" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#e07b00" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">game0, game1, two_players</text>
+<path d="M 20 400 L 270 400" fill="none" stroke="#29a8e0" stroke-width="2.5"/>
+<polygon points="270,400 260,404 260,396" fill="#29a8e0"/>
+<text x="120" y="392" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#29a8e0" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">tick_frame</text>
+<rect x="270" y="120" width="300" height="190" rx="4" fill="white" stroke="#0d4fa1" stroke-width="3"/>
+<text x="272" y="113" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="16" fill="#0d4fa1" text-anchor="start" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">text grids (A's txt_helpers)</text>
+<text x="280" y="142" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#0d4fa1" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// 5x7: col = x/6, row = y/8</text>
+<text x="280" y="159" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#0d4fa1" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">//   (x/6 = (x*43) &gt;&gt; 8)</text>
+<text x="280" y="176" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#0d4fa1" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// 3x5: mcol = x/4, mrow = y/6</text>
+<text x="280" y="193" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#0d4fa1" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// big(): 12 x 16 double-size</text>
+<text x="280" y="210" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#0d4fa1" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// fx, fy = pixel in the cell</text>
+<rect x="270" y="360" width="300" height="100" rx="4" fill="white" stroke="#29a8e0" stroke-width="3"/>
+<text x="272" y="353" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="16" fill="#29a8e0" text-anchor="start" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">frame counter fr</text>
+<text x="280" y="382" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#29a8e0" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// counts tick_frame</text>
+<text x="280" y="399" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#29a8e0" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// blink = fr[5] (~1 Hz)</text>
+<rect x="270" y="520" width="300" height="150" rx="4" fill="white" stroke="#2e8b3d" stroke-width="3"/>
+<text x="272" y="513" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="16" fill="#2e8b3d" text-anchor="start" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">numbers -&gt; digits</text>
+<text x="280" y="542" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#2e8b3d" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// v9 = {rd_hi[0], rd_lo}</text>
+<text x="280" y="559" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#2e8b3d" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// bcd9 / bcd16 (A's bcd_fns)</text>
+<text x="280" y="576" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#2e8b3d" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// dg3 / dg5: digit k, blank</text>
+<text x="280" y="593" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#2e8b3d" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">//   leading zeros</text>
+<rect x="640" y="120" width="260" height="58" rx="4" fill="white" stroke="#b0279c" stroke-width="2"/>
+<text x="650" y="142" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// TITLE</text>
+<text x="650" y="158" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">//  colour + text request</text>
+<path d="M 900 149 L 980 380" fill="none" stroke="#b0279c" stroke-width="1.5"/>
+<polygon points="980,380 973,372 981,369" fill="#b0279c"/>
+<rect x="640" y="198" width="260" height="58" rx="4" fill="white" stroke="#b0279c" stroke-width="2"/>
+<text x="650" y="220" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// MAIN MENU</text>
+<text x="650" y="236" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">//  colour + text request</text>
+<path d="M 900 227 L 980 380" fill="none" stroke="#b0279c" stroke-width="1.5"/>
+<polygon points="980,380 972,373 979,369" fill="#b0279c"/>
+<rect x="640" y="276" width="260" height="58" rx="4" fill="white" stroke="#b0279c" stroke-width="2"/>
+<text x="650" y="298" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// SETTINGS</text>
+<text x="650" y="314" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">//  colour + text request</text>
+<path d="M 900 305 L 980 380" fill="none" stroke="#b0279c" stroke-width="1.5"/>
+<polygon points="980,380 970,376 976,370" fill="#b0279c"/>
+<rect x="640" y="354" width="260" height="58" rx="4" fill="white" stroke="#b0279c" stroke-width="2"/>
+<text x="650" y="376" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// HIGH SCORES (ra_lo/hi)</text>
+<text x="650" y="392" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">//  colour + text request</text>
+<path d="M 900 383 L 980 380" fill="none" stroke="#b0279c" stroke-width="1.5"/>
+<polygon points="980,380 970,385 970,376" fill="#b0279c"/>
+<rect x="640" y="432" width="260" height="58" rx="4" fill="white" stroke="#b0279c" stroke-width="2"/>
+<text x="650" y="454" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// HELP</text>
+<text x="650" y="470" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">//  colour + text request</text>
+<path d="M 900 461 L 980 380" fill="none" stroke="#b0279c" stroke-width="1.5"/>
+<polygon points="980,380 976,390 970,384" fill="#b0279c"/>
+<rect x="640" y="510" width="260" height="58" rx="4" fill="white" stroke="#b0279c" stroke-width="2"/>
+<text x="650" y="532" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// GAME OVER</text>
+<text x="650" y="548" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">//  colour + text request</text>
+<path d="M 900 539 L 980 380" fill="none" stroke="#b0279c" stroke-width="1.5"/>
+<polygon points="980,380 979,391 972,387" fill="#b0279c"/>
+<rect x="640" y="588" width="260" height="58" rx="4" fill="white" stroke="#b0279c" stroke-width="2"/>
+<text x="650" y="610" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// INITIALS</text>
+<text x="650" y="626" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#b0279c" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">//  colour + text request</text>
+<path d="M 900 617 L 980 380" fill="none" stroke="#b0279c" stroke-width="1.5"/>
+<polygon points="980,380 981,391 973,388" fill="#b0279c"/>
+<path d="M 570 210 L 640 210" fill="none" stroke="#0d4fa1" stroke-width="2.5"/>
+<polygon points="640,210 630,214 630,206" fill="#0d4fa1"/>
+<rect x="980" y="260" width="230" height="240" rx="4" fill="white" stroke="#a0461e" stroke-width="3"/>
+<text x="982" y="253" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="16" fill="#a0461e" text-anchor="start" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">multiplexer</text>
+<text x="990" y="282" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#a0461e" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">// case (game_state)</text>
+<text x="990" y="299" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#a0461e" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">//  TITLE: t_col, t_txt</text>
+<text x="990" y="316" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#a0461e" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">//  MENU:  m_col, m_txt</text>
+<text x="990" y="333" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#a0461e" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">//  ...</text>
+<text x="990" y="350" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#a0461e" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">//  in a game: en = 0</text>
+<text x="990" y="367" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#a0461e" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">//  (other layers draw)</text>
+<path d="M 1210 320 L 1480 320" fill="none" stroke="#a0461e" stroke-width="2.5"/>
+<polygon points="1480,320 1470,324 1470,316" fill="#a0461e"/>
+<text x="1340" y="312" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#a0461e" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">color</text>
+<line x1="1434" y1="328" x2="1446" y2="312" stroke="#a0461e" stroke-width="2.5"/>
+<text x="1444" y="309" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#a0461e" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">16</text>
+<path d="M 1210 370 L 1480 370" fill="none" stroke="#a0461e" stroke-width="2.5"/>
+<polygon points="1480,370 1470,374 1470,366" fill="#a0461e"/>
+<text x="1340" y="362" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#a0461e" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">en</text>
+<path d="M 1210 420 L 1480 420" fill="none" stroke="#a0461e" stroke-width="2.5"/>
+<polygon points="1480,420 1470,424 1470,416" fill="#a0461e"/>
+<text x="1340" y="412" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#a0461e" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">txt -&gt; compositor</text>
+<line x1="1434" y1="428" x2="1446" y2="412" stroke="#a0461e" stroke-width="2.5"/>
+<text x="1444" y="409" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#a0461e" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">53</text>
+<path d="M 1210 470 L 1480 470" fill="none" stroke="#2e8b3d" stroke-width="2.5"/>
+<polygon points="1480,470 1470,474 1470,466" fill="#2e8b3d"/>
+<text x="1340" y="462" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#2e8b3d" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">ra_lo, ra_hi -&gt; image 4, 5</text>
+<line x1="1454" y1="478" x2="1466" y2="462" stroke="#2e8b3d" stroke-width="2.5"/>
+<text x="1464" y="459" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#2e8b3d" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">7</text>
+<path d="M 1480 540 L 570 540" fill="none" stroke="#2e8b3d" stroke-width="2.5"/>
+<polygon points="570,540 580,536 580,544" fill="#2e8b3d"/>
+<text x="1020" y="532" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#2e8b3d" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">rd_lo, rd_hi [7:0] &lt;- image</text>
+<text x="980" y="590" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#d32f2f" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">Combinational in the pixel: the compositor</text>
+<text x="980" y="606" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#d32f2f" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">captures the result 7 clocks later.</text>
+</svg>

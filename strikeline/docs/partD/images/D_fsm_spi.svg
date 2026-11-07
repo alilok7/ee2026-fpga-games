@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="360" viewBox="0 0 900 360">
+<rect x="0" y="0" width="900" height="360" fill="white"/>
+<text x="450" y="46" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="34" fill="#2e8b3d" text-anchor="middle" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">STATE DIAGRAM: spi_byte</text>
+<ellipse cx="220" cy="200" rx="60" ry="27" fill="white" stroke="#0d4fa1" stroke-width="3"/>
+<text x="220" y="200" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="15" fill="#0d4fa1" text-anchor="middle" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">IDLE</text>
+<text x="220" y="218" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#0d4fa1" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">busy = 0, sck = 0</text>
+<path d="M 106 160 L 162 190" fill="none" stroke="#222222" stroke-width="2.5"/>
+<polygon points="162,190 151,189 155,181" fill="#222222"/>
+<text x="96" y="154" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#222222" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">reset</text>
+<ellipse cx="640" cy="200" rx="60" ry="27" fill="white" stroke="#b0279c" stroke-width="3"/>
+<text x="640" y="200" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="15" fill="#b0279c" text-anchor="middle" font-weight="bold" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">SHIFT</text>
+<text x="640" y="218" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="11" fill="#b0279c" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">busy = 1</text>
+<path d="M 290 175 L 570 175" fill="none" stroke="#222222" stroke-width="2"/>
+<polygon points="570,175 560,179 560,171" fill="#222222"/>
+<text x="430" y="160" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#222222" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">start  (load sh &lt;= tx)</text>
+<path d="M 570 228 L 290 228" fill="none" stroke="#222222" stroke-width="2"/>
+<polygon points="290,228 300,224 300,232" fill="#222222"/>
+<text x="430" y="255" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="13" fill="#222222" text-anchor="middle" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">phase = 7 AND bit_cnt = 7  (done, rx &lt;= sh)</text>
+<text x="470" y="300" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">in SHIFT: phase counts 0..7 every bit</text>
+<text x="470" y="315" font-family="Segoe Print, Comic Sans MS, Chalkboard, cursive" font-size="12" fill="#222222" text-anchor="start" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">phase 0: mosi &lt;= sh[7]   phase 4: sck &lt;= 1, read miso</text>
+</svg>
