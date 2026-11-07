@@ -53,8 +53,8 @@ module gesture_features (
     wire signed [15:0] r_ff = rd_data[15:0];
 
     localparam IDLE = 5'd0,  READ_START = 5'd1, READ_END = 5'd2, READ_WINDOW_END = 5'd3, READ_WINDOW_START = 5'd4,
-               SELECT_MIDDLE = 5'd5,   READ_MIDDLE = 5'd6, MULTIPLY_MIDDLE_X = 5'd7,   MULTIPLY_MIDDLE_F = 5'd8,  SAVE_PRODUCT = 5'd9,
-               SAVE_CROSS = 5'd10,   SAVE_TOTALS = 5'd11,  CHECK_SWIPE = 5'd12, WAIT_AIM = 5'd13, MULTIPLY_AIM = 5'd14,
+               AREA_START = 5'd5,   AREA_READ = 5'd6, AREA_MULTIPLY_1 = 5'd7,   AREA_MULTIPLY_2 = 5'd8,  AREA_ADD = 5'd9,
+               AREA_SUBTRACT = 5'd10,   SAVE_TOTALS = 5'd11,  CHECK_SWIPE = 5'd12, WAIT_AIM = 5'd13, MULTIPLY_AIM = 5'd14,
                MULTIPLY_X_SQUARED = 5'd15, SAVE_AIM = 5'd16, SAVE_X_SQUARED = 5'd17,  SAVE_CHORD_SQUARED = 5'd18, DIVIDE_SPIN = 5'd19,
                WAIT_SPIN = 5'd20, OUTPUT_THROW = 5'd21, TRIM_START = 5'd22, TRIM_READ = 5'd23, TRIM_FINISH = 5'd24, TRIM_STEP = 5'd25, TRIM_NEXT = 5'd26, MULTIPLY_WAIT = 5'd27, MULTIPLY_F_SQUARED = 5'd28;
     reg [4:0] state;
@@ -66,8 +66,11 @@ module gesture_features (
     reg signed [15:0] start_x, start_f, end_x, end_f, window_end;
     reg signed [16:0] peak;
     reg signed [15:0] previous_x, previous_f;
-    reg signed [16:0] middle_x, middle_f;
-    reg signed [33:0] middle_cross;
+    // spin: S = sum over the path of cross(p(j-1), p(j)), p = sample - start
+    // (twice the signed area between the swipe and its chord, as in v3.5)
+    reg signed [16:0] last_px, last_pf;
+    reg signed [16:0] path_x, path_f;
+    reg signed [39:0] area_sum;
     reg [32:0] chord_squared;
     reg [5:0]  speed_index;
     reg [8:0]  aim_ratio;
@@ -93,16 +96,18 @@ module gesture_features (
     wire signed [16:0] step_f = sample_f - previous_f;
     wire [17:0] step_size = (step_x[16] ? -step_x : step_x) + (step_f[16] ? -step_f : step_f);
 
-    reg [33:0] abs_cross;
+    reg [39:0] abs_area;
     always @(*) begin
-        if (middle_cross[33]) begin
-            abs_cross = -middle_cross;
+        if (area_sum[39]) begin
+            abs_area = -area_sum;
         end else begin
-            abs_cross = middle_cross;
+            abs_area = area_sum;
         end
     end
-    // turn * 256 = 6 * |S| / L^2 * 256 = 1536 * |S| / L^2   (1536 = 1024 + 512)
-    wire [44:0] spin_num = {1'b0, abs_cross, 10'd0} + {2'b00, abs_cross, 9'd0};
+    // |S| clamped to 28 bits
+    wire [27:0] area_clamped = (abs_area > 40'h000FFFFFFF) ? 28'hFFFFFFF : abs_area[27:0];
+    // arc turning t rad: area = L^2 * t / 12, so turn * 256 = 1536 * |S| / L^2   (1536 = 1024 + 512)
+    wire [44:0] spin_num = {7'd0, area_clamped, 10'd0} + {8'd0, area_clamped, 9'd0};
 
     reg [8:0] spin_turn;
     reg [8:0] spin_above_deadzone;
@@ -158,9 +163,11 @@ module gesture_features (
             peak <= 0;
             previous_x <= 0;
             previous_f <= 0;
-            middle_x <= 0;
-            middle_f <= 0;
-            middle_cross <= 0;
+            last_px <= 0;
+            last_pf <= 0;
+            path_x <= 0;
+            path_f <= 0;
+            area_sum <= 0;
             chord_squared <= 0;
             speed_index <= 0;
             aim_ratio <= 0;
@@ -249,7 +256,7 @@ module gesture_features (
                     if (sample_count < 8'd17) begin
                         peak <= r_ff - start_f;
                         rd_addr <= first_addr + 7'd1;
-                        state <= SELECT_MIDDLE;
+                        state <= AREA_START;
                     end else begin
                         rd_addr <= first_addr + sample_count[6:0] - 7'd1;
                         state <= READ_WINDOW_END;
@@ -265,7 +272,7 @@ module gesture_features (
                     if (window_motion > peak) peak <= window_motion;
                     if (sample_index == last_window) begin
                         rd_addr <= first_addr + 7'd1;
-                        state <= SELECT_MIDDLE;
+                        state <= AREA_START;
                     end else begin
                         sample_index <= sample_index - 8'd1;
                         rd_addr <= first_addr + sample_index[6:0] - 7'd1;
@@ -273,36 +280,48 @@ module gesture_features (
                     end
                 end
 
-                SELECT_MIDDLE: begin
-                    rd_addr <= first_addr + ((sample_count - 1'b1) >> 1);
-                    state <= READ_MIDDLE;
+                // spin: walk the whole swipe, p(0) = 0, rd_addr = sample 1 already
+                AREA_START: begin
+                    last_px <= 0;
+                    last_pf <= 0;
+                    area_sum <= 0;
+                    sample_index <= 8'd1;
+                    state <= AREA_READ;
                 end
-                READ_MIDDLE: begin
-                    middle_x <= r_fx - start_x;
-                    middle_f <= r_ff - start_f;
-                    state <= MULTIPLY_MIDDLE_X;
+                AREA_READ: begin
+                    path_x <= r_fx - start_x;
+                    path_f <= r_ff - start_f;
+                    state <= AREA_MULTIPLY_1;
                 end
-                MULTIPLY_MIDDLE_X: begin
-                    multiply_a <= middle_x;
-                    multiply_b <= delta_f;
+                AREA_MULTIPLY_1: begin
+                    multiply_a <= last_px;
+                    multiply_b <= path_f;
                     multiply_start <= 1;
-                    multiply_return <= SAVE_PRODUCT;
+                    multiply_return <= AREA_ADD;
                     state <= MULTIPLY_WAIT;
                 end
-                MULTIPLY_MIDDLE_F: begin
-                    multiply_a <= middle_f;
-                    multiply_b <= delta_x;
+                AREA_ADD: begin
+                    area_sum <= area_sum + product;
+                    state <= AREA_MULTIPLY_2;
+                end
+                AREA_MULTIPLY_2: begin
+                    multiply_a <= last_pf;
+                    multiply_b <= path_x;
                     multiply_start <= 1;
-                    multiply_return <= SAVE_CROSS;
+                    multiply_return <= AREA_SUBTRACT;
                     state <= MULTIPLY_WAIT;
                 end
-                SAVE_PRODUCT: begin
-                    middle_cross <= product;
-                    state <= MULTIPLY_MIDDLE_F;
-                end
-                SAVE_CROSS: begin
-                    middle_cross <= middle_cross - product;
-                    state <= SAVE_TOTALS;
+                AREA_SUBTRACT: begin
+                    area_sum <= area_sum - product;
+                    last_px <= path_x;
+                    last_pf <= path_f;
+                    if (sample_index == sample_count - 8'd1) begin
+                        state <= SAVE_TOTALS;
+                    end else begin
+                        sample_index <= sample_index + 8'd1;
+                        rd_addr <= first_addr + sample_index[6:0] + 7'd1;
+                        state <= AREA_READ;
+                    end
                 end
 
                 SAVE_TOTALS: begin
@@ -406,7 +425,7 @@ module gesture_features (
                 end
                 WAIT_SPIN: if (dv_done) begin
                     state <= OUTPUT_THROW;
-                    if (middle_cross[33]) begin
+                    if (area_sum[39]) begin
                         throw_spin <= -$signed({1'b0, spin_magnitude});
                     end else begin
                         throw_spin <= $signed({1'b0, spin_magnitude});

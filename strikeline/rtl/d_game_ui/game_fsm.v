@@ -166,7 +166,7 @@ module game_fsm (
         settings[`SET_OIL]   = sw_play[3];
         settings[`SET_THEME] = sw_play[2];
         settings[`SET_LB_HI:`SET_LB_LO] = sw_play[1] ? 2'd2 : sw_play[0] ? 2'd0 : 2'd1;   // 16 / 12 / 14 lb
-        settings[`SET_LEFTY] = sw_lefty;
+        settings[`SET_LEFTY] = 1'b0;          // left-handed option removed (sw15 not used)
     end
     assign settings_raw = set_r;
 
@@ -288,17 +288,18 @@ module game_fsm (
                 end
                 // SETTINGS
                 M_SET: begin
+                    if (hover == 3'd7) hover <= 3'd6;                     // 6 rows only (HAND removed)
                     if (back) begin
                         if (set_dirty) begin c_settings <= 1'b1; save_req <= 1'b1; set_dirty <= 1'b0; end
                         hover <= 3'd5;
                     end else if (act) begin
                         // keep the dirty flag until we leave (v3.5 lost it: fixed)
-                        set_dirty <= set_dirty | (hover == 3'd1) | (hover == 3'd4) | (hover == 3'd6);
-                        case (hover)                          // rows 2, 3, 5 are on switches
+                        set_dirty <= set_dirty | (hover == 3'd1) | (hover == 3'd3) | (hover == 3'd5);
+                        case (hover)                          // 1 SPIN 2 BALL 3 MOUSE 4 THEME 5 BRIGHT 6 ERASE; 2, 4 on switches
                             3'd1: set_r[`SET_SPIN_HI:`SET_SPIN_LO] <= set_r[`SET_SPIN_HI:`SET_SPIN_LO] + 2'd1;
-                            3'd4: set_r[`SET_SENS_HI:`SET_SENS_LO] <= set_r[`SET_SENS_HI:`SET_SENS_LO] + 2'd1;
-                            3'd6: set_r[`SET_BRI_HI:`SET_BRI_LO]   <= set_r[`SET_BRI_HI:`SET_BRI_LO] + 2'd1;
-                            3'd7: begin                               // erase: 2 clicks
+                            3'd3: set_r[`SET_SENS_HI:`SET_SENS_LO] <= set_r[`SET_SENS_HI:`SET_SENS_LO] + 2'd1;
+                            3'd5: set_r[`SET_BRI_HI:`SET_BRI_LO]   <= set_r[`SET_BRI_HI:`SET_BRI_LO] + 2'd1;
+                            3'd6: begin                               // erase: 2 clicks
                                 if (erase_step == 2'd0) erase_step <= 2'd1;
                                 else if (erase_step == 2'd1) begin
                                     erase_step <= 2'd2; c_defaults <= 1'b1; save_req <= 1'b1;

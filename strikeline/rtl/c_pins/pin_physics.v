@@ -593,9 +593,17 @@ module pin_physics #(
                         RACK_CMD_RUN <= RACK_CMD_SAVED;
                         RACK_MASK_RUN <= RACK_MASK_SAVED;
                         RACK_RUN <= 1'b1;
-                        rake_y <= 10'd700;
                         STEP_COUNT <= 4'd0;
-                        st <= S_RAKE;
+                        // a new frame (FULL): set the 10 new pins at once, so the
+                        // pins left from the last frame are not shown during the rake
+                        if (RACK_CMD_SAVED == `RK_FULL) begin
+                            rake_y <= 10'd0;
+                            st <= S_PLACE;
+                        end
+                        else begin
+                            rake_y <= 10'd700;
+                            st <= S_RAKE;
+                        end
                     end
                     else if (IMPULSE_PENDING && !impulse_valid) begin
                         INDEX_A <= IMP_PIN;

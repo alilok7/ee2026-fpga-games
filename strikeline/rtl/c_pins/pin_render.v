@@ -107,15 +107,33 @@ module pin_render (
                 (ODX < 0 && W[3:0] >= 4'd3 && OAX == WW - 11'd1) ? 2'd3 :                 // left highlight
                                                                    2'd0;                  // body
 
-            // bar: box without its corners (on boxes wider than 1)
-            wire signed [10:0] NECK = $signed({{6{O_NK[4]}}, O_NK});
-            wire HIT_BAR = O_VIS && O_BAR && OAX <= {6'd0, O_HW} && OAY <= {6'd0, O_HH} &&
-                           !(OAX == {6'd0, O_HW} && OAY == {6'd0, O_HH} && O_HW > 5'd1);
+            // lying pin: the outline of a real pin on its side, base -> belly -> neck -> head.
+            // ALONG = position along the pin (+ = toward the head, which is on the neck's side);
+            // the half thickness at that position comes from the pin's profile in quarters.
+            wire signed [10:0] NECK  = $signed({{6{O_NK[4]}}, O_NK});
+            wire        SIDE  = (O_NK != 5'd0);                            // lying across the view
+            wire signed [10:0] ALONG = O_NK[4] ? -ODX : ODX;
+            wire signed [10:0] HW_S  = $signed({6'd0, O_HW});
+            wire signed [10:0] Q     = $signed({8'd0, O_HW[4:2]});         // a quarter of the half-length
+            wire signed [10:0] Q2    = Q + Q;
+            wire signed [10:0] Q25   = Q2 + $signed({9'd0, O_HW[4:3]});
+            wire [10:0] HH_1  = {6'd0, O_HH};                                // full (belly)
+            wire [10:0] HH_34 = {6'd0, O_HH - {2'b00, O_HH[4:2]}};           // 3/4
+            wire [10:0] HH_12 = {7'd0, O_HH[4:1]};                           // 1/2
+            wire [10:0] THICK =
+                !SIDE                     ? ((OAX == {6'd0, O_HW} && O_HW > 5'd1) ? HH_34 : HH_1) :   // end-on: rounded
+                (ALONG < -HW_S + Q)       ? HH_34 :                                 // base
+                (ALONG < Q)               ? HH_1  :                                 // belly
+                (ALONG < Q2)              ? HH_34 :                                 // taper to the neck
+                (ALONG < Q25)             ? HH_12 :                                 // neck
+                (ALONG < HW_S)            ? HH_34 :                                 // head
+                                            HH_12;                                  // tip of the head
+            wire HIT_BAR = O_VIS && O_BAR && OAX <= {6'd0, O_HW} && OAY <= THICK;
             wire [1:0] COLOUR_BAR =
-                (O_NK != 5'd0 && (ODX == NECK || (O_HW >= 5'd8 && ODX == NECK + 11'sd1))) ? 2'd2 :   // neck
-                (ODY < 0 && OAY == {6'd0, O_HH}) ? 2'd3 :                                          // lit top
-                (ODY > 0)                        ? 2'd1 :                                          // shaded
-                                                   2'd0;
+                (SIDE && (ODX == NECK || (O_HW >= 5'd8 && ODX == NECK + (O_NK[4] ? -11'sd1 : 11'sd1)))) ? 2'd2 :  // red neck stripes
+                (ODY < 0 && OAY == THICK)              ? 2'd3 :                     // lit top edge
+                (ODY > 0 && OAY + OAY > THICK)         ? 2'd1 :                     // shaded underside
+                                                         2'd0;                      // body
 
             assign FP_HIT[g]    = HIT_UP || HIT_BAR;
             assign FP_COLOUR[g] = HIT_UP ? COLOUR_UP : COLOUR_BAR;

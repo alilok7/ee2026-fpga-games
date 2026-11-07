@@ -66,7 +66,7 @@ module tb_gesture;
     reg signed [15:0] last_vx, last_vy;
     reg [7:0] last_mph;
     always @(posedge clk) begin
-        if (tv) $display("      dbg n=%0d mid_cross=%0d L2=%0d turn256=%0d peak=%0d spin=%0d", u_feat.sample_count, u_feat.middle_cross, u_feat.chord_squared, u_feat.dv_quo, u_feat.peak, tspin);
+        if (tv) $display("      dbg n=%0d area2=%0d L2=%0d turn256=%0d peak=%0d spin=%0d", u_feat.sample_count, u_feat.area_sum, u_feat.chord_squared, u_feat.dv_quo, u_feat.peak, tspin);
         if (tv)  begin got_throw <= 1; last_spin <= tspin; last_vx <= tvx; last_vy <= tvy; last_mph <= tmph; end
         if (rej) begin got_reject <= 1; last_msg <= rmsg; $display("      reject msg=%0d n=%0d js=%0d je=%0d peak=%0d dfs=%0d", rmsg, u_feat.sample_count, u_feat.first_move, u_feat.last_move, u_feat.peak, u_feat.total_f); end
         if (scancel) got_cancel <= 1;

@@ -148,8 +148,10 @@ module menu_render (
         end
     end
 
-    // SETTINGS: 7 rows, name in cols 1-6, value in cols 9-13; switch rows dim
-    wire sw_row = (row == 3'd2 || row == 3'd3 || row == 3'd5);   // BALL, HAND, THEME: on switches
+    // SETTINGS: 6 rows (HAND removed), name in cols 1-6, value in cols 9-13; switch rows dim
+    // item = the entry of the SETN list shown on this row (rows 3..6 show items 4..7)
+    wire [2:0] item   = (row >= 3'd3) ? row + 3'd1 : row;
+    wire       sw_row = (item == 3'd2 || item == 3'd5);              // BALL, THEME: on switches
     reg [15:0] s_col; reg [`TX_W-1:0] s_txt;
     always @(*) begin
         s_col = c_bg; s_txt = {`TX_W{1'b0}};
@@ -157,15 +159,15 @@ module menu_render (
             s_col = c_title;
             if (col < 4'd8) s_txt = tx_s(`S_SETT + col, 1'b0, fx, fy, W, 0, 1'b0);              // "SETTINGS"
             else if (mcol >= 5'd14 && mrow == 4'd0) s_txt = tx_s(`S_BACKH + mcol - 5'd14, 1'b1, mfx, mfy, W, 0, 1'b0);
-        end else begin
+        end else if (row != 3'd7) begin
             if (row == hover) s_col = c_hov;
             if (col >= 4'd1 && col < 4'd7)                                                   // row name
-                s_txt = tx_s(`S_SETN + {row - 3'd1, 2'b00} + {row - 3'd1, 1'b0} + col - 4'd1, 1'b0, fx, fy,
+                s_txt = tx_s(`S_SETN + {item - 3'd1, 2'b00} + {item - 3'd1, 1'b0} + col - 4'd1, 1'b0, fx, fy,
                              sw_row ? c_dim : (row == hover ? Y : W), 0, 1'b0);
             else if (sw_row && col == 4'd15)                                                 // "S" = on a switch
                 s_txt = tx_l(6'd51, 1'b0, fx, fy, c_dim, 0, 1'b0);
             else if (col >= 4'd9 && col < 4'd14) begin                                       // value
-                case (row)
+                case (item)
                     3'd1: s_txt = tx_s(`S_SETV + 11'd60 + {settings[`SET_SPIN_HI:`SET_SPIN_LO], 2'b00} +
                                        settings[`SET_SPIN_HI:`SET_SPIN_LO] + col - 4'd9, 1'b0, fx, fy, C, 0, 1'b0);
                     3'd2: s_txt = tx_s(`S_SETV + 11'd10 + {settings[`SET_LB_HI:`SET_LB_LO], 2'b00} +
